@@ -2,7 +2,7 @@
 title: joshuamandel.com
 layout: default
 ---
-# Who?
+# About Josh 
 * [resume](https://github.com/jmandel/ephemera/raw/master/resume-josh-mandel.pdf)
 * [coursework](https://github.com/jmandel/coursework)
 * [other preserved ephemera](https://github.com/jmandel/ephemera)
