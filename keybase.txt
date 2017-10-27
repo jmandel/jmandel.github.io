@@ -1,0 +1,55 @@
+==================================================================
+https://keybase.io/jmandel
+--------------------------------------------------------------------
+
+I hereby claim:
+
+  * I am an admin of http://joshuamandel.com
+  * I am jmandel (https://keybase.io/jmandel) on keybase.
+  * I have a public key ASDjpMvWtTLcrmFpbEhzJ-HoQIjVx2OxJwIalLJQodCBBgo
+
+To do so, I am signing this object:
+
+{
+  "body": {
+    "key": {
+      "eldest_kid": "0120e3a4cbd6b532dcae61696c487327e1e84088d5c763b127021a94b250a1d081060a",
+      "host": "keybase.io",
+      "kid": "0120e3a4cbd6b532dcae61696c487327e1e84088d5c763b127021a94b250a1d081060a",
+      "uid": "caed105b5d81e6e7cb2e23ccf48ebe19",
+      "username": "jmandel"
+    },
+    "merkle_root": {
+      "ctime": 1509073448,
+      "hash": "08e8f46e81805ef543a3a1365a2567ae0e9c4271ae4cdd1d86da955279c578897714b4d72643a0284c150ae82ddf7b0ae5fd8e000dcce15e4199bd92035c19d6",
+      "hash_meta": "a1174caec4111bac962aac67fe1b23bfa26fea69f5b6caf025dc8ad92c37eeb8",
+      "seqno": 1635700
+    },
+    "service": {
+      "hostname": "joshuamandel.com",
+      "protocol": "http:"
+    },
+    "type": "web_service_binding",
+    "version": 1
+  },
+  "client": {
+    "name": "keybase.io go client",
+    "version": "1.0.34"
+  },
+  "ctime": 1509073459,
+  "expire_in": 504576000,
+  "prev": "3dbb64133d303738552a3fd9d7e57254db51d11c96d16cde6afb51d665165faf",
+  "seqno": 10,
+  "tag": "signature"
+}
+
+which yields the signature:
+
+hKRib2R5hqhkZXRhY2hlZMOpaGFzaF90eXBlCqNrZXnEIwEg46TL1rUy3K5haWxIcyfh6ECI1cdjsScCGpSyUKHQgQYKp3BheWxvYWTFA0d7ImJvZHkiOnsia2V5Ijp7ImVsZGVzdF9raWQiOiIwMTIwZTNhNGNiZDZiNTMyZGNhZTYxNjk2YzQ4NzMyN2UxZTg0MDg4ZDVjNzYzYjEyNzAyMWE5NGIyNTBhMWQwODEwNjBhIiwiaG9zdCI6ImtleWJhc2UuaW8iLCJraWQiOiIwMTIwZTNhNGNiZDZiNTMyZGNhZTYxNjk2YzQ4NzMyN2UxZTg0MDg4ZDVjNzYzYjEyNzAyMWE5NGIyNTBhMWQwODEwNjBhIiwidWlkIjoiY2FlZDEwNWI1ZDgxZTZlN2NiMmUyM2NjZjQ4ZWJlMTkiLCJ1c2VybmFtZSI6ImptYW5kZWwifSwibWVya2xlX3Jvb3QiOnsiY3RpbWUiOjE1MDkwNzM0NDgsImhhc2giOiIwOGU4ZjQ2ZTgxODA1ZWY1NDNhM2ExMzY1YTI1NjdhZTBlOWM0MjcxYWU0Y2RkMWQ4NmRhOTU1Mjc5YzU3ODg5NzcxNGI0ZDcyNjQzYTAyODRjMTUwYWU4MmRkZjdiMGFlNWZkOGUwMDBkY2NlMTVlNDE5OWJkOTIwMzVjMTlkNiIsImhhc2hfbWV0YSI6ImExMTc0Y2FlYzQxMTFiYWM5NjJhYWM2N2ZlMWIyM2JmYTI2ZmVhNjlmNWI2Y2FmMDI1ZGM4YWQ5MmMzN2VlYjgiLCJzZXFubyI6MTYzNTcwMH0sInNlcnZpY2UiOnsiaG9zdG5hbWUiOiJqb3NodWFtYW5kZWwuY29tIiwicHJvdG9jb2wiOiJodHRwOiJ9LCJ0eXBlIjoid2ViX3NlcnZpY2VfYmluZGluZyIsInZlcnNpb24iOjF9LCJjbGllbnQiOnsibmFtZSI6ImtleWJhc2UuaW8gZ28gY2xpZW50IiwidmVyc2lvbiI6IjEuMC4zNCJ9LCJjdGltZSI6MTUwOTA3MzQ1OSwiZXhwaXJlX2luIjo1MDQ1NzYwMDAsInByZXYiOiIzZGJiNjQxMzNkMzAzNzM4NTUyYTNmZDlkN2U1NzI1NGRiNTFkMTFjOTZkMTZjZGU2YWZiNTFkNjY1MTY1ZmFmIiwic2Vxbm8iOjEwLCJ0YWciOiJzaWduYXR1cmUifaNzaWfEQEmfHB7oUeg5+MU9r1MmDPq5OCyNyE9KQNPQ1Ta9D97Q7kFAha6tggdweFY6PLHw7zOz275HN5MIJCELfvwsFg+oc2lnX3R5cGUgpGhhc2iCpHR5cGUIpXZhbHVlxCCxYzL5BOViKEqbOrqfIGuN+cSR8DKom0i938Iq+sBlHaN0YWfNAgKndmVyc2lvbgE=
+
+And finally, I am proving ownership of this host by posting or
+appending to this document.
+
+View my publicly-auditable identity here: https://keybase.io/jmandel
+
+==================================================================
