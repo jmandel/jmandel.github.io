@@ -14,3 +14,5 @@ layout: default
 
 # Indecisive?
 * [pickfor.us](http://pickfor.us)
+
+<a rel="me" href="https://mastodon.cloud/@JoshCMandel"></a>
