@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CQMs in the age of LLMs: Increasing flexibility and reducing burden</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F0F4F8; 
+            color: #073B4C; 
+        }
+        .chart-container { 
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; 
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+                max-height: 400px;
+            }
+        }
+        .card {
+            background-color: #FFFFFF;
+            border-radius: 0.5rem; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); 
+            padding: 1.5rem; 
+            margin-bottom: 1.5rem; 
+        }
+        .text-problem { color: #FF6B6B; } 
+        .text-solution { color: #06D6A0; } 
+        .text-neutral-dark { color: #073B4C; } 
+        .text-neutral-medium { color: #118AB2; } 
+        .bg-problem-light { background-color: #FFE0E0; } 
+        .bg-solution-light { background-color: #D9F7F0; } 
+        .border-problem { border-color: #FF6B6B; }
+        .border-solution { border-color: #06D6A0; }
+        .border-neutral { border-color: #118AB2; }
+
+        .flow-box {
+            border: 2px solid;
+            padding: 0.75rem;
+            border-radius: 0.375rem; 
+            text-align: center;
+            margin-bottom: 0.5rem;
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            min-height: 70px; /* Ensure boxes have some height */
+        }
+         .flow-box-sm {
+            padding: 0.5rem;
+            font-size: 0.875rem; 
+            min-height: 50px;
+        }
+        .arrow {
+            font-size: 1.5rem; 
+            margin: auto 0.25rem; 
+            text-align: center;
+            display: flex;
+            align-items: center;
+        }
+        .section-title {
+            font-size: 1.75rem; 
+            font-weight: 700; 
+            margin-bottom: 1rem;
+            text-align: center;
+            padding-top: 1rem;
+        }
+        .subsection-title {
+            font-size: 1.25rem; 
+            font-weight: 600; 
+            color: #118AB2; 
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .critical-text {
+            font-weight: 600;
+            color: #FF6B6B; 
+        }
+        .solution-text {
+            font-weight: 600;
+            color: #06D6A0; 
+        }
+        .data-access-tier {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 0.375rem; 
+        }
+        .tier-description {
+            font-size: 0.8rem; 
+            font-style: italic;
+            color: #073B4C; 
+            margin-top: 2px;
+        }
+        .funnel-segment {
+            padding: 0.5rem 1rem;
+            margin: 0 auto 0.25rem auto;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            border-radius: 0.25rem;
+        }
+        .checklist-item {
+            font-family: monospace;
+            background-color: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            display: inline-block;
+            margin-top: 0.25rem;
+        }
+        .workflow-container {
+            display: flex;
+            flex-direction: column; /* Stack vertically on mobile */
+            align-items: stretch; /* Stretch items if in column */
+        }
+        .workflow-step {
+            display: flex;
+            flex-direction: column; /* Box above arrow on mobile */
+            align-items: center;
+            margin-bottom: 0.5rem; /* Space between steps on mobile */
+        }
+        @media (min-width: 768px) { /* md breakpoint */
+            .workflow-container {
+                flex-direction: row; /* Horizontal layout on medium screens and up */
+                align-items: center; 
+                justify-content: space-around; /* Distribute space */
+                flex-wrap: wrap; 
+            }
+            .workflow-step {
+                 flex-direction: row; /* Box beside arrow */
+                 margin-bottom: 0;
+            }
+            .workflow-container > .flow-box, .workflow-step > .flow-box { /* Control flex properties for boxes in horizontal layout */
+                flex: 1 1 180px; /* Allow shrink, grow, with a base width */
+                margin: 0.25rem;
+            }
+            .workflow-container > .arrow, .workflow-step > .arrow {
+                flex-basis: content; 
+                margin: 0 0.5rem; /* Space around horizontal arrows */
+            }
+             .workflow-step:not(:last-child) > .arrow { /* Show arrow if not the last step in a row arrangement */
+                display: flex;
+            }
+             .workflow-step > .arrow.mobile-only { /* Hide this arrow on md+ */
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="bg-neutral-dark text-white py-6 shadow-lg" style="background-color: #073B4C !important; color: #ffffff !important;">
+        <div class="container mx-auto px-6 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold" style="color: #ffffff !important;">CQMs in the age of LLMs: Increasing flexibility and reducing burden</h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+
+        <section class="mb-10 card">
+            <h2 class="section-title text-neutral-medium">The Reality Behind "e"CQMs</h2>
+            <p class="text-center text-lg text-neutral-dark mb-3">Electronic Clinical Quality Measures (eCQMs) are central to Value-Based Care, aiming to automate quality assessment from EHR data. However, the "electronic" aspect often masks significant manual effort and system limitations. This exploration delves into these challenges and proposes a more intelligent, flexible future for quality measurement, especially in the age of Large Language Models (LLMs).</p>
+        </section>
+
+        <section class="mb-10 card">
+            <h2 class="section-title text-neutral-medium">The Promise vs. The Lived Reality</h2>
+            <div class="grid md:grid-cols-2 gap-6 items-start">
+                <div class="border-l-4 border-solution p-4 rounded bg-green-50">
+                    <h3 class="subsection-title text-solution">The Promise:</h3>
+                    <ul class="list-disc list-inside ml-4 space-y-1 text-neutral-dark">
+                        <li>Auto-calculation from EHR data.</li>
+                        <li>No extra clicks for clinicians.</li>
+                        <li>Seamlessly "works on EHR system."</li>
+                        <li>Accurate reflection of care.</li>
+                    </ul>
+                </div>
+                <div class="border-l-4 border-problem p-4 rounded bg-red-50">
+                    <h3 class="subsection-title text-problem">The Lived Reality:</h3>
+                    <ul class="list-disc list-inside ml-4 space-y-1 text-neutral-dark">
+                        <li><span class="critical-text">Significant manual workflow</span> for clinicians & admins.</li>
+                        <li>"Smuggled" clinician/admin time to meet specs.</li>
+                        <li>Data often reflects "checklist compliance" not just care.</li>
+                        <li><span class="critical-text">Standardized EHR data outputs</span> often misalign with specific eCQM needs, requiring manual reconciliation.</li>
+                    </ul>
+                    <div class="mt-3">
+                        <p class="text-sm text-neutral-dark font-semibold">Example: Vendor "Checklist" Snippet</p>
+                        <div class="checklist-item">[ ] PHQ-9 Score Entered in Form_XYZ</div>
+                        <div class="checklist-item">[ ] Follow-up Code_ABC Added to Plan Tab</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-10 card">
+            <h2 class="section-title text-neutral-medium">The Hidden Burden: Evidence from EHR Manuals</h2>
+            <p class="text-center text-lg text-neutral-dark mb-4">Analysis of guidance from over 20 EHRs (2020-2024) reveals recurring pain points. These aren’t edge cases—<span class="critical-text">every major EHR requires extra steps beyond normal charting.</span></p>
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div class="p-3 bg-red-100 border-l-4 border-problem rounded"><strong>Structured Fields or It Doesn’t Count:</strong> Answers must land in discrete flowsheet cells or specific template fields, not just free-text.</div>
+                <div class="p-3 bg-red-100 border-l-4 border-problem rounded"><strong>Separate, Coded Follow-Up Entry:</strong> A positive screen needs a *second* distinct, coded entry for the follow-up plan (e.g., referral, medication).</div>
+                <div class="p-3 bg-red-100 border-l-4 border-problem rounded"><strong>Extra Quality Checklist/Tab:</strong> Many EHRs use separate "quality modules" or "checklists" outside the main clinical note, forcing double documentation.</div>
+                <div class="p-3 bg-red-100 border-l-4 border-problem rounded"><strong>Local Build & Mapping Upkeep:</strong> Significant IT work needed to enable templates, alerts, and ensure data fields map correctly to eCQM logic, especially after upgrades.</div>
+            </div>
+        </section>
+
+        <section class="mb-10 card">
+            <h2 class="section-title text-neutral-medium">The Data Integrity Gap: Impact on Population Analytics</h2>
+            <p class="text-center text-lg text-neutral-dark mb-4">This reliance on specific, manual workflows undermines the reliability of eCQM data for true population health analytics.</p>
+            <div class="grid md:grid-cols-2 gap-6 items-center">
+                <div>
+                    <ul class="list-disc list-inside space-y-2 text-neutral-dark">
+                        <li><span class="font-semibold">"Aggregate & compute" fails</span> if all data sources didn't follow the exact "special prep steps."</li>
+                        <li><span class="font-semibold">Cannot reliably "turn on"</span> a new measure retroactively if specific documentation wasn't done.</li>
+                        <li><span class="font-semibold">Distorts "report-only" pilots:</span> Manual efforts during pilots make measures look easier to implement than they are in sustained, real-world practice.</li>
+                    </ul>
+                </div>
+                <div class="p-4 bg-gray-100 rounded">
+                    <h4 class="font-semibold text-center text-neutral-dark mb-2">The Data Funnel Problem:</h4>
+                    <div class="funnel-segment w-full bg-blue-500">100% Clinical Data Documented</div>
+                    <div class="text-2xl text-center text-blue-500">⬇️</div>
+                    <div class="funnel-segment w-4/5 bg-orange-500">~60% In Structured EHR Fields</div>
+                    <div class="text-2xl text-center text-orange-500">⬇️</div>
+                    <div class="funnel-segment w-3/5 bg-red-500">~40% Passes eCQM Vendor-Specific Logic</div>
+                    <p class="text-xs text-center mt-1 text-neutral-dark">(Illustrative percentages based on typical issues)</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-10 card">
+            <h2 class="section-title text-neutral-medium">Case Study: The CMS2 (Depression Screening) Gauntlet</h2>
+            <p class="text-center text-lg text-neutral-dark mb-1">The PHQ-9, a common depression questionnaire, often highlights the eCQM disconnect. Clinically appropriate care may occur, yet denominator/numerator credit hinges on <span class="critical-text">multiple manual configurations and data linkage steps.</span></p>
+            <p class="text-center text-sm text-neutral-dark mb-4">(A more realistic, burdensome workflow)</p>
+            <div class="workflow-container p-2 bg-problem-light rounded">
+                <div class="flow-box border-problem text-neutral-dark text-sm">
+                    <strong>Initial EHR Setup (Manual Admin Task):</strong><br/> Configure specific PHQ-9 form & associate with LOINC code.
+                </div>
+                <div class="arrow text-problem md:hidden">⬇️</div> <div class="arrow text-problem hidden md:block">➡️</div>
+                <div class="flow-box border-problem text-neutral-dark text-sm">
+                    <strong>📱 App Check-in / Portal:</strong><br/>Patient completes PHQ-9 form.
+                </div>
+                <div class="arrow text-problem md:hidden">⬇️</div> <div class="arrow text-problem hidden md:block">➡️</div>
+                <div class="flow-box border-problem text-neutral-dark text-sm">
+                    <strong>🖱️ EHR - Clinician Task:</strong><br/>Link completed form to current encounter + new diagnosis (if applicable).
+                </div>
+                <div class="arrow text-problem md:hidden">⬇️</div> <div class="arrow text-problem hidden md:block">➡️</div>
+                <div class="flow-box border-problem text-neutral-dark text-sm">
+                    <strong>📝 QM Portal (Post-Encounter Staff Task):</strong><br/>Review encounter hx; Manually record/link follow-up as distinct "intervention".
+                </div>
+                <div class="arrow text-problem md:hidden">⬇️</div> <div class="arrow text-problem hidden md:block">➡️</div>
+                 <div class="flow-box border-problem text-neutral-dark text-sm">
+                    <strong>💡 "e"CQM Calculated:</strong><br/>Only after all prior manual configuration & data linkage steps are complete.
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-10 card bg-solution-light">
+            <h2 class="section-title text-solution">A Foundational Principle: Capture Once, Compute Anywhere</h2>
+            <p class="text-center text-lg text-neutral-dark mb-4">Let EHRs focus on comprehensive care documentation. Let a separate, intelligent service compute any measure—today or retrospectively.</p>
+            <div class="flex flex-col md:flex-row justify-around items-center space-y-4 md:space-y-0 md:space-x-4 p-4">
+                <div class="flow-box border-neutral bg-white text-neutral-dark w-full md:w-2/5">
+                    <strong class="block text-lg">EHR Systems</strong>Focus: Rich Care Documentation (Notes, Orders, Problems, etc.)
+                </div>
+                <div class="text-3xl font-bold text-solution mx-4"> decoupled from </div>
+                <div class="flow-box border-solution bg-white text-neutral-dark w-full md:w-2/5">
+                    <strong class="block text-lg">Measure Computation Layer</strong>Focus: Applying Logic to ALL Available Data
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-10 card">
+            <h2 class="section-title text-solution">Blueprint for Change: A Flexible, Intelligent Architecture</h2>
+             <p class="text-center text-neutral-dark mb-4">This proposed architecture can be built once and, in principle, deployed against any certified EHR to overcome current limitations.</p>
+            <div class="grid md:grid-cols-2 gap-6 items-start">
+                <div class="space-y-3">
+                    <div class="flow-box border-solution text-neutral-dark data-access-tier bg-green-50">
+                        <strong class="text-md block text-solution">Comprehensive Data Ingestion & Interaction</strong>
+                        <div class="flow-box flow-box-sm border-solution mt-1"><strong>Bulk EHI Export:</strong> FHIR APIs (Structured) + Full Clinical Notes (Narrative)</div>
+                        <div class="flow-box flow-box-sm border-solution mt-1"><strong>Full EHR Export (Backstop):</strong> All Structured Data (incl. Non-Standardized for LLM use)</div>
+                        <div class="flow-box flow-box-sm border-solution mt-1"><strong>UI Automation Agents (Backstop):</strong> For Non-API Accessible Data/Actions</div>
+                    </div>
+                    <div class="arrow text-solution text-center">⬇️</div>
+                    <div class="flow-box border-solution text-neutral-dark data-access-tier bg-green-50">
+                        <strong class="text-md block text-solution">Intelligent Data Structuring & Enrichment</strong>
+                        <div class="flow-box flow-box-sm border-solution mt-1"><strong>LLM Agents:</strong> Use structured & unstructured data to classify patients according to CQM criteria.</div>
+                    </div>
+                    <div class="arrow text-solution text-center">⬇️</div>
+                    <div class="flow-box border-solution text-neutral-dark data-access-tier bg-green-50">
+                         <strong class="text-md block text-solution">Measure Application & Calculation</strong>
+                        <div class="flow-box flow-box-sm border-solution mt-1"><strong>Measure Engine:</strong> Assigns Numerator/Denominator based on LLM-classified data.</div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <h3 class="subsection-title text-solution">Key Idea:</h3>
+                    <p class="text-neutral-dark mb-2">LLM Agents use structured and unstructured data (e.g., pulling <code class="bg-gray-200 px-1 rounded">'PHQ-9 = 12'</code> from narrative to infer 'positive screen,' or identifying a documented counseling session as follow-up) to classify patients according to CQM criteria. These classifications then feed into a measure engine. The measures themselves don't need to be written in a 'computable' way that assumes specific codes/fields are populated. This makes measurement resilient to variations in EHR documentation practices.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-10 card bg-solution-light">
+            <h2 class="section-title text-solution">Unlocking True Value: Advantages of the New Approach</h2>
+            <p class="text-center text-neutral-dark mb-4">This flexible, post-EHR computation architecture directly supports a scalable, learning health system infrastructure.</p>
+            <div class="grid sm:grid-cols-2 gap-4 text-neutral-dark">
+                <div class="p-3 border border-solution rounded">✅ Works across all EHRs (no per-vendor custom build).</div>
+                <div class="p-3 border border-solution rounded">✅ Zero extra clicks for clinicians at point of care.</div>
+                <div class="p-3 border border-solution rounded">✅ New or "what-if" measures calculable retrospectively.</div>
+                <div class="p-3 border border-solution rounded">✅ Same robust pipeline for "real" care analysis & "report-only" pilots.</div>
+                <div class="p-3 border border-solution rounded">✅ More accurate reflection of true clinical care.</div>
+                <div class="p-3 border border-solution rounded">✅ Reduces clinician burnout related to quality reporting.</div>
+            </div>
+        </section>
+
+        <section class="mb-10 card">
+            <h2 class="section-title text-neutral-medium">Key Policy Levers</h2>
+            <p class="text-center text-neutral-dark mb-4">These steps can shift the cost and burden of quality measurement away from the point of care and toward shared, efficient services.</p>
+            <ol class="list-decimal list-inside space-y-3 text-neutral-dark text-lg">
+                <li>Require <span class="font-semibold">Bulk Export performance</span> to match vendor-proprietary methods.</li>
+                <li>Require an <span class="font-semibold">API to automate Full EHI Export</span> (Electronic Health Information).</li>
+                <li>Ensure health systems are contractually allowed to drive EHR interactions with <span class="font-semibold">automated agents</span> (address info blocking).</li>
+                <li>Deploy a richer set of <span class="font-semibold">"report only" measures</span> to push on system flexibility!</li>
+            </ol>
+        </section>
+    </main>
+
+    <script>
+        // Placeholder for any future Chart.js or other JS needs.
+        // Currently, no dynamic charts are used in this version of the infographic.
+    </script>
+</body>
+</html>
