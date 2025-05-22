@@ -10,16 +10,16 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #F0F4F8; 
-            color: #073B4C; 
+            background-color: #F0F4F8; /* Light blue-gray background */
+            color: #073B4C; /* Dark blue text */
         }
-        .chart-container { 
+        .chart-container { /* For potential future charts */
             position: relative;
             width: 100%;
             max-width: 600px;
             margin-left: auto;
             margin-right: auto;
-            height: 300px; 
+            height: 300px; /* Default height */
             max-height: 350px;
         }
         @media (min-width: 768px) {
@@ -29,87 +29,79 @@
             }
         }
         .card {
-            background-color: #FFFFFF;
-            border-radius: 0.5rem; 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); 
-            padding: 1.5rem; 
-            margin-bottom: 1.5rem; 
+            background-color: #FFFFFF; /* White card background */
+            border-radius: 0.5rem; /* Rounded corners */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Standard shadow */
+            padding: 1.5rem; /* Padding inside card */
+            margin-bottom: 1.5rem; /* Space below card */
         }
-        .text-problem { color: #FF6B6B; } 
-        .text-solution { color: #06D6A0; } 
-        .text-neutral-dark { color: #073B4C; } 
-        .text-neutral-medium { color: #118AB2; } 
-        .bg-problem-light { background-color: #FFE0E0; } 
-        .bg-solution-light { background-color: #D9F7F0; } 
-        .border-problem { border-color: #FF6B6B; }
-        .border-solution { border-color: #06D6A0; }
-        .border-neutral { border-color: #118AB2; }
+        .text-problem { color: #FF6B6B; } /* Problem/Red color */
+        .text-solution { color: #047857; } /* Darker Solution/Green color */
+        .text-neutral-dark { color: #073B4C; } /* Dark blue for text */
+        .text-neutral-medium { color: #118AB2; } /* Medium blue for accents */
+        .bg-problem-light { background-color: #FFE0E0; } /* Light red background */
+        .bg-solution-light { background-color: #D1FAE5; } /* Lighter green for background for better contrast with dark green text */
+        .border-problem { border-color: #FF6B6B; } /* Red border */
+        .border-solution { border-color: #047857; } /* Darker Green border */
+        .border-neutral { border-color: #118AB2; } /* Medium blue border */
 
         .flow-box {
             border: 2px solid;
             padding: 0.75rem;
-            border-radius: 0.375rem; 
+            border-radius: 0.375rem; /* Slightly rounded corners for flow boxes */
             text-align: center;
-            margin-bottom: 0.5rem;
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
+            margin-bottom: 0.5rem; /* Space below flow boxes when stacked */
+            display: flex; /* For centering content */
+            flex-direction: column; /* Stack content vertically */
+            justify-content: center; /* Center content vertically */
             min-height: 70px; /* Ensure boxes have some height */
         }
-         .flow-box-sm {
+        .flow-box-sm { /* Smaller flow boxes */
             padding: 0.5rem;
-            font-size: 0.875rem; 
+            font-size: 0.875rem; /* Smaller text */
             min-height: 50px;
         }
         .arrow {
-            font-size: 1.5rem; 
-            margin: auto 0.25rem; 
+            font-size: 1.5rem; /* Arrow size */
+            margin: auto 0.25rem; /* Margins for arrows */
             text-align: center;
             display: flex;
             align-items: center;
         }
         .section-title {
-            font-size: 1.75rem; 
-            font-weight: 700; 
+            font-size: 1.75rem; /* Larger title for sections */
+            font-weight: 700; /* Bold */
             margin-bottom: 1rem;
             text-align: center;
             padding-top: 1rem;
         }
         .subsection-title {
-            font-size: 1.25rem; 
-            font-weight: 600; 
-            color: #118AB2; 
+            font-size: 1.25rem; /* Slightly smaller for subsections */
+            font-weight: 600; /* Semi-bold */
+            color: #118AB2; /* Medium blue */
             margin-top: 1rem;
             margin-bottom: 0.5rem;
         }
         .critical-text {
-            font-weight: 600;
-            color: #FF6B6B; 
+            font-weight: 600; /* Semi-bold */
+            color: #FF6B6B; /* Red for critical emphasis */
         }
-        .solution-text {
-            font-weight: 600;
-            color: #06D6A0; 
+        .solution-text { /* This class is now mainly for non-text elements if needed, text uses .text-solution */
+            font-weight: 600; 
+            color: #047857; /* Darker Green */
         }
-        .data-access-tier {
+        .data-access-tier { /* Styling for data access tier boxes */
             margin-top: 0.75rem;
             padding: 0.75rem;
-            border-radius: 0.375rem; 
+            border-radius: 0.375rem;
         }
-        .tier-description {
-            font-size: 0.8rem; 
+        .tier-description { /* For small italic descriptions */
+            font-size: 0.8rem;
             font-style: italic;
-            color: #073B4C; 
+            color: #073B4C; /* Dark blue */
             margin-top: 2px;
         }
-        .funnel-segment {
-            padding: 0.5rem 1rem;
-            margin: 0 auto 0.25rem auto;
-            text-align: center;
-            color: white;
-            font-weight: bold;
-            border-radius: 0.25rem;
-        }
-        .checklist-item {
+        .checklist-item { /* For checklist-like items */
             font-family: monospace;
             background-color: #f9f9f9;
             border: 1px solid #e0e0e0;
@@ -118,47 +110,47 @@
             display: inline-block;
             margin-top: 0.25rem;
         }
+        /* Responsive workflow container */
         .workflow-container {
             display: flex;
             flex-direction: column; /* Stack vertically on mobile */
-            align-items: stretch; /* Stretch items if in column */
+            align-items: stretch;
         }
-        .workflow-step {
+        .workflow-step { /* Individual step in the workflow */
             display: flex;
-            flex-direction: column; /* Box above arrow on mobile */
+            flex-direction: column;
             align-items: center;
-            margin-bottom: 0.5rem; /* Space between steps on mobile */
+            margin-bottom: 0.5rem;
         }
         @media (min-width: 768px) { /* md breakpoint */
             .workflow-container {
                 flex-direction: row; /* Horizontal layout on medium screens and up */
-                align-items: center; 
-                justify-content: space-around; /* Distribute space */
-                flex-wrap: wrap; 
+                align-items: center;
+                justify-content: space-around;
+                flex-wrap: wrap; /* Allow wrapping if needed */
             }
             .workflow-step {
-                 flex-direction: row; /* Box beside arrow */
+                 flex-direction: row;
                  margin-bottom: 0;
             }
-            .workflow-container > .flow-box, .workflow-step > .flow-box { /* Control flex properties for boxes in horizontal layout */
-                flex: 1 1 180px; /* Allow shrink, grow, with a base width */
+            .workflow-container > .flow-box, .workflow-step > .flow-box {
+                flex: 1 1 180px; /* Flex properties for responsiveness */
                 margin: 0.25rem;
             }
             .workflow-container > .arrow, .workflow-step > .arrow {
-                flex-basis: content; 
-                margin: 0 0.5rem; /* Space around horizontal arrows */
+                flex-basis: content;
+                margin: 0 0.5rem;
             }
-             .workflow-step:not(:last-child) > .arrow { /* Show arrow if not the last step in a row arrangement */
-                display: flex;
+             .workflow-step:not(:last-child) > .arrow {
+                display: flex; /* Show arrow if not the last step */
             }
-             .workflow-step > .arrow.mobile-only { /* Hide this arrow on md+ */
+             .workflow-step > .arrow.mobile-only { /* Hide certain arrows on larger screens */
                 display: none;
             }
         }
     </style>
 </head>
 <body>
-
     <header class="bg-neutral-dark text-white py-6 shadow-lg" style="background-color: #073B4C !important; color: #ffffff !important;">
         <div class="container mx-auto px-6 text-center">
             <h1 class="text-3xl md:text-4xl font-bold" style="color: #ffffff !important;">CQMs in the age of LLMs: Increasing flexibility and reducing burden</h1>
@@ -166,7 +158,6 @@
     </header>
 
     <main class="container mx-auto px-4 py-8">
-
         <section class="mb-10 card">
             <h2 class="section-title text-neutral-medium">The Reality Behind "e"CQMs</h2>
             <p class="text-center text-lg text-neutral-dark mb-3">Electronic Clinical Quality Measures (eCQMs) are central to Value-Based Care, aiming to automate quality assessment from EHR data. However, the "electronic" aspect often masks significant manual effort and system limitations. This exploration delves into these challenges and proposes a more intelligent, flexible future for quality measurement, especially in the age of Large Language Models (LLMs).</p>
@@ -175,8 +166,7 @@
         <section class="mb-10 card">
             <h2 class="section-title text-neutral-medium">The Promise vs. The Lived Reality</h2>
             <div class="grid md:grid-cols-2 gap-6 items-start">
-                <div class="border-l-4 border-solution p-4 rounded bg-green-50">
-                    <h3 class="subsection-title text-solution">The Promise:</h3>
+                <div class="border-l-4 border-solution p-4 rounded bg-green-50"> <h3 class="subsection-title text-solution">The Promise:</h3>
                     <ul class="list-disc list-inside ml-4 space-y-1 text-neutral-dark">
                         <li>Auto-calculation from EHR data.</li>
                         <li>No extra clicks for clinicians.</li>
@@ -214,7 +204,7 @@
 
         <section class="mb-10 card">
             <h2 class="section-title text-neutral-medium">The Data Integrity Gap: Impact on Population Analytics</h2>
-            <p class="text-center text-lg text-neutral-dark mb-4">This reliance on specific, manual workflows undermines the reliability of eCQM data for true population health analytics.</p>
+            <p class="text-center text-lg text-neutral-dark mb-4">This reliance on specific, manual workflows undermines the reliability of eCQM data for true population health analytics. The effort distribution further highlights this challenge.</p>
             <div class="grid md:grid-cols-2 gap-6 items-center">
                 <div>
                     <ul class="list-disc list-inside space-y-2 text-neutral-dark">
@@ -224,15 +214,32 @@
                     </ul>
                 </div>
                 <div class="p-4 bg-gray-100 rounded">
-                    <h4 class="font-semibold text-center text-neutral-dark mb-2">The Data Funnel Problem:</h4>
-                    <div class="funnel-segment w-full bg-blue-500">100% Clinical Data Documented</div>
-                    <div class="text-2xl text-center text-blue-500">⬇️</div>
-                    <div class="funnel-segment w-4/5 bg-orange-500">~60% In Structured EHR Fields</div>
-                    <div class="text-2xl text-center text-orange-500">⬇️</div>
-                    <div class="funnel-segment w-3/5 bg-red-500">~40% Passes eCQM Vendor-Specific Logic</div>
-                    <p class="text-xs text-center mt-1 text-neutral-dark">(Illustrative percentages based on typical issues)</p>
+                    <h4 class="font-semibold text-center text-neutral-dark mb-4">Effort Allocation: Improving Quality vs. "Making the Measure Happy"</h4>
+                    
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium text-solution">Improving Actual Patient Care Quality</span>
+                            <span class="text-sm font-medium text-solution">~30%</span>
+                        </div>
+                        <div class="w-full bg-gray-300 rounded-full h-4 shadow-inner">
+                            <div class="h-4 rounded-full" style="width: 30%; background-color: #047857;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium text-problem">"Making the Measure Happy"</span>
+                            <span class="text-sm font-medium text-problem">~70%</span>
+                        </div>
+                        <div class="w-full bg-gray-300 rounded-full h-4 shadow-inner">
+                            <div class="h-4 rounded-full" style="width: 70%; background-color: #FF6B6B;"></div>
+                        </div>
+                        <p class="text-xs text-neutral-dark mt-1 text-right"><em>(EHR config, extra clicks, data validation, admin tasks for compliance, make work, etc.)</em></p>
+                    </div>
+                    
+                    <p class="text-xs text-center mt-3 text-neutral-dark">(Illustrative effort distribution based on common eCQM reporting challenges)</p>
                 </div>
-            </div>
+                </div>
         </section>
 
         <section class="mb-10 card">
@@ -281,8 +288,7 @@
              <p class="text-center text-neutral-dark mb-4">This proposed architecture can be built once and, in principle, deployed against any certified EHR to overcome current limitations.</p>
             <div class="grid md:grid-cols-2 gap-6 items-start">
                 <div class="space-y-3">
-                    <div class="flow-box border-solution text-neutral-dark data-access-tier bg-green-50">
-                        <strong class="text-md block text-solution">Comprehensive Data Ingestion & Interaction</strong>
+                    <div class="flow-box border-solution text-neutral-dark data-access-tier bg-green-50"> <strong class="text-md block text-solution">Comprehensive Data Ingestion & Interaction</strong>
                         <div class="flow-box flow-box-sm border-solution mt-1"><strong>Bulk EHI Export:</strong> FHIR APIs (Structured) + Full Clinical Notes (Narrative)</div>
                         <div class="flow-box flow-box-sm border-solution mt-1"><strong>Full EHR Export (Backstop):</strong> All Structured Data (incl. Non-Standardized for LLM use)</div>
                         <div class="flow-box flow-box-sm border-solution mt-1"><strong>UI Automation Agents (Backstop):</strong> For Non-API Accessible Data/Actions</div>
