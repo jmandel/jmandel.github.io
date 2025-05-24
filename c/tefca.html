@@ -1,0 +1,1142 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEFCA Financial Flows Calculator</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+<script type="module" crossorigin src="/_bun/client/index-00000000a2b9d149.js"></script></head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        // Import Lucide icons
+        const Calculator = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "24",
+            height: "24",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('rect', { width: "16", height: "20", x: "4", y: "2", rx: "2" }), React.createElement('line', { x1: "8", x2: "16", y1: "6", y2: "6" }), React.createElement('line', { x1: "16", x2: "16", y1: "14", y2: "18" }), React.createElement('path', { d: "M16 10h.01" }), React.createElement('path', { d: "M12 10h.01" }), React.createElement('path', { d: "M8 10h.01" }), React.createElement('path', { d: "M12 14h.01" }), React.createElement('path', { d: "M8 14h.01" }), React.createElement('path', { d: "M8 18h.01" }));
+
+        const DollarSign = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "24",
+            height: "24",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('line', { x1: "12", x2: "12", y1: "2", y2: "22" }), React.createElement('path', { d: "M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" }));
+
+        const Users = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "24",
+            height: "24",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('path', { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" }), React.createElement('circle', { cx: "9", cy: "7", r: "4" }), React.createElement('path', { d: "m22 21-2-2" }), React.createElement('path', { d: "m16 16 2 2" }), React.createElement('circle', { cx: "20", cy: "8", r: "6" }));
+
+        const TrendingUp = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "24",
+            height: "24",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('polyline', { points: "22,7 13.5,15.5 8.5,10.5 2,17" }), React.createElement('polyline', { points: "16,7 22,7 22,13" }));
+
+        const Settings = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "24",
+            height: "24",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('path', { d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" }), React.createElement('circle', { cx: "12", cy: "12", r: "3" }));
+
+        const Building = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "24",
+            height: "24",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('rect', { width: "16", height: "20", x: "4", y: "2", rx: "2", ry: "2" }), React.createElement('path', { d: "M9 22v-4h6v4" }), React.createElement('path', { d: "M8 6h.01" }), React.createElement('path', { d: "M16 6h.01" }), React.createElement('path', { d: "M12 6h.01" }), React.createElement('path', { d: "M12 10h.01" }), React.createElement('path', { d: "M12 14h.01" }), React.createElement('path', { d: "M16 10h.01" }), React.createElement('path', { d: "M16 14h.01" }), React.createElement('path', { d: "M8 10h.01" }), React.createElement('path', { d: "M8 14h.01" }));
+
+        const Stethoscope = ({ size = 24 }) => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: size,
+            height: size,
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('path', { d: "M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3" }), React.createElement('path', { d: "M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4" }), React.createElement('circle', { cx: "20", cy: "10", r: "2" }));
+
+        const Shield = ({ size = 24 }) => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: size,
+            height: size,
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('path', { d: "M20 13c0 5-3.5 7.5-8 7.5s-8-2.5-8-7.5c0-1.3.3-2.5.8-3.5A8.73 8.73 0 0 1 12 2a8.73 8.73 0 0 1 7.2 7.5c.5 1 .8 2.2.8 3.5z" }));
+
+        const Network = ({ size = 24 }) => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: size,
+            height: size,
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('rect', { x: "16", y: "16", width: "6", height: "6", rx: "1" }), React.createElement('rect', { x: "2", y: "16", width: "6", height: "6", rx: "1" }), React.createElement('rect', { x: "9", y: "2", width: "6", height: "6", rx: "1" }), React.createElement('path', { d: "m5 16 3-8 3 8" }), React.createElement('path', { d: "m19 16-3-8-3 8" }));
+
+        const FileText = ({ size = 24 }) => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: size,
+            height: size,
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('path', { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" }), React.createElement('path', { d: "M14 2v4a2 2 0 0 0 2 2h4" }), React.createElement('path', { d: "M10 9H8" }), React.createElement('path', { d: "M16 13H8" }), React.createElement('path', { d: "M16 17H8" }));
+
+        const ChevronRight = ({ size = 24 }) => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: size,
+            height: size,
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('path', { d: "m9 18 6-6-6-6" }));
+
+        const TEFCAFinancialFlows = () => {
+          const [params, setParams] = useState({
+            // Network Scale - Realistic TEFCA maturity (3-5 years)
+            numQhins: 12, // Projected growth from current 9
+            totalQueries: 40000000000, // 40B annually - actual total across all major HIE networks today
+            
+            // Participant Counts by Type - Much larger scale as TEFCA becomes standard
+            healthcareProviders: 8000, // Most hospitals + large medical groups  
+            payerParticipants: 1200, // Health plans, insurers adopting interoperability
+            businessParticipants: 800, // Legal, employers, business entities
+            iasProviders: 600, // Patient access apps, portals
+            
+            // RCE Parameters
+            rceAnnualCost: 8000000, // More realistic for governance org
+            
+            // QHIN Parameters  
+            qhinFixedCost: 2500000, // per QHIN annually - more realistic
+            qhinMarginalCost: 0.015, // per query - reflects actual infrastructure + technology costs
+            
+            // QHIN Annual Fees (what participants pay QHINs) - More realistic
+            healthcareProviderAnnualFee: 15000, // Lower for smaller providers
+            payerAnnualFee: 75000, // Reduced from unrealistic levels
+            businessAnnualFee: 50000,
+            iasProviderAnnualFee: 25000,
+            
+            // QHIN Per-Query Fees (what participants pay QHINs) - Based on actual marginal cost analysis
+            healthcareQueryFee: 0.02, // Estimated actual marginal cost
+            payerQueryFee: 0.02, // Same underlying cost regardless of participant type
+            businessQueryFee: 0.02, // Same underlying cost regardless of participant type
+            iasQueryFee: 0.02, // Same underlying cost regardless of participant type
+            
+            // Query Distribution by Participant Type (Most queries are Treatment/IAS = FREE)
+            healthcareQueryShare: 0.75, // Treatment queries - FREE, no fees allowed
+            payerQueryShare: 0.05, // Payment queries - optional fees allowed but low volume
+            businessQueryShare: 0.02, // Business queries - optional fees, very low volume  
+            iasQueryShare: 0.18, // Individual Access - FREE, no fees allowed
+            
+            // IAS-Specific Parameters
+            avgPatientsPerIasProvider: 2000,
+            idvCostPerPatient: 4.50,
+            iasChargePatients: false,
+            iasPatientFee: 25,
+            
+            // Participant Internal Costs
+            participantAnnualOperatingCost: 25000,
+            
+            // PDC Scenario
+            pdcEnabled: false,
+            pdcPatientIdvCost: 5.00,
+            pdcAdoptionRate: 0.15,
+            pdcParticipantAttritionRate: 0.20,
+          });
+
+          // Calculate financial flows
+          const results = useMemo(() => {
+            // Apply PDC effects if enabled
+            let finalHealthcareProviders = params.healthcareProviders;
+            let finalPayerParticipants = params.payerParticipants;
+            let finalBusinessParticipants = params.businessParticipants;
+            let finalIasProviders = params.iasProviders;
+            let pdcUsers = 0;
+            
+            if (params.pdcEnabled) {
+              const totalPotentialPatients = finalIasProviders * params.avgPatientsPerIasProvider;
+              pdcUsers = Math.ceil(totalPotentialPatients * params.pdcAdoptionRate);
+              
+              // Attrition effects - apply same rate to all provider types
+              finalHealthcareProviders = Math.ceil(params.healthcareProviders * (1 - params.pdcParticipantAttritionRate));
+              finalPayerParticipants = Math.ceil(params.payerParticipants * (1 - params.pdcParticipantAttritionRate));
+              finalBusinessParticipants = Math.ceil(params.businessParticipants * (1 - params.pdcParticipantAttritionRate));
+              finalIasProviders = Math.ceil(params.iasProviders * (1 - params.pdcParticipantAttritionRate));
+            }
+            
+            const totalParticipants = finalHealthcareProviders + finalPayerParticipants + 
+                                     finalBusinessParticipants + finalIasProviders;
+            
+            // Query volumes by participant type
+            const healthcareQueries = params.totalQueries * params.healthcareQueryShare;
+            const payerQueries = params.totalQueries * params.payerQueryShare;
+            const businessQueries = params.totalQueries * params.businessQueryShare;
+            const iasQueries = params.totalQueries * params.iasQueryShare;
+            
+            // === INFRASTRUCTURE LAYER (RCE + QHINs) ===
+            
+            // Total revenue flowing INTO the infrastructure layer (from all participants)
+            const totalParticipantAnnualFees = (
+              (finalHealthcareProviders * params.healthcareProviderAnnualFee) +
+              (finalPayerParticipants * params.payerAnnualFee) +
+              (finalBusinessParticipants * params.businessAnnualFee) +
+              (finalIasProviders * params.iasProviderAnnualFee)
+            );
+            
+            // Per-query fees - QHINs CAN charge participants to INITIATE any query 
+            // (even if responding nodes can't charge for Treatment/IAS responses)
+            const totalParticipantQueryFees = (
+              (healthcareQueries * params.healthcareQueryFee) + // QHINs can charge to send Treatment queries
+              (payerQueries * params.payerQueryFee) + // QHINs can charge to send Payment queries  
+              (businessQueries * params.businessQueryFee) + // QHINs can charge to send Business queries
+              (iasQueries * params.iasQueryFee) // QHINs can charge to send IAS queries
+            );
+            
+            const totalInfrastructureRevenue = totalParticipantAnnualFees + totalParticipantQueryFees;
+            
+            // Total costs for infrastructure layer
+            const totalInfrastructureCosts = params.rceAnnualCost + 
+                                           (params.numQhins * params.qhinFixedCost) + 
+                                           (params.totalQueries * params.qhinMarginalCost);
+            
+            const infrastructureNetIncome = totalInfrastructureRevenue - totalInfrastructureCosts;
+            
+            // Per-QHIN averages
+            const avgQhinAnnualRevenue = totalParticipantAnnualFees / params.numQhins;
+            const avgQhinQueryRevenue = totalParticipantQueryFees / params.numQhins; 
+            const avgQhinTotalRevenue = avgQhinAnnualRevenue + avgQhinQueryRevenue;
+            
+            const avgQhinRceFees = params.rceAnnualCost / params.numQhins;
+            const avgQhinCosts = avgQhinRceFees + params.qhinFixedCost + 
+                                (params.totalQueries * params.qhinMarginalCost / params.numQhins);
+            const avgQhinNetIncome = avgQhinTotalRevenue - avgQhinCosts;
+            
+            // === PARTICIPANT SEGMENTS ===
+            
+            const avgQueriesPerParticipant = {
+              healthcare: healthcareQueries / finalHealthcareProviders,
+              payer: payerQueries / finalPayerParticipants,
+              business: businessQueries / finalBusinessParticipants,
+              ias: iasQueries / finalIasProviders,
+            };
+            
+            // Healthcare Providers Segment
+            const healthcareSegment = {
+              count: finalHealthcareProviders,
+              totalAnnualCosts: finalHealthcareProviders * (
+                params.healthcareProviderAnnualFee + 
+                (avgQueriesPerParticipant.healthcare * params.healthcareQueryFee) + // QHINs can charge for all query initiations
+                params.participantAnnualOperatingCost
+              ),
+              avgCostPerParticipant: params.healthcareProviderAnnualFee + 
+                                    (avgQueriesPerParticipant.healthcare * params.healthcareQueryFee) + 
+                                    params.participantAnnualOperatingCost,
+              breakdown: {
+                annualFees: params.healthcareProviderAnnualFee,
+                queryFees: avgQueriesPerParticipant.healthcare * params.healthcareQueryFee,
+                internalOps: params.participantAnnualOperatingCost
+              }
+            };
+            
+            // Payer Participants Segment
+            const payerSegment = {
+              count: finalPayerParticipants,
+              totalAnnualCosts: finalPayerParticipants * (
+                params.payerAnnualFee + 
+                (avgQueriesPerParticipant.payer * params.payerQueryFee) + // QHINs can charge for all query initiations
+                params.participantAnnualOperatingCost
+              ),
+              avgCostPerParticipant: params.payerAnnualFee + 
+                                    (avgQueriesPerParticipant.payer * params.payerQueryFee) + 
+                                    params.participantAnnualOperatingCost,
+              breakdown: {
+                annualFees: params.payerAnnualFee,
+                queryFees: avgQueriesPerParticipant.payer * params.payerQueryFee,
+                internalOps: params.participantAnnualOperatingCost
+              }
+            };
+            
+            // Business/Legal Participants Segment
+            const businessSegment = {
+              count: finalBusinessParticipants,
+              totalAnnualCosts: finalBusinessParticipants * (
+                params.businessAnnualFee + 
+                (avgQueriesPerParticipant.business * params.businessQueryFee) + // QHINs can charge for all query initiations
+                params.participantAnnualOperatingCost
+              ),
+              avgCostPerParticipant: params.businessAnnualFee + 
+                                    (avgQueriesPerParticipant.business * params.businessQueryFee) + 
+                                    params.participantAnnualOperatingCost,
+              breakdown: {
+                annualFees: params.businessAnnualFee,
+                queryFees: avgQueriesPerParticipant.business * params.businessQueryFee,
+                internalOps: params.participantAnnualOperatingCost
+              }
+            };
+            
+            // IAS Providers Segment
+            const iasIdvCosts = params.avgPatientsPerIasProvider * params.idvCostPerPatient;
+            const iasPatientRevenue = params.iasChargePatients ? 
+                                     (params.avgPatientsPerIasProvider * params.iasPatientFee) : 0;
+            
+            const iasSegment = {
+              count: finalIasProviders,
+              totalAnnualCosts: finalIasProviders * (
+                params.iasProviderAnnualFee + 
+                (avgQueriesPerParticipant.ias * params.iasQueryFee) + // QHINs can charge for all query initiations
+                params.participantAnnualOperatingCost +
+                iasIdvCosts - iasPatientRevenue
+              ),
+              avgCostPerParticipant: params.iasProviderAnnualFee + 
+                                    (avgQueriesPerParticipant.ias * params.iasQueryFee) + 
+                                    params.participantAnnualOperatingCost + 
+                                    iasIdvCosts - iasPatientRevenue,
+              breakdown: {
+                annualFees: params.iasProviderAnnualFee,
+                queryFees: avgQueriesPerParticipant.ias * params.iasQueryFee,
+                internalOps: params.participantAnnualOperatingCost,
+                idvCosts: iasIdvCosts,
+                patientRevenue: iasPatientRevenue
+              }
+            };
+            
+            // === PDC COSTS ===
+            const pdcTotalIdvCosts = pdcUsers * params.pdcPatientIdvCost;
+            
+            return {
+              // Network metrics
+              numQhins: params.numQhins,
+              totalParticipants,
+              totalQueries: params.totalQueries,
+              pdcUsers,
+              
+              // Infrastructure layer
+              totalInfrastructureRevenue,
+              totalInfrastructureCosts,
+              infrastructureNetIncome,
+              avgQhinTotalRevenue,
+              avgQhinCosts,
+              avgQhinNetIncome,
+              avgQhinAnnualRevenue,
+              avgQhinQueryRevenue,
+              
+              // Participant segments
+              healthcareSegment,
+              payerSegment, 
+              businessSegment,
+              iasSegment,
+              
+              // Query distribution
+              avgQueriesPerParticipant,
+              
+              // Total system metrics
+              totalParticipantCosts: healthcareSegment.totalAnnualCosts + payerSegment.totalAnnualCosts + 
+                                   businessSegment.totalAnnualCosts + iasSegment.totalAnnualCosts,
+              avgCostPerQuery: totalInfrastructureCosts / params.totalQueries,
+              
+              // PDC
+              pdcTotalIdvCosts,
+            };
+          }, [params]);
+
+          const updateParam = (key, value) => {
+            setParams(prev => ({ ...prev, [key]: value }));
+          };
+
+          const formatCurrency = (value) => {
+            const absValue = Math.abs(value);
+            const sign = value < 0 ? '-' : '';
+            
+            if (absValue >= 1000000000) return `${sign}${(absValue / 1000000000).toFixed(1)}B`;
+            if (absValue >= 1000000) return `${sign}${(absValue / 1000000).toFixed(1)}M`;
+            if (absValue >= 1000) return `${sign}${(absValue / 1000).toFixed(1)}K`;
+            if (absValue >= 1) return `${sign}${Math.round(absValue).toLocaleString()}`;
+            if (absValue >= 0.01) return `${sign}${absValue.toFixed(2)}`;
+            return `${sign}${absValue.toFixed(4)}`;
+          };
+
+          const formatNumber = (value) => {
+            const absValue = Math.abs(value);
+            const sign = value < 0 ? '-' : '';
+            
+            if (absValue >= 1000000000) return `${sign}${(absValue / 1000000000).toFixed(1)}B`;
+            if (absValue >= 1000000) return `${sign}${(absValue / 1000000).toFixed(1)}M`;
+            if (absValue >= 1000) return `${sign}${(absValue / 1000).toFixed(1)}K`;
+            return `${sign}${Math.round(absValue).toLocaleString()}`;
+          };
+
+          return (
+            <div className="min-h-screen bg-gray-50 flex">
+              {/* Left Panel - Parameters */}
+              <div className="w-1/3 bg-white shadow-lg flex flex-col h-screen">
+                {/* Sticky Header */}
+                <div className="p-6 border-b border-gray-200 bg-white flex-shrink-0">
+                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <Settings className="text-blue-600" />
+                    Model Parameters
+                  </h2>
+                </div>
+                
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  {/* Network Scale */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 text-indigo-600">Network Scale</h3>
+                    <div className="bg-indigo-50 rounded-lg p-3 mb-4">
+                      <div className="text-xs text-indigo-800">
+                        <strong>Based on Current Reality:</strong> 40B queries annually is the total across all major HIE networks today. TEFCA will eventually subsume most of this volume. Range: 0B to 100B.
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          QHINs: {params.numQhins}
+                        </label>
+                        <input
+                          type="range"
+                          min="8"
+                          max="25"
+                          value={params.numQhins}
+                          onChange={(e) => updateParam('numQhins', parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Annual Queries: {formatNumber(params.totalQueries)}
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={params.totalQueries / 1000000000}
+                          onChange={(e) => updateParam('totalQueries', parseFloat(e.target.value) * 1000000000)}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Participant Counts */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 text-green-600">Participant Counts</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Healthcare Providers: {formatNumber(params.healthcareProviders)}
+                        </label>
+                        <input
+                          type="range"
+                          min="3000"
+                          max="15000"
+                          step="250"
+                          value={params.healthcareProviders}
+                          onChange={(e) => updateParam('healthcareProviders', parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Payers: {formatNumber(params.payerParticipants)}
+                        </label>
+                        <input
+                          type="range"
+                          min="500"
+                          max="3000"
+                          step="50"
+                          value={params.payerParticipants}
+                          onChange={(e) => updateParam('payerParticipants', parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Business/Legal: {formatNumber(params.businessParticipants)}
+                        </label>
+                        <input
+                          type="range"
+                          min="300"
+                          max="2000"
+                          step="50"
+                          value={params.businessParticipants}
+                          onChange={(e) => updateParam('businessParticipants', parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          IAS Providers: {formatNumber(params.iasProviders)}
+                        </label>
+                        <input
+                          type="range"
+                          min="200"
+                          max="1500"
+                          step="50"
+                          value={params.iasProviders}
+                          onChange={(e) => updateParam('iasProviders', parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* QHIN Costs */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 text-purple-600">Infrastructure Costs</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          RCE Annual Cost: {formatCurrency(params.rceAnnualCost)}
+                        </label>
+                        <input
+                          type="range"
+                          min="3000000"
+                          max="15000000"
+                          step="500000"
+                          value={params.rceAnnualCost}
+                          onChange={(e) => updateParam('rceAnnualCost', parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          QHIN Fixed Cost: {formatCurrency(params.qhinFixedCost)}/year
+                        </label>
+                        <input
+                          type="range"
+                          min="1000000"
+                          max="5000000"
+                          step="100000"
+                          value={params.qhinFixedCost}
+                          onChange={(e) => updateParam('qhinFixedCost', parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Marginal Cost/Query: {formatCurrency(params.qhinMarginalCost)}
+                        </label>
+                        <input
+                          type="range"
+                          min="0.001"
+                          max="0.05"
+                          step="0.001"
+                          value={params.qhinMarginalCost}
+                          onChange={(e) => updateParam('qhinMarginalCost', parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* QHIN Annual Fees */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 text-orange-600">Annual Membership Fees</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Healthcare: {formatCurrency(params.healthcareProviderAnnualFee)}
+                        </label>
+                        <input
+                          type="range"
+                          min="5000"
+                          max="50000"
+                          step="1000"
+                          value={params.healthcareProviderAnnualFee}
+                          onChange={(e) => updateParam('healthcareProviderAnnualFee', parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Payer: {formatCurrency(params.payerAnnualFee)}
+                        </label>
+                        <input
+                          type="range"
+                          min="25000"
+                          max="200000"
+                          step="5000"
+                          value={params.payerAnnualFee}
+                          onChange={(e) => updateParam('payerAnnualFee', parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Business: {formatCurrency(params.businessAnnualFee)}
+                        </label>
+                        <input
+                          type="range"
+                          min="10000"
+                          max="100000"
+                          step="2500"
+                          value={params.businessAnnualFee}
+                          onChange={(e) => updateParam('businessAnnualFee', parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          IAS: {formatCurrency(params.iasProviderAnnualFee)}
+                        </label>
+                        <input
+                          type="range"
+                          min="10000"
+                          max="75000"
+                          step="2500"
+                          value={params.iasProviderAnnualFee}
+                          onChange={(e) => updateParam('iasProviderAnnualFee', parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Per-Query Fees */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 text-red-600">Per-Query Fees</h3>
+                    <div className="bg-red-50 rounded-lg p-3 mb-4">
+                      <div className="text-xs text-red-800">
+                        <strong>Cost Analysis:</strong> Estimated actual marginal cost ~$0.02/query (technology $0.0003 + infrastructure $0.0015 + business overhead $0.018). Range: $0.00 (free tier) to $1.00 (50x cost).
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Healthcare: {formatCurrency(params.healthcareQueryFee)} (QHIN can charge to initiate)
+                        </label>
+                        <input
+                          type="range"
+                          min="0.00"
+                          max="1.00"
+                          step="0.01"
+                          value={params.healthcareQueryFee}
+                          onChange={(e) => updateParam('healthcareQueryFee', parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Payer: {formatCurrency(params.payerQueryFee)} (QHIN can charge to initiate)
+                        </label>
+                        <input
+                          type="range"
+                          min="0.00"
+                          max="1.00"
+                          step="0.01"
+                          value={params.payerQueryFee}
+                          onChange={(e) => updateParam('payerQueryFee', parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Business: {formatCurrency(params.businessQueryFee)} (QHIN can charge to initiate)
+                        </label>
+                        <input
+                          type="range"
+                          min="0.00"
+                          max="1.00"
+                          step="0.01"
+                          value={params.businessQueryFee}
+                          onChange={(e) => updateParam('businessQueryFee', parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          IAS: {formatCurrency(params.iasQueryFee)} (QHIN can charge to initiate)
+                        </label>
+                        <input
+                          type="range"
+                          min="0.00"
+                          max="1.00"
+                          step="0.01"
+                          value={params.iasQueryFee}
+                          onChange={(e) => updateParam('iasQueryFee', parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PDC Scenario */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 text-purple-600">PDC Scenario</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={params.pdcEnabled}
+                            onChange={(e) => updateParam('pdcEnabled', e.target.checked)}
+                            className="rounded"
+                          />
+                          Enable PDC
+                        </label>
+                      </div>
+                      
+                      {params.pdcEnabled && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              PDC IDV Cost: {formatCurrency(params.pdcPatientIdvCost)}/patient/year
+                            </label>
+                            <input
+                              type="range"
+                              min="1"
+                              max="15"
+                              step="0.5"
+                              value={params.pdcPatientIdvCost}
+                              onChange={(e) => updateParam('pdcPatientIdvCost', parseFloat(e.target.value))}
+                              className="w-full"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Adoption Rate: {(params.pdcAdoptionRate * 100).toFixed(0)}%
+                            </label>
+                            <input
+                              type="range"
+                              min="0.05"
+                              max="0.4"
+                              step="0.01"
+                              value={params.pdcAdoptionRate}
+                              onChange={(e) => updateParam('pdcAdoptionRate', parseFloat(e.target.value))}
+                              className="w-full"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Participant Attrition: {(params.pdcParticipantAttritionRate * 100).toFixed(0)}%
+                            </label>
+                            <input
+                              type="range"
+                              min="0.05"
+                              max="0.4"
+                              step="0.01"
+                              value={params.pdcParticipantAttritionRate}
+                              onChange={(e) => updateParam('pdcParticipantAttritionRate', parseFloat(e.target.value))}
+                              className="w-full"
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Panel - Results */}
+              <div className="flex-1 h-screen overflow-y-auto">
+                <div className="p-6">
+                  <div className="mb-6">
+                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+                      <Calculator className="text-blue-600" />
+                      TEFCA Financial Flows
+                    </h1>
+                    <p className="text-gray-600 mt-2">
+                      Infrastructure sustainability and participant segment economics
+                    </p>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
+                      <div className="text-sm text-yellow-800">
+                        <strong>Current HIE Network Totals:</strong> ~40B annual queries across all major networks (Carequality ~10B, eHealth Exchange ~21B, CommonWell ~6B, CareEverywhere ~3B). TEFCA will eventually subsume most of this volume. Range: 0B to 100B.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Key Metrics */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-white rounded-lg shadow p-4">
+                      <div className="text-sm text-gray-600">QHINs</div>
+                      <div className="text-2xl font-bold text-blue-600">{results.numQhins}</div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4">
+                      <div className="text-sm text-gray-600">Participants</div>
+                      <div className="text-2xl font-bold text-green-600">{formatNumber(results.totalParticipants)}</div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4">
+                      <div className="text-sm text-gray-600">Annual Queries</div>
+                      <div className="text-2xl font-bold text-indigo-600">{formatNumber(results.totalQueries)}</div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4">
+                      <div className="text-sm text-gray-600">Cost/Query</div>
+                      <div className="text-2xl font-bold text-orange-600">{formatCurrency(results.avgCostPerQuery)}</div>
+                    </div>
+                  </div>
+
+                  {/* Infrastructure Layer */}
+                  <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+                    <h2 className="text-xl font-semibold mb-4 text-blue-600 flex items-center gap-2">
+                      <Building className="text-blue-600" />
+                      Infrastructure Layer (RCE + QHINs)
+                    </h2>
+                    
+                    <div className="bg-blue-50 rounded-lg p-4 mb-6">
+                      <div className="text-sm text-blue-800">
+                        <strong>Note:</strong> QHINs can charge their participants to INITIATE any type of query (Treatment, IAS, Payment, etc.), even though responding nodes cannot charge fees for answering Treatment or IAS queries. This creates a sustainable revenue model for QHINs while keeping responses free for core healthcare purposes.
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                      <div className="bg-green-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-green-800 mb-2">Total Revenue In</h3>
+                        <div className="text-2xl font-bold text-green-600">{formatCurrency(results.totalInfrastructureRevenue)}</div>
+                        <div className="text-sm text-green-600 mt-1">From all participants</div>
+                      </div>
+                      
+                      <div className="bg-red-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-red-800 mb-2">Total Costs</h3>
+                        <div className="text-2xl font-bold text-red-600">{formatCurrency(results.totalInfrastructureCosts)}</div>
+                        <div className="text-sm text-red-600 mt-1">RCE + All QHINs</div>
+                      </div>
+                      
+                      <div className={`${results.infrastructureNetIncome >= 0 ? 'bg-green-50' : 'bg-yellow-50'} rounded-lg p-4`}>
+                        <h3 className={`font-semibold ${results.infrastructureNetIncome >= 0 ? 'text-green-800' : 'text-yellow-800'} mb-2`}>
+                          Net Income
+                        </h3>
+                        <div className={`text-2xl font-bold ${results.infrastructureNetIncome >= 0 ? 'text-green-600' : 'text-yellow-600'}`}>
+                          {formatCurrency(results.infrastructureNetIncome)}
+                        </div>
+                        <div className={`text-sm ${results.infrastructureNetIncome >= 0 ? 'text-green-600' : 'text-yellow-600'} mt-1`}>
+                          {results.infrastructureNetIncome >= 0 ? 'Sustainable' : 'Loss'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-gray-200 pt-4">
+                      <h4 className="font-semibold text-gray-700 mb-3">Average QHIN Financials</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-blue-50 rounded-lg p-3">
+                          <div className="text-sm text-blue-700">Fixed Revenue</div>
+                          <div className="text-lg font-bold text-blue-600">{formatCurrency(results.avgQhinAnnualRevenue)}</div>
+                          <div className="text-xs text-blue-600">Annual fees</div>
+                        </div>
+                        <div className="bg-blue-50 rounded-lg p-3">
+                          <div className="text-sm text-blue-700">Variable Revenue</div>
+                          <div className="text-lg font-bold text-blue-600">{formatCurrency(results.avgQhinQueryRevenue)}</div>
+                          <div className="text-xs text-blue-600">Per-query fees</div>
+                        </div>
+                        <div className={`${results.avgQhinNetIncome >= 0 ? 'bg-green-50' : 'bg-yellow-50'} rounded-lg p-3`}>
+                          <div className={`text-sm ${results.avgQhinNetIncome >= 0 ? 'text-green-700' : 'text-yellow-700'}`}>Net Income</div>
+                          <div className={`text-lg font-bold ${results.avgQhinNetIncome >= 0 ? 'text-green-600' : 'text-yellow-600'}`}>
+                            {formatCurrency(results.avgQhinNetIncome)}
+                          </div>
+                          <div className={`text-xs ${results.avgQhinNetIncome >= 0 ? 'text-green-600' : 'text-yellow-600'}`}>
+                            Per QHIN avg
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Participant Segments */}
+                  <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+                    <h2 className="text-xl font-semibold mb-4 text-green-600 flex items-center gap-2">
+                      <Users className="text-green-600" />
+                      Participant Segments
+                    </h2>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {/* Healthcare Providers */}
+                      <div className="bg-blue-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                          <Stethoscope size={16} />
+                          Healthcare Providers
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Count:</span>
+                            <span className="font-medium">{formatNumber(results.healthcareSegment.count)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Avg Queries/Year:</span>
+                            <span className="font-medium">{formatNumber(results.avgQueriesPerParticipant.healthcare)}</span>
+                          </div>
+                          <div className="border-t pt-2">
+                            <div className="flex justify-between text-xs">
+                              <span>Annual Fee:</span>
+                              <span>{formatCurrency(results.healthcareSegment.breakdown.annualFees)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span>Query Fees:</span>
+                              <span>{formatCurrency(results.healthcareSegment.breakdown.queryFees)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span>Internal Ops:</span>
+                              <span>{formatCurrency(results.healthcareSegment.breakdown.internalOps)}</span>
+                            </div>
+                          </div>
+                          <div className="border-t pt-2 flex justify-between font-semibold">
+                            <span>Avg Cost/Provider:</span>
+                            <span className="text-blue-600">{formatCurrency(results.healthcareSegment.avgCostPerParticipant)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-600">
+                            <span>Segment Total:</span>
+                            <span>{formatCurrency(results.healthcareSegment.totalAnnualCosts)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Payers */}
+                      <div className="bg-green-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
+                          <DollarSign size={16} />
+                          Payers
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Count:</span>
+                            <span className="font-medium">{formatNumber(results.payerSegment.count)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Avg Queries/Year:</span>
+                            <span className="font-medium">{formatNumber(results.avgQueriesPerParticipant.payer)}</span>
+                          </div>
+                          <div className="border-t pt-2">
+                            <div className="flex justify-between text-xs">
+                              <span>Annual Fee:</span>
+                              <span>{formatCurrency(results.payerSegment.breakdown.annualFees)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span>Query Fees:</span>
+                              <span>{formatCurrency(results.payerSegment.breakdown.queryFees)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span>Internal Ops:</span>
+                              <span>{formatCurrency(results.payerSegment.breakdown.internalOps)}</span>
+                            </div>
+                          </div>
+                          <div className="border-t pt-2 flex justify-between font-semibold">
+                            <span>Avg Cost/Payer:</span>
+                            <span className="text-green-600">{formatCurrency(results.payerSegment.avgCostPerParticipant)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-600">
+                            <span>Segment Total:</span>
+                            <span>{formatCurrency(results.payerSegment.totalAnnualCosts)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Business/Legal */}
+                      <div className="bg-purple-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                          <FileText size={16} />
+                          Business/Legal
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Count:</span>
+                            <span className="font-medium">{formatNumber(results.businessSegment.count)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Avg Queries/Year:</span>
+                            <span className="font-medium">{formatNumber(results.avgQueriesPerParticipant.business)}</span>
+                          </div>
+                          <div className="border-t pt-2">
+                            <div className="flex justify-between text-xs">
+                              <span>Annual Fee:</span>
+                              <span>{formatCurrency(results.businessSegment.breakdown.annualFees)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span>Query Fees:</span>
+                              <span>{formatCurrency(results.businessSegment.breakdown.queryFees)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span>Internal Ops:</span>
+                              <span>{formatCurrency(results.businessSegment.breakdown.internalOps)}</span>
+                            </div>
+                          </div>
+                          <div className="border-t pt-2 flex justify-between font-semibold">
+                            <span>Avg Cost/Business:</span>
+                            <span className="text-purple-600">{formatCurrency(results.businessSegment.avgCostPerParticipant)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-600">
+                            <span>Segment Total:</span>
+                            <span>{formatCurrency(results.businessSegment.totalAnnualCosts)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* IAS Providers */}
+                      <div className="bg-orange-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-orange-800 mb-3 flex items-center gap-2">
+                          <Shield size={16} />
+                          IAS Providers
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Count:</span>
+                            <span className="font-medium">{formatNumber(results.iasSegment.count)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Avg Queries/Year:</span>
+                            <span className="font-medium">{formatNumber(results.avgQueriesPerParticipant.ias)}</span>
+                          </div>
+                          <div className="border-t pt-2">
+                            <div className="flex justify-between text-xs">
+                              <span>Annual Fee:</span>
+                              <span>{formatCurrency(results.iasSegment.breakdown.annualFees)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span>Query Fees:</span>
+                              <span>{formatCurrency(results.iasSegment.breakdown.queryFees)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span>IDV Costs:</span>
+                              <span>{formatCurrency(results.iasSegment.breakdown.idvCosts)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span>Internal Ops:</span>
+                              <span>{formatCurrency(results.iasSegment.breakdown.internalOps)}</span>
+                            </div>
+                            {params.iasChargePatients && (
+                              <div className="flex justify-between text-xs text-green-600">
+                                <span>Patient Revenue:</span>
+                                <span>-{formatCurrency(results.iasSegment.breakdown.patientRevenue)}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="border-t pt-2 flex justify-between font-semibold">
+                            <span>Avg Cost/IAS:</span>
+                            <span className="text-orange-600">{formatCurrency(results.iasSegment.avgCostPerParticipant)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-600">
+                            <span>Segment Total:</span>
+                            <span>{formatCurrency(results.iasSegment.totalAnnualCosts)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Financial Flow Summary */}
+                  <div className="bg-white rounded-lg shadow-lg p-6">
+                    <h2 className="text-xl font-semibold mb-4 text-gray-700">Financial Flow Summary</h2>
+                    
+                    <div className="flex items-center justify-center space-x-8 text-sm">
+                      <div className="text-center">
+                        <div className="text-gray-600">All Participants Pay</div>
+                        <div className="text-2xl font-bold text-blue-600">{formatCurrency(results.totalParticipantCosts)}</div>
+                        <div className="text-xs text-gray-500">Total participant costs</div>
+                      </div>
+                      
+                      <ChevronRight className="text-gray-400" size={24} />
+                      
+                      <div className="text-center">
+                        <div className="text-gray-600">Infrastructure Receives</div>
+                        <div className="text-2xl font-bold text-green-600">{formatCurrency(results.totalInfrastructureRevenue)}</div>
+                        <div className="text-xs text-gray-500">Revenue to RCE + QHINs</div>
+                      </div>
+                      
+                      <ChevronRight className="text-gray-400" size={24} />
+                      
+                      <div className="text-center">
+                        <div className="text-gray-600">Infrastructure Spends</div>
+                        <div className="text-2xl font-bold text-red-600">{formatCurrency(results.totalInfrastructureCosts)}</div>
+                        <div className="text-xs text-gray-500">RCE + QHIN costs</div>
+                      </div>
+                      
+                      <div className="text-center ml-8">
+                        <div className="text-gray-600">Net Result</div>
+                        <div className={`text-2xl font-bold ${results.infrastructureNetIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(results.infrastructureNetIncome)}
+                        </div>
+                        <div className="text-xs text-gray-500">Infrastructure profit/loss</div>
+                      </div>
+                    </div>
+
+                    {params.pdcEnabled && (
+                      <div className="mt-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-purple-800 mb-2">PDC Impact</h4>
+                        <div className="text-sm text-purple-700 space-y-1">
+                          <div><strong>PDC Users:</strong> {formatNumber(results.pdcUsers)} patients</div>
+                          <div><strong>PDC IDV Costs:</strong> {formatCurrency(results.pdcTotalIdvCosts)} annually</div>
+                          <div><strong>Participants Lost:</strong> {formatNumber(params.healthcareProviders + params.payerParticipants + params.businessParticipants + params.iasProviders - results.totalParticipants)}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        ReactDOM.render(<TEFCAFinancialFlows />, document.getElementById('root'));
+    </script>
+</body>
+</html>
