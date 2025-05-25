@@ -1,0 +1,822 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prior Auth with LLMs - Premera AI Community</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #f0f0f0;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+        
+        .slide {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(76, 175, 255, 0.05) 0%, transparent 70%);
+        }
+        
+        h1 {
+            font-size: 3.5em;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #4cafff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #4cafff;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        h3 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            color: #00ff88;
+        }
+        
+        p, li {
+            font-size: 1.2em;
+            line-height: 1.8;
+            margin-bottom: 15px;
+            max-width: 800px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .content {
+            max-width: 1000px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .demo-box {
+            background: linear-gradient(135deg, #2a2f4a, #3d4571);
+            border: 2px solid #4cafff;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(76, 175, 255, 0.3);
+        }
+        
+        .diagram {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 40px 0;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        
+        .box {
+            background: rgba(76, 175, 255, 0.2);
+            border: 2px solid #4cafff;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            min-width: 200px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(76, 175, 255, 0.4);
+        }
+        
+        .arrow {
+            font-size: 2em;
+            color: #00ff88;
+            margin: 0 20px;
+        }
+        
+        .highlight {
+            background: rgba(0, 255, 136, 0.2);
+            padding: 20px;
+            border-left: 4px solid #00ff88;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        
+        .protocol-card {
+            background: linear-gradient(135deg, rgba(76, 175, 255, 0.2), rgba(0, 255, 136, 0.2));
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        
+        .code-snippet {
+            background: #0d1117;
+            border: 1px solid #4cafff;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #7ee83f;
+            margin: 15px 0;
+            white-space: pre-wrap;
+            text-align: left;
+        }
+        
+        .cta {
+            background: linear-gradient(135deg, #4cafff, #00ff88);
+            color: #0a0e27;
+            padding: 20px 40px;
+            border-radius: 50px;
+            font-size: 1.3em;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 30px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(76, 175, 255, 0.4);
+        }
+        
+        .cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(76, 175, 255, 0.6);
+        }
+        
+        .slide-number {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.9em;
+        }
+        
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        li::before {
+            content: "▸ ";
+            color: #00ff88;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .tech-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .tech-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+        
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+            margin: 40px 0;
+        }
+        
+        .flow-step {
+            background: linear-gradient(90deg, rgba(76, 175, 255, 0.2), rgba(0, 255, 136, 0.2));
+            padding: 20px 40px;
+            border-radius: 30px;
+            position: relative;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .flow-step::after {
+            content: "↓";
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            color: #00ff88;
+        }
+        
+        .flow-step:last-child::after {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Slide 1: Title -->
+    <div class="slide">
+        <div class="content">
+            <h1>Conversational Prior Authorization</h1>
+            <h2 style="font-size: 1.8em; color: #ffffff; opacity: 0.8;">Building the Future with LLMs, MCP, and A2A</h2>
+            <p style="text-align: center; font-size: 1.4em; margin-top: 40px;">Josh Mandel, MD</p>
+            <p style="text-align: center; opacity: 0.6;">Chief Architect at Microsoft Healthcare</p>
+        </div>
+        <div class="slide-number">1</div>
+    </div>
+
+    <!-- Slide 2: Demo -->
+    <div class="slide">
+        <div class="content">
+            <div class="demo-box">
+                <h1 style="font-size: 4em; margin-bottom: 20px;">🚀 Live Demo</h1>
+                <p style="font-size: 1.5em;">Let's see it in action first!</p>
+            </div>
+        </div>
+        <div class="slide-number">2</div>
+    </div>
+
+    <!-- Slide 3: Overview -->
+    <div class="slide">
+        <div class="content">
+            <h2>What We'll Explore Today</h2>
+            <div class="flow-diagram">
+                <div class="flow-step">📋 Policy Transparency & Access</div>
+                <div class="flow-step">🎯 Philosophy: Nudge vs Sludge</div>
+                <div class="flow-step">🔧 Technical Implementation</div>
+                <div class="flow-step">🤝 Building in the Open</div>
+            </div>
+        </div>
+        <div class="slide-number">3</div>
+    </div>
+
+    <!-- Slide 4: Policy Transparency -->
+    <div class="slide">
+        <div class="content">
+            <h2>1. Make Policies Truly Accessible</h2>
+            <div class="highlight">
+                <p><strong>Current State:</strong> PDFs scattered across websites, hard to find, harder to parse</p>
+                <p><strong>Future State:</strong> Full content in original authored form (structured or unstructured)</p>
+            </div>
+            
+            <div class="code-snippet">
+// Ideal: Direct access to policy logic
+{
+  "policy": "adalimumab_ra",
+  "criteria": {
+    "diagnosis": "rheumatoid_arthritis",
+    "prior_therapy": {
+      "drug": "methotrexate",
+      "duration": "≥3 months",
+      "outcome": "failure_or_intolerance"
+    }
+  }
+}</div>
+            
+            <p style="margin-top: 30px;"><strong>Example:</strong> Instead of a 47-page PDF, expose the actual Boolean logic your reviewers use internally.</p>
+            
+            <p style="margin-top: 20px; font-style: italic; text-align: center;">
+                <strong>Key principle:</strong> Whatever's good enough for internal management is most useful externally.<br>
+                Don't force structure where you have none, but don't hide structure you already use.
+            </p>
+        </div>
+        <div class="slide-number">4</div>
+    </div>
+
+    <!-- Slide 5: Unify Requirements -->
+    <div class="slide">
+        <div class="content">
+            <h2>2. One Source of Truth</h2>
+            <div class="diagram">
+                <div class="box">
+                    <h3>Medical Necessity</h3>
+                    <p>Clinical criteria</p>
+                </div>
+                <div class="arrow">+</div>
+                <div class="box">
+                    <h3>PA Requirements</h3>
+                    <p>Forms & process</p>
+                </div>
+                <div class="arrow">=</div>
+                <div class="box" style="background: rgba(0, 255, 136, 0.2); border-color: #00ff88;">
+                    <h3>Unified View</h3>
+                    <p>Everything in one place</p>
+                </div>
+            </div>
+            <p style="text-align: center; margin-top: 30px;">Share the same training materials you give your own reviewers!</p>
+        </div>
+        <div class="slide-number">5</div>
+    </div>
+
+    <!-- Slide 6: Nudge vs Sludge -->
+    <div class="slide">
+        <div class="content">
+            <h2>3. The Nudge vs Sludge Balance</h2>
+            
+            <!-- Seesaw visualization -->
+            <div style="display: flex; justify-content: center; align-items: center; margin: 40px 0;">
+                <svg width="400" height="200" viewBox="0 0 400 200">
+                    <!-- Fulcrum -->
+                    <polygon points="200,150 180,180 220,180" fill="#4cafff"/>
+                    <!-- Beam -->
+                    <rect x="50" y="145" width="300" height="10" fill="#ffffff" transform="rotate(-5 200 150)"/>
+                    <!-- Left side (Nudge) -->
+                    <rect x="60" y="100" width="80" height="60" fill="#00ff88" rx="10" transform="rotate(-5 200 150)"/>
+                    <text x="100" y="135" text-anchor="middle" fill="#0a0e27" font-weight="bold" font-size="16" transform="rotate(-5 200 150)">NUDGE</text>
+                    <!-- Right side (Sludge) -->
+                    <rect x="260" y="120" width="80" height="60" fill="#ff4444" rx="10" transform="rotate(-5 200 150)"/>
+                    <text x="300" y="155" text-anchor="middle" fill="#ffffff" font-weight="bold" font-size="16" transform="rotate(-5 200 150)">SLUDGE</text>
+                </svg>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px;">
+                <div style="background: rgba(0, 255, 136, 0.1); padding: 30px; border-radius: 15px; border: 2px solid #00ff88;">
+                    <h3>✅ Nudge (Good Friction)</h3>
+                    <ul>
+                        <li>Try generic before brand</li>
+                        <li>Conservative care first</li>
+                        <li>Evidence-based pathways</li>
+                    </ul>
+                </div>
+                <div style="background: rgba(255, 68, 68, 0.1); padding: 30px; border-radius: 15px; border: 2px solid #ff4444;">
+                    <h3>⛔ Sludge (Bad Friction)</h3>
+                    <ul>
+                        <li>Hidden requirements</li>
+                        <li>Redundant forms</li>
+                        <li>Arbitrary delays</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <p style="text-align: center; margin-top: 40px; font-size: 1.3em;">
+                <strong>Goal:</strong> Maximize nudge, eliminate sludge
+            </p>
+        </div>
+        <div class="slide-number">6</div>
+    </div>
+
+    <!-- Slide 7: Open API Philosophy -->
+    <div class="slide">
+        <div class="content">
+            <h2>4. Build Conversational APIs</h2>
+            <div class="highlight">
+                <p>Instead of rigid endpoints, create an agent that can:</p>
+            </div>
+            
+            <div class="flow-diagram" style="flex-direction: row; flex-wrap: wrap; justify-content: center;">
+                <div class="flow-step" style="margin: 10px;">Answer questions</div>
+                <div class="flow-step" style="margin: 10px;">Evaluate submissions</div>
+                <div class="flow-step" style="margin: 10px;">Provide feedback</div>
+                <div class="flow-step" style="margin: 10px;">Guide next steps</div>
+            </div>
+            
+            <p style="text-align: center; margin-top: 40px;">
+                <strong>Think:</strong> "What would a helpful human do on the phone?"
+            </p>
+            
+            <div class="code-snippet" style="margin-top: 30px;">
+// Example conversation
+EHR: "Does adalimumab for RA need PA?"
+Payer: "Yes. Need diagnosis, MTX trial >3mo, activity score."
+EHR: "Here's the evidence package..."
+Payer: "Missing TB screening. Please provide."</div>
+        </div>
+        <div class="slide-number">7</div>
+    </div>
+
+    <!-- Slide 8: Let Clinicians Bring Tools -->
+    <div class="slide">
+        <div class="content">
+            <h2>5. Empower Both Sides</h2>
+            <div class="diagram">
+                <div class="box" style="flex: 1;">
+                    <h3>🏥 Provider Side</h3>
+                    <p>Their own tools</p>
+                    <p>Their own agents</p>
+                    <p>Their own UX</p>
+                </div>
+                <div class="arrow">↔️</div>
+                <div class="box" style="flex: 1;">
+                    <h3>💼 Payer Side</h3>
+                    <p>Open data access</p>
+                    <p>Helpful agents</p>
+                    <p>Clear requirements</p>
+                </div>
+            </div>
+            <p style="text-align: center; margin-top: 40px;">
+                Don't try to build their experience - enable it!
+            </p>
+        </div>
+        <div class="slide-number">8</div>
+    </div>
+
+    <!-- Slide 9: Getting to Yes -->
+    <div class="slide">
+        <div class="content">
+            <h2>6. Focus on Getting to Yes</h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin: 40px 0;">
+                <div style="background: rgba(255, 68, 68, 0.1); padding: 30px; border-radius: 15px; border: 2px solid #ff4444;">
+                    <h3 style="color: #ff4444;">🚫 Not Ready For:</h3>
+                    <p style="font-size: 1.2em;">Automated denials</p>
+                    <p>Keep human judgment for rejections</p>
+                </div>
+                <div style="background: rgba(0, 255, 136, 0.1); padding: 30px; border-radius: 15px; border: 2px solid #00ff88;">
+                    <h3>✅ Perfect For:</h3>
+                    <p style="font-size: 1.2em;">Faster approvals</p>
+                    <p>Streamline the path to yes</p>
+                </div>
+            </div>
+            
+            <div style="margin-top: 40px;">
+                <p><strong>Current workflow:</strong> Submit → Wait → Denial → Appeal → Wait...</p>
+                <p><strong>AI-assisted workflow:</strong> Check → Fix → Submit → Approval ✨</p>
+            </div>
+            
+            <p style="margin-top: 40px;">
+                Human review for all "No" decisions maintains trust while AI accelerates the "Yes" path.
+            </p>
+        </div>
+        <div class="slide-number">9</div>
+    </div>
+
+    <!-- Slide 10: Technical Stack -->
+    <div class="slide">
+        <div class="content">
+            <h2>The Technical Stack</h2>
+            <div class="tech-stack">
+                <div class="tech-item">
+                    <h3>FHIR</h3>
+                    <p>Fast Healthcare Interoperability Resources</p>
+                    <p style="opacity: 0.7;">Standardized data access</p>
+                </div>
+                <div class="tech-item">
+                    <h3>MCP</h3>
+                    <p>Model Context Protocol</p>
+                    <p style="opacity: 0.7;">Tool descriptions for LLMs</p>
+                </div>
+                <div class="tech-item">
+                    <h3>A2A</h3>
+                    <p>Agent-to-Agent Protocol</p>
+                    <p style="opacity: 0.7;">Structured conversations</p>
+                </div>
+            </div>
+            
+            <p style="text-align: center; margin-top: 40px;">
+                These aren't magic - they're just well-designed patterns for AI interaction
+            </p>
+        </div>
+        <div class="slide-number">10</div>
+    </div>
+
+    <!-- Slide 11: MCP Deep Dive -->
+    <div class="slide">
+        <div class="content">
+            <h2>MCP: Making EHR Data LLM-Friendly</h2>
+            <div class="protocol-card">
+                <p><strong>The Problem:</strong> LLMs struggle with massive FHIR bundles</p>
+                <p><strong>The Solution:</strong> Give them tools instead!</p>
+            </div>
+            
+            <div class="code-snippet">
+// Instead of dumping 10MB of JSON...
+tools: [
+  {
+    name: "grep",
+    description: "Search all patient data",
+    parameters: { 
+      pattern: "string",
+      context_lines: "number" 
+    }
+  },
+  {
+    name: "eval_js", 
+    description: "Run JavaScript on patient data",
+    parameters: { 
+      code: "string" 
+    }
+  }
+]
+
+// Example usage:
+grep("methotrexate") 
+// → finds mentions in notes, med lists, etc.
+
+eval_js(`
+  observations
+    .filter(o => o.code === 'blood_pressure')
+    .map(o => o.value)
+    .reduce((sum, v) => sum + v) / observations.length
+`)</div>
+            
+            <p style="margin-top: 30px;">
+                <strong>Key insight:</strong> General-purpose tools (grep, eval) are more flexible than specialized ones
+            </p>
+        </div>
+        <div class="slide-number">11</div>
+    </div>
+
+    <!-- Slide 12: A2A Architecture -->
+    <div class="slide">
+        <div class="content">
+            <h2>A2A: Beyond Request/Response</h2>
+            <div class="flow-diagram">
+                <div class="flow-step">📨 Task Created</div>
+                <div class="flow-step">💬 Multi-turn Dialogue</div>
+                <div class="flow-step">📎 Artifacts Attached</div>
+                <div class="flow-step">✅ Task Completed</div>
+            </div>
+            
+            <div class="highlight" style="margin-top: 40px;">
+                <p>Think of it as a structured email thread with:</p>
+                <ul>
+                    <li>Task state tracking</li>
+                    <li>File attachments</li>
+                    <li>Clear completion criteria</li>
+                </ul>
+            </div>
+            
+            <p style="margin-top: 30px;">
+                More flexible than rigid Da Vinci FHIR IGs, but still structured enough to be reliable
+            </p>
+        </div>
+        <div class="slide-number">12</div>
+    </div>
+
+    <!-- Slide 13: The Liaison Pattern -->
+    <div class="slide">
+        <div class="content">
+            <h2>The Liaison Pattern</h2>
+            
+            <!-- Better visualization showing agent conversation -->
+            <div style="display: flex; justify-content: center; align-items: start; gap: 60px; margin: 40px 0;">
+                <!-- Left side: Agent Conversation -->
+                <div style="flex: 1; max-width: 400px;">
+                    <div style="background: rgba(76, 175, 255, 0.1); border: 2px solid #4cafff; border-radius: 15px; padding: 30px;">
+                        <h3 style="text-align: center;">💬 Agent Dialogue</h3>
+                        <div style="margin-top: 20px; font-size: 0.9em;">
+                            <div style="background: #0d1117; padding: 10px; border-radius: 8px; margin: 5px 0;">
+                                <strong>EHR:</strong> "Checking PA for adalimumab..."
+                            </div>
+                            <div style="background: #0d1117; padding: 10px; border-radius: 8px; margin: 5px 0;">
+                                <strong>Payer:</strong> "Need MTX trial duration"
+                            </div>
+                            <div style="background: #0d1117; padding: 10px; border-radius: 8px; margin: 5px 0;">
+                                <strong>EHR:</strong> "Searching records..."
+                            </div>
+                            <div style="background: #0d1117; padding: 10px; border-radius: 8px; margin: 5px 0;">
+                                <strong>Payer:</strong> "Still need TB screen"
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Middle: Liaison -->
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <div style="background: rgba(0, 255, 136, 0.2); border: 2px solid #00ff88; border-radius: 15px; padding: 20px;">
+                        <h3>🤖 Liaison</h3>
+                        <p style="font-size: 0.9em;">Monitors & Translates</p>
+                    </div>
+                    <div style="font-size: 2em; margin: 10px;">↕️</div>
+                </div>
+                
+                <!-- Right side: User UI -->
+                <div style="flex: 1; max-width: 300px;">
+                    <div style="background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 15px; padding: 30px;">
+                        <h3 style="text-align: center;">👤 User UI</h3>
+                        <div style="margin-top: 20px; text-align: center;">
+                            <p style="font-size: 1.1em;">✅ PA in progress</p>
+                            <p style="margin-top: 15px; color: #00ff88;">Action needed:<br>"Confirm TB screening date"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="code-snippet">
+// Liaison checks task state
+if (task.state === "input_required") {
+  // Use LLM to decide: can we handle this automatically?
+  const decision = await analyzeSituation(conversation);
+  
+  if (decision.canAutoRespond) {
+    // Handle automatically using EHR data
+    await respondWithData(decision.proposedResponse);
+  } else {
+    // Surface focused question to user
+    ui.showPrompt(decision.userPrompt);
+  }
+}</div>
+        </div>
+        <div class="slide-number">13</div>
+    </div>
+
+    <!-- Slide 14: Liaison Smart Mediation -->
+    <div class="slide">
+        <div class="content">
+            <h2>Liaison: Smart Agent Mediation</h2>
+            <div class="highlight">
+                <p><strong>The Pattern:</strong> Liaison uses LLM to decide when to involve the user vs. handling automatically</p>
+            </div>
+            
+            <div class="code-snippet" style="margin-top: 30px;">
+// Liaison analyzes conversation to determine next action
+const liaisonDecision = await llm.complete({
+  system: "Analyze agent dialogue. Determine if liaison can respond 
+  automatically or needs user input. Be specific.",
+  user: JSON.stringify({
+    conversation: agentDialogue,
+    ehr_data_available: availableTools,
+    user_preferences: settings
+  })
+});
+
+// Example outputs:
+
+// Case 1: Can handle automatically
+{
+  "action": "respond_automatically",
+  "reason": "Can retrieve lab date from EHR using grep tool",
+  "proposed_response": "Found TB test from 2024-03-15"
+}
+
+// Case 2: Need focused user input
+{
+  "action": "ask_user",
+  "reason": "Multiple medications match 'methotrexate', need clarification",
+  "user_prompt": "Which methotrexate formulation did you try?",
+  "options": ["Oral tablets", "Injectable", "Both"]
+}</div>
+            
+            <p style="margin-top: 30px; text-align: center; font-size: 1.2em;">
+                <strong>Result:</strong> Minimal user interruption, maximum automation
+            </p>
+        </div>
+        <div class="slide-number">14</div>
+    </div>
+
+    <!-- Slide 15: Liaison Detecting State Changes -->
+    <div class="slide">
+        <div class="content">
+            <h2>Liaison: Detecting & Structuring State Changes</h2>
+            <div class="highlight">
+                <p><strong>The Pattern:</strong> Liaison monitors conversation for important state changes and structures them for the app</p>
+                <p><strong>Example:</strong> Detecting approval in varied payer formats and extracting key details</p>
+            </div>
+            
+            <div class="code-snippet" style="margin-top: 30px;">
+// Liaison detects task completion and extracts structured data
+if (task.state === "completed") {
+  const structuredUpdate = await llm.complete({
+    system: "Extract important state change details from conversation",
+    user: JSON.stringify({
+      conversation_end: [
+        "Great news! Your request for adalimumab has been approved.",
+        "Reference: PA-2024-78432. Valid for 12 months.",
+        "Please note: Generic biosimilar must be used if available."
+      ],
+      task_type: "prior_authorization"
+    })
+  });
+}
+
+// Liaison handles different payer formats:
+// BCBS: "AUTH GRANTED #8847221 EXP:05/24/26"
+// Aetna: Sends PDF with details buried on page 3
+// United: "Approval Code PA2024-78432 (see attached)"
+
+// Consistent app update regardless of format:
+app.updateStatus({
+  "type": "approval_received",
+  "approval_number": "PA-2024-78432",
+  "valid_through": "2026-05-24",
+  "drug": "adalimumab",
+  "conditions": ["Use biosimilar if available"],
+  "user_message": "✅ Prior auth approved! Valid for 12 months."
+})</div>
+            
+            <p style="margin-top: 30px; text-align: center; font-size: 1.2em;">
+                <strong>Result:</strong> App stays in sync with conversation state, regardless of message format
+            </p>
+        </div>
+        <div class="slide-number">15</div>
+    </div>
+
+    <!-- Slide 16: Real Example -->
+    <div class="slide">
+        <div class="content">
+            <h2>Putting It All Together</h2>
+            <div class="highlight">
+                <p><strong>Scenario:</strong> Dr. Reed ordering Adalimumab for David Lee's RA</p>
+            </div>
+            
+            <div style="background: #0d1117; border-radius: 15px; padding: 30px; margin: 30px 0; border: 1px solid rgba(76, 175, 255, 0.3);">
+                <p><strong>1.</strong> EHR agent checks PA requirements via payer's A2A endpoint</p>
+                <p><strong>2.</strong> Payer agent responds with specific criteria needed</p>
+                <p><strong>3.</strong> EHR agent uses MCP tools to gather evidence from FHIR APIs</p>
+                <p><strong>4.</strong> Iterative dialogue clarifies missing pieces</p>
+                <p><strong>5.</strong> Liaison surfaces only critical decisions to Dr. Reed</p>
+                <p><strong>6.</strong> PA approved in minutes, not days</p>
+            </div>
+            
+            <p style="text-align: center;">
+                The same clinical decision, just without the administrative burden
+            </p>
+        </div>
+        <div class="slide-number">16</div>
+    </div>
+
+    <!-- Slide 17: Call to Action -->
+    <div class="slide">
+        <div class="content">
+            <h2>The Path Forward</h2>
+            <div class="highlight" style="background: rgba(76, 175, 255, 0.2);">
+                <p style="font-size: 1.3em; text-align: center;">
+                    Now is the time to build these systems.<br>
+                    Let's do it in the open.
+                </p>
+            </div>
+            
+            <div style="margin: 40px 0;">
+                <h3>🌟 Why Open Development Matters</h3>
+                <ul>
+                    <li>Share protocols & standards</li>
+                    <li>Learn from each other's implementations</li>
+                    <li>Build on proven patterns</li>
+                    <li>Accelerate industry transformation</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center;">
+                <p style="font-size: 1.4em; margin-bottom: 30px;">
+                    <strong>Let's collaborate on making this real.</strong>
+                </p>
+                <a href="#" class="cta">Start Building Together</a>
+            </div>
+        </div>
+        <div class="slide-number">17</div>
+    </div>
+
+    <!-- Slide 18: Q&A -->
+    <div class="slide">
+        <div class="content">
+            <div class="demo-box">
+                <h1 style="font-size: 4em;">💭 Discussion Time</h1>
+                <p style="font-size: 1.5em; margin-top: 30px;">What resonates with you?<br>What challenges do you see?<br>How can we work together?</p>
+            </div>
+            
+            <div style="margin-top: 50px; text-align: center;">
+                <p>Josh Mandel, MD</p>
+                <p style="opacity: 0.7;">jmandel@microsoft.com</p>
+                <p style="opacity: 0.7;">github.com/jmandel/health-record-mcp</p>
+            </div>
+        </div>
+        <div class="slide-number">18</div>
+    </div>
+
+    <script>
+        // Simple keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            const slides = document.querySelectorAll('.slide');
+            const currentSlide = Math.floor(window.scrollY / window.innerHeight);
+            
+            if (e.key === 'ArrowDown' && currentSlide < slides.length - 1) {
+                slides[currentSlide + 1].scrollIntoView({ behavior: 'smooth' });
+            } else if (e.key === 'ArrowUp' && currentSlide > 0) {
+                slides[currentSlide - 1].scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    </script>
+</body>
+</html>
