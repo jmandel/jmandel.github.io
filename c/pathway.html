@@ -214,7 +214,7 @@
     <div id="app-main-container" class="container">
         <div class="header-controls">
             <div class="header-left">
-                <h1 class="text-2xl font-bold text-sky-700">Patient Journey: John Doe - Heart Failure</h1>
+                <h1 class="text-2xl font-bold text-sky-700">Patient Journey: Heart Failure Pathway</h1>
                 <div class="summary-stats">
                     <div class="stat-item"><span class="stat-label">Duration</span><span class="stat-value" id="totalDuration">35 days</span></div>
                     <div class="stat-item"><span class="stat-label">Events</span><span class="stat-value" id="totalEvents">17</span></div>
@@ -332,14 +332,25 @@
                         startDate: "2025-05-15T10:00:00Z",
                         endDate: "2025-05-17T17:00:00Z",
                         durationText: "~3 Days",
-                        details: "IV Furosemide cont., then PO Furosemide 80mg BID (net neg 4.5L). Lisinopril held (AKI, Cr peak 2.1). Metoprolol cont. Spironolactone restarted. Cr stabilized to 1.6.",
+                        details: "Primary focus on diuresis (IV Furosemide transitioned to PO, total net negative 4.5L) and monitoring renal function. GDMT adjustments detailed below.",
                         outcomeIndicator: "concern", 
-                        flags: [ { type: "aki_resolved", label: "AKI (Cr peak 2.1 -> 1.6)", icon: "երի✅" }, { type: "med_hold", label: "Lisinopril Held", icon: "✋" } ],
+                        flags: [ { type: "aki_resolved", label: "AKI (Cr peak 2.1 -> 1.6)", icon: "երի✅" }, { type: "med_hold", label: "Lisinopril Held (AKI)", icon: "✋" } ],
+                        gdmtAdjustments: [
+                            { medication: "Lisinopril (ACEi)", action: "Held", reason: "Acute Kidney Injury (AKI) - Creatinine peak 2.1 mg/dL. Monitored for stabilization.", outcome: "Creatinine subsequently stabilized to 1.6 mg/dL." },
+                            { medication: "Metoprolol (Beta-blocker)", action: "Continued", reason: "Existing therapy, tolerated." },
+                            { medication: "Spironolactone (MRA)", action: "Restarted", reason: "Previously on MRA, restarted once stable." }
+                        ],
                         linkedNoteSection: "3. Inpatient Management Phase - Diuretic & GDMT Optimization",
                         benchmarks: { fluidBalance: { value: -4.5, benchmark: -3.0, unit: "L" } }
                     },
-                    { id: "inpt_day3_entresto_sglt2i_plan", name: "Inpt Day 3: Entresto Init. & SGLT2i Plan", type: "treatment_planning", startDate: "2025-05-17T17:00:00Z", endDate: "2025-05-18T10:00:00Z", durationText: "Planning", details: "Entresto initiated cautiously. Dapagliflozin (SGLT2i) discussed, planned for outpatient initiation due to recent AKI.", outcomeIndicator: "good", flags: [ { type: "med_change_positive", label: "Entresto Initiated", icon: "💊+" }, { type: "med_plan", label: "SGLT2i Outpt Plan", icon: "🗓️" } ], linkedNoteSection: "3. Inpatient Management Phase - Diuretic & GDMT Optimization" },
-                    { id: "inpt_day4_risk_edu", name: "Inpt Day 4: Risk Strat. & Education", type: "assessment_education", startDate: "2025-05-18T10:00:00Z", endDate: "2025-05-18T17:00:00Z", durationText: "Ongoing", details: "Intermediate readmission risk. Not candidate for advanced therapies. Palliative care declined. Initial HF education by nurse.", outcomeIndicator: "neutral", flags: [], linkedNoteSection: "3. Inpatient Management Phase - Risk Stratification & Education" }
+                    { id: "inpt_day3_entresto_sglt2i_plan", name: "Inpt Day 3: Entresto Init. & SGLT2i Plan", type: "treatment_planning", startDate: "2025-05-17T17:00:00Z", endDate: "2025-05-18T10:00:00Z", durationText: "Planning", 
+                        details: "Focus on advancing GDMT once renal function showed improvement.",
+                        gdmtAdjustments: [
+                            { medication: "Sacubitril/Valsartan (ARNI)", action: "Initiated cautiously", reason: "Stable renal function post-AKI allowed for initiation.", outcome: "Tolerated without immediate adverse effects." },
+                            { medication: "Dapagliflozin (SGLT2i)", action: "Deferred to Outpatient", reason: "Decision to allow further renal recovery monitoring given recent AKI. Plan for outpatient initiation discussed with patient." }
+                        ],
+                        outcomeIndicator: "good", flags: [ { type: "med_change_positive", label: "Entresto Initiated", icon: "💊+" }, { type: "med_plan", label: "SGLT2i Outpt Plan (renal monitoring)", icon: "🗓️" } ], linkedNoteSection: "3. Inpatient Management Phase - Diuretic & GDMT Optimization" },
+                    { id: "inpt_day4_risk_edu", name: "Inpt Day 4: Risk Strat. & Education", type: "assessment_education", startDate: "2025-05-18T10:00:00Z", endDate: "2025-05-18T17:00:00Z", durationText: "Ongoing", details: "Risk stratification indicates intermediate readmission risk. Patient not currently a candidate for advanced heart failure therapies. Palliative care consultation offered but declined by patient at this time. Initial heart failure education provided by nursing staff.", outcomeIndicator: "neutral", flags: [], linkedNoteSection: "3. Inpatient Management Phase - Risk Stratification & Education" }
                 ]
             },
             {
@@ -390,7 +401,18 @@
 
 
         let selectedEventId = null;
+        let journeyRealStartDateForFormatting; // For relative date formatting in tooltips/details
         // let width, timeScale; // These will be determined differently now
+
+        // Helper function to format dates relative to the journey start
+        function formatRelativeDateTime(dateStr, journeyStart) {
+            if (!journeyStart) return "Date N/A"; // Guard if journeyStart isn't set yet
+            const d = new Date(dateStr);
+            const startOfDayOfJourney = d3.timeDay.floor(journeyStart); // Ensure comparison is start-of-day to start-of-day
+            const startOfDayOfEvent = d3.timeDay.floor(d);
+            const dayNumber = d3.timeDay.count(startOfDayOfJourney, startOfDayOfEvent);
+            return `Day ${dayNumber}, ${d3.timeFormat("%H:%M")(d)}`;
+        }
 
         let isDragging = false;
         let dragStartX = 0;
@@ -553,6 +575,8 @@
             if (allEventsChronological.length === 0) return;
 
             const journeyRealStartDate = d3.min(allEventsChronological, d => new Date(d.startDate));
+            journeyRealStartDateForFormatting = journeyRealStartDate; // Set the global variable
+
             let journeyRealEndDate = d3.max(allEventsChronological, d => new Date(d.endDate));
 
             const uncompressedTimeDomainStart = d3.timeDay.floor(journeyRealStartDate);
@@ -638,14 +662,18 @@
                 // Map original phase events to their layout details from timelineElements
                 const phaseEventsWithLayout = phase.events.map(origEvent => {
                     const layoutInfo = timelineElements.find(te => te.type === 'event' && te.item.id === origEvent.id);
-                    if (!layoutInfo) return null; // Should not happen if all events processed
+                    if (!layoutInfo) return null; 
                     return {
                         ...origEvent, // Spread original event data
+                        phaseName: phase.phaseName, // Ensure phaseName is part of the event data
+                        phaseId: phase.phaseId,     // Ensure phaseId is part of the event data
                         computedX: layoutInfo.x,
-                        computedWidth: layoutInfo.visualWidth
+                        computedWidth: layoutInfo.visualWidth,
+                        // Ensure isVisuallyTruncated is carried over from the timelineElements item
+                        isVisuallyTruncated: layoutInfo.item.isVisuallyTruncated 
                     };
                 }).filter(e => e !== null)
-                  .sort((a,b) => a.computedX - b.computedX); // Sort by new computedX for row packing
+                  .sort((a,b) => a.computedX - b.computedX); 
 
                 phaseEventsWithLayout.forEach(eventWithLayout => {
                     let placedInRow = false;
@@ -788,8 +816,10 @@
                     labelEnd <= totalContentWidth) {
                     
                     xAxisGroup.append("line").attr("x1", tickCenter).attr("x2", tickCenter).attr("y1", 0).attr("y2", 6).attr("stroke", "currentColor");
+                    // Calculate relative day number for X-axis ticks
+                    const dayNumber = d3.timeDay.count(d3.timeDay.floor(journeyRealStartDate), d3.timeDay.floor(tick.date));
                     xAxisGroup.append("text").attr("x", tickCenter).attr("y", 9).attr("dy", "0.71em")
-                        .attr("text-anchor", "middle").text(d3.timeFormat("%b %d")(tick.date));
+                        .attr("text-anchor", "middle").text(`Day ${dayNumber}`);
                     lastRenderedTickX = tickCenter;
                 }
             });
@@ -907,10 +937,10 @@
             for (let i = 1; i < words.length; i++) { if ((currentLine + " " + words[i]).length > maxCharsPerLine && currentLine.length > 0) { lines.push(currentLine); currentLine = words[i]; } else { currentLine += " " + words[i]; } }
             if (currentLine) lines.push(currentLine); return lines;
         }
-        function mouseoverEvent(event, d) {
+        function mouseoverEvent(event, d) { // d is eventData
             d3.select(this).select(".event-bg-rect").style("filter", "brightness(95%)");
             tooltip.transition().duration(200).style("opacity", .95);
-            let html = `<strong>${d.name}</strong><br/>Time: ${d3.timeFormat("%b %d, %H:%M")(new Date(d.startDate))} (${d.durationText})<br/>Outcome: <span style="color:${getOutcomeColor(d.outcomeIndicator)}; font-weight:bold;">${d.outcomeIndicator.toUpperCase()}</span><br/>Details: ${d.details.substring(0,150)}...`;
+            let html = `<strong>${d.name}</strong><br/>Time: ${formatRelativeDateTime(d.startDate, journeyRealStartDateForFormatting)} (${d.durationText})<br/>Outcome: <span style="color:${getOutcomeColor(d.outcomeIndicator)}; font-weight:bold;">${d.outcomeIndicator.toUpperCase()}</span><br/>Details: ${d.details.substring(0,150)}...`;
             if (d.flags && d.flags.length > 0) { html += "<br/>Flags: " + d.flags.map(f => `${f.icon || ''} ${f.label}`).join(', '); }
             tooltip.html(html).style("left", (event.pageX + 15) + "px").style("top", (event.pageY - 28) + "px");
         }
@@ -928,8 +958,35 @@
                 sectionDiv.append("div").attr("class", "section-content").style("display", section.expanded ? "block" : "none").html(section.content);
             });
         }
-        function getBasicInfoHTML(eventData) { let html = `<p><strong>Phase:</strong> ${eventData.phaseName}</p><p><strong>Time:</strong> ${d3.timeFormat("%Y-%m-%d %H:%M")(new Date(eventData.startDate))} (Duration: ${eventData.durationText})</p><p><strong>Type:</strong> ${eventData.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p><p><strong>Outcome Status:</strong> <span style="color:${getOutcomeColor(eventData.outcomeIndicator)}; font-weight:bold;">${eventData.outcomeIndicator.toUpperCase()}</span></p>`; if (eventData.linkedNoteSection) { html += `<p><em>(Refers to clinical note section: ${eventData.linkedNoteSection})</em></p>`; } return html; }
-        function getClinicalDetailsHTML(eventData) { let html = `<p><strong>Details:</strong><br/>${eventData.details.replace(/\n/g, '<br/>')}</p>`; if (eventData.flags && eventData.flags.length > 0) { html += "<strong>Flags/Key Indicators:</strong>"; const ulFlags = `<ul class="flag-list">` + eventData.flags.map(flag => `<li>${flag.icon || ''} ${flag.label}</li>`).join('') + `</ul>`; html += ulFlags; } return html; }
+        function getBasicInfoHTML(eventData) { 
+            let html = `<p><strong>Phase:</strong> ${eventData.phaseName}</p><p><strong>Time:</strong> ${formatRelativeDateTime(eventData.startDate, journeyRealStartDateForFormatting)} (Duration: ${eventData.durationText})</p><p><strong>Type:</strong> ${eventData.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p><p><strong>Outcome Status:</strong> <span style="color:${getOutcomeColor(eventData.outcomeIndicator)}; font-weight:bold;">${eventData.outcomeIndicator.toUpperCase()}</span></p>`; 
+            if (eventData.linkedNoteSection) { html += `<p><em>(Refers to clinical note section: ${eventData.linkedNoteSection})</em></p>`; } 
+            return html; 
+        }
+        function getClinicalDetailsHTML(eventData) { 
+            let html = `<p><strong>Details:</strong><br/>${eventData.details.replace(/\n/g, '<br/>')}</p>`; 
+            
+            if (eventData.gdmtAdjustments && eventData.gdmtAdjustments.length > 0) {
+                html += `<div class="details-subsection" style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #eee;"><strong>GDMT Adjustments:</strong>`;
+                const ulAdjustments = `<ul style="list-style-type: none; padding-left: 10px; margin-top: 5px;">` + 
+                    eventData.gdmtAdjustments.map(adj => 
+                        `<li style="margin-bottom: 8px; padding: 5px; background: #f9f9f9; border-radius: 4px;">
+                            <strong>${adj.medication}:</strong> ${adj.action}
+                            ${adj.reason ? `<br/><span style="font-size:0.8em; color:#555;"><em>Reason:</em> ${adj.reason}</span>` : ''}
+                            ${adj.outcome ? `<br/><span style="font-size:0.8em; color:#333;"><em>Outcome:</em> ${adj.outcome}</span>` : ''}
+                         </li>`
+                    ).join('') + 
+                `</ul></div>`;
+                html += ulAdjustments;
+            }
+
+            if (eventData.flags && eventData.flags.length > 0) { 
+                html += `<div class="details-subsection" style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #eee;"><strong>Flags/Key Indicators:</strong>`;
+                const ulFlags = `<ul class="flag-list">` + eventData.flags.map(flag => `<li>${flag.icon || ''} ${flag.label}</li>`).join('') + `</ul></div>`; 
+                html += ulFlags; 
+            } 
+            return html; 
+        }
         function formatBenchmarkName(key) { return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()); }
         function getBenchmarksHTML(eventData) {
             if (!eventData.benchmarks || Object.keys(eventData.benchmarks).length === 0) return "<p>No benchmark data available for this event.</p>";
