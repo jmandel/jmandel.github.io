@@ -7,70 +7,140 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
+        html, body {
+            height: 100%;
             margin: 0;
-            background-color: #f3f4f6; /* Tailwind gray-100 */
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden; /* Prevent body scrollbars */
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
         }
         .container {
-            display: flex;
-            flex-direction: column;
-            padding: 15px;
-            flex-grow: 1;
-            box-sizing: border-box;
-            overflow: hidden;
+            display: grid;
+            grid-template-rows: auto auto 1fr;
+            grid-template-columns: 1fr;
+            grid-template-areas:
+                "header"
+                "legend"
+                "main";
+    height: 100%;
+    padding: 10px;
+    gap: 10px;
+    box-sizing: border-box;
+    overflow: hidden;
+    /* max-width: none !important; Will be handled by ID selector */
+        }
+        /* Added ID selector for higher specificity to override Tailwind container */
+        #app-main-container {
+            max-width: none !important;
         }
         .header-controls {
-            margin-bottom: 15px;
-            padding: 10px 15px;
+            grid-area: header;
+            padding: 8px 12px;
             background-color: white;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             display: flex;
-            justify-content: space-between; /* Align items */
+            justify-content: space-between;
             align-items: center;
             width: 100%;
-            max-width: 1600px; /* Max width for controls */
-            align-self: center;
             box-sizing: border-box;
         }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
         .header-controls h1 {
-             margin-right: auto; /* Push title to left, button to right */
+            margin: 0;
+        }
+        .summary-stats {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+        .stat-item { display: flex; flex-direction: column; align-items: center; }
+        .stat-label { color: #6b7280; }
+        .stat-value { font-weight: 600; }
+        .stat-value.risk-intermediate { color: #eab308; }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .filter-controls {
+            display: flex;
+            gap: 8px;
+        }
+        .filter-controls input, .filter-controls select {
+            padding: 6px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.85rem;
         }
         #toggleDetailsBtn {
             padding: 8px 12px;
             font-size: 0.85rem;
         }
+        .legend-container {
+            grid-area: legend;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 8px 12px;
+            background: #f9fafb;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+        .legend-title { font-weight: 600; color: #374151;}
+        .legend-item { display: flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; font-weight: 500;}
+        .legend-item.outcome-good { color: #10b981; background: #ecfdf5; }
+        .legend-item.outcome-neutral { color: #6b7280; background: #f9fafb; }
+        .legend-item.outcome-concern { color: #eab308; background: #fefce8; }
+        .legend-item.outcome-flag { color: #ef4444; background: #fef2f2; }
+        .legend-item.outcome-decision { color: #4f46e5; background: #eef2ff; }
+
         .visualization-area {
+            grid-area: main;
             display: flex;
             width: 100%;
-            max-width: 1600px; /* Max width for vis area */
-            align-self: center;
-            flex-grow: 1;
-            gap: 10px; /* Reduced gap when panel is collapsed */
+            gap: 0; 
             overflow: hidden;
-            transition: gap 0.3s ease-in-out;
+            min-height: 0; /* Important for flex children in a grid row that can shrink */
+        }
+        .visualization-area.dragging {
+            cursor: col-resize;
+            user-select: none;
         }
         #timelineVisualizationContainer {
             background-color: white;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            overflow: auto; /* Enable scrolling for SVG content */
+            overflow: auto; 
             position: relative;
-            transition: flex-grow 0.3s ease-in-out;
+            flex: 1 1 35%; /* Grow:1, Shrink:1, Basis:35% */
+            min-width: 300px;
+            height: 100%; 
         }
-        #timelineVisualization {
-            display: block;
+        .divider-handle {
+            width: 8px;
+            background: #e5e7eb;
+            cursor: col-resize;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            transition: background 0.2s;
         }
+        .divider-handle:hover { background: #9ca3af; }
+        .divider-grip { width: 4px; height: 40px; background: #6b7280; border-radius: 2px; }
+        #timelineVisualization { display: block; }
         #eventDetailsPanel {
-            flex-grow: 0; /* Initially don't grow */
-            flex-shrink: 0; /* Don't shrink beyond min-width */
-            width: 320px; /* Default width */
-            min-width: 320px; 
+            /* width: 33%; Removed */
+            flex: 2 1 65%; /* Grow:2, Shrink:1, Basis:65% */
+            min-width: 300px; 
             padding: 15px;
             background-color: white;
             border-radius: 8px;
@@ -78,125 +148,105 @@
             overflow-y: auto;
             font-size: 0.9rem;
             transition: width 0.3s ease-in-out, min-width 0.3s ease-in-out, padding 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            height: 100%;
         }
         #eventDetailsPanel.collapsed {
-            width: 0px;
-            min-width: 0px;
-            padding: 0;
-            opacity: 0;
-            overflow: hidden; 
+            width: 0px !important; 
+            min-width: 0px !important; 
+            padding: 0 !important;
+            opacity: 0 !important;
+            overflow: hidden !important; 
         }
-
-        #eventDetailsPanel h3 {
-            margin-top: 0; color: #1d4ed8; font-size: 1.2rem; font-weight: 600;
-            border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1rem;
-        }
+        #eventDetailsPanel h3 { margin-top: 0; color: #1d4ed8; font-size: 1.2rem; font-weight: 600; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1rem; }
         #eventDetailsPanel p { margin-bottom: 0.75rem; line-height: 1.6; color: #374151; }
         #eventDetailsPanel strong { color: #1f2937; }
         #eventDetailsPanel ul { list-style-type: disc; margin-left: 18px; padding-left: 5px; margin-bottom: 0.75rem; }
         .flag-list li { font-size: 0.85rem; padding: 2px 0; }
-
-        .phase-band {
-            fill-opacity: 0.05; 
-        }
-        .phase-label {
-            font-size: 1.1rem; 
-            font-weight: 700; 
-            fill: #374151; 
-            text-anchor: start; 
-            dominant-baseline: middle;
-        }
-        .event-node {
-            cursor: pointer;
-        }
-        .event-node .event-bg-rect { 
-            stroke-width: 1.5px;
-            rx: 6; ry: 6;
-            transition: transform 0.2s ease-out, fill 0.3s, stroke 0.3s;
-        }
-         .event-node .event-header-rect { 
-            rx: 5px 5px 0 0; 
-            height: 22px; 
-        }
-        .event-node:hover .event-bg-rect {
-            transform: scale(1.03); 
-        }
-
-        .event-node text {
-            font-size: 10px;
-            pointer-events: none;
-            fill: #374151; 
-        }
-        .event-node .event-name-header { 
-            font-weight: 600;
-            font-size: 11px;
-            fill: white; 
-            text-anchor: middle;
-        }
-        .event-node .event-time-body {
-            font-size: 9px;
-            fill: #6b7280; 
-        }
-        .event-node .event-details-snippet-body {
-            font-size: 9.5px;
-        }
-        .event-node .event-flags-footer {
-            font-size: 12px;
-            text-anchor: middle;
-        }
-
-        /* Outcome Indicators for Header and Border */
+        .details-section { margin-bottom: 1rem; }
+        .collapsible-section { margin-bottom: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; }
+        .section-header { padding: 8px 12px; background: #f9fafb; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 6px 6px 0 0; transition: background 0.2s; }
+        .section-header:hover { background: #f3f4f6; }
+        .expand-icon { font-size: 12px; color: #6b7280; }
+        .section-content { padding: 12px; border-top: 1px solid #e5e7eb; }
+        .benchmark-list { list-style: none; margin-left: 0; padding-left: 0; }
+        .benchmark-list li { padding: 4px 8px; margin: 4px 0; border-radius: 4px; }
+        .benchmark-met { background: #ecfdf5; color: #065f46; }
+        .benchmark-missed { background: #fef2f2; color: #991b1b; }
+        .phase-band { fill-opacity: 0.08; }
+        .phase-label { font-size: 1.1rem; font-weight: 700; fill: #374151; text-anchor: start; dominant-baseline: middle; }
+        .phase-divider { stroke: #374151; stroke-width: 2px; stroke-dasharray: 8,4; opacity: 0.5; }
+        .event-node { cursor: pointer; transition: all 0.2s ease; }
+        .event-node.selected .event-bg-rect { stroke-width: 3px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3)); }
+        .event-node .event-bg-rect { stroke-width: 1.5px; rx: 6; ry: 6; transition: transform 0.2s ease-out, fill 0.3s, stroke 0.3s; }
+        .event-node .event-header-rect { rx: 5px 5px 0 0; height: 22px; }
+        .event-node:hover .event-bg-rect { transform: scale(1.03); }
+        .event-node text { font-size: 10px; pointer-events: none; fill: #374151; }
+        .event-node .event-name-header { font-weight: 600; font-size: 11px; fill: white; text-anchor: middle; }
+        .event-node .event-time-body { font-size: 9px; fill: #6b7280; }
+        .event-node .event-details-snippet-body { font-size: 9.5px; }
+        .event-node .event-flags-footer { font-size: 12px; text-anchor: middle; }
+        .event-type-icon { font-size: 14px; text-anchor: start; }
+        .benchmark-warning { fill: #ef4444; stroke: white; stroke-width: 1px; }
         .outcome-good .event-bg-rect { stroke: #10b981; fill: #f0fdf4; } 
         .outcome-good .event-header-rect { fill: #10b981; }
-
         .outcome-neutral .event-bg-rect { stroke: #6b7280; fill: #f9fafb; } 
         .outcome-neutral .event-header-rect { fill: #6b7280; }
-
         .outcome-concern .event-bg-rect { stroke: #eab308; fill: #fefce8;} 
         .outcome-concern .event-header-rect { fill: #eab308; }
         .outcome-concern .event-name-header { fill: #713f12; } 
-
-
         .outcome-flag .event-bg-rect { stroke: #ef4444; fill: #fef2f2; } 
         .outcome-flag .event-header-rect { fill: #ef4444; }
-
         .outcome-decision .event-bg-rect { stroke: #4f46e5; fill: #eef2ff; } 
         .outcome-decision .event-header-rect { fill: #4f46e5; }
-
-
         .timeline-axis path, .timeline-axis line { stroke: #9ca3af; }
         .timeline-axis text { fill: #4b5563; font-size: 0.8rem; }
         .connection-line { stroke: #9ca3af; stroke-width: 1.5px; stroke-dasharray: 3,3; opacity: 0.7; }
-        .tooltip {
-            position: absolute; text-align: left; padding: 10px; font-size: 0.85rem;
-            background: rgba(0,0,0,0.85); color: white; border-radius: 6px;
-            pointer-events: none; opacity: 0; transition: opacity 0.2s; max-width: 350px; z-index: 1000;
-            line-height: 1.4;
-        }
+        .tooltip { position: absolute; text-align: left; padding: 10px; font-size: 0.85rem; background: rgba(0,0,0,0.85); color: white; border-radius: 6px; pointer-events: none; opacity: 0; transition: opacity 0.2s; max-width: 350px; z-index: 1000; line-height: 1.4; }
         .tooltip strong { color: #a5f3fc; } 
-        .day-marker-line {
-            stroke: #e5e7eb; /* Tailwind gray-200 */
-            stroke-width: 1px;
-            stroke-dasharray: 2,2;
-        }
-        .day-marker-label, .day-marker-ellipsis {
-            font-size: 0.75rem;
-            fill: #6b7280; /* Tailwind gray-500 */
-            text-anchor: middle;
-        }
+        .day-marker-line { stroke: #e5e7eb; stroke-width: 1px; stroke-dasharray: 2,2; }
+        .day-marker-label, .day-marker-ellipsis { font-size: 0.75rem; fill: #6b7280; text-anchor: middle; }
+        .filtered-out { opacity: 0.2; pointer-events: none; }
+        .elision-marker path { stroke: #9ca3af; stroke-width: 1.5px; }
+        .elision-marker text { font-size: 9px; fill: #6b7280; text-anchor: middle; dominant-baseline: central; }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div id="app-main-container" class="container">
         <div class="header-controls">
-            <h1 class="text-2xl font-bold text-sky-700">Patient Journey: John Doe - Heart Failure</h1>
-            <button id="toggleDetailsBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                Hide Details
-            </button>
+            <div class="header-left">
+                <h1 class="text-2xl font-bold text-sky-700">Patient Journey: John Doe - Heart Failure</h1>
+                <div class="summary-stats">
+                    <div class="stat-item"><span class="stat-label">Duration</span><span class="stat-value" id="totalDuration">35 days</span></div>
+                    <div class="stat-item"><span class="stat-label">Events</span><span class="stat-value" id="totalEvents">17</span></div>
+                    <div class="stat-item"><span class="stat-label">Risk</span><span class="stat-value risk-intermediate" id="riskScore">Intermediate</span></div>
+                    <div class="stat-item"><span class="stat-label">Quality</span><span class="stat-value" id="qualityScore">87%</span></div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="filter-controls">
+                    <input type="text" id="searchBox" placeholder="Search events..." />
+                    <select id="typeFilter">
+                        <option value="">All Types</option><option value="event_critical">Critical</option><option value="treatment">Treatment</option><option value="assessment">Assessment</option><option value="decision_outcome">Decision</option><option value="follow_up_visit">Follow-up</option>
+                    </select>
+                    <select id="outcomeFilter">
+                        <option value="">All Outcomes</option><option value="good">Good</option><option value="neutral">Neutral</option><option value="concern">Concern</option><option value="flag">Flag</option><option value="decision">Decision</option>
+                    </select>
+                </div>
+                <button id="toggleDetailsBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Hide Details</button>
+            </div>
         </div>
+        
+        <div class="legend-container">
+            <span class="legend-title">Outcome Indicators:</span>
+            <span class="legend-item outcome-good">✓ Good</span><span class="legend-item outcome-neutral">− Neutral</span><span class="legend-item outcome-concern">⚠ Concern</span><span class="legend-item outcome-flag">⚡ Flag</span><span class="legend-item outcome-decision">◆ Decision</span>
+        </div>
+        
         <div class="visualization-area">
-            <div id="timelineVisualizationContainer" style="flex-grow: 3;"> {/* Initial flex-grow */}
+            <div id="timelineVisualizationContainer">
                 <svg id="timelineVisualization"></svg>
+            </div>
+            <div class="divider-handle" id="dividerHandle">
+                <div class="divider-grip"></div>
             </div>
             <div id="eventDetailsPanel">
                 <h3>Event Details</h3>
@@ -224,12 +274,9 @@
                         durationText: "~1 hr",
                         details: "Presented c/o acute dyspnea, orthopnea (3-pillow), BLE edema x3 days. Hx HFrEF (EF 30%). Vitals: BP 160/95, HR 110, RR 28, SpO2 88% RA. Triaged 'Warm & Wet'.",
                         outcomeIndicator: "concern",
-                        flags: [
-                            { type: "hypoxia", label: "Hypoxia (SpO2 88%)", icon: "💨" },
-                            { type: "hypertension", label: "Hypertension (160/95)", icon: "⬆️BP" },
-                            { type: "tachycardia", label: "Tachycardia (HR 110)", icon: "💓" }
-                        ],
-                        linkedNoteSection: "1. ED / Initial Assessment Phase - Arrival & Triage"
+                        flags: [ { type: "hypoxia", label: "Hypoxia (SpO2 88%)", icon: "💨" }, { type: "hypertension", label: "Hypertension (160/95)", icon: "⬆️BP" }, { type: "tachycardia", label: "Tachycardia (HR 110)", icon: "💓" } ],
+                        linkedNoteSection: "1. ED / Initial Assessment Phase - Arrival & Triage",
+                        benchmarks: { doorToTriage: { value: 60, benchmark: 30, unit: "minutes" }, doorToProvider: { value: 120, benchmark: 60, unit: "minutes" } }
                     },
                     {
                         id: "ed_decision_admit",
@@ -241,7 +288,8 @@
                         details: "Condition Met: Severe symptoms, instability (hypoxia), high-risk features warranted inpatient admission.",
                         outcomeIndicator: "decision",
                         flags: [],
-                        linkedNoteSection: "2. Decision Outcome: ADMIT (from ED)"
+                        linkedNoteSection: "2. Decision Outcome: ADMIT (from ED)",
+                        benchmarks: { admissionDecisionTime: { value: 15, benchmark: 30, unit: "minutes" } }
                     },
                     {
                         id: "ed_admitted_workup",
@@ -252,11 +300,9 @@
                         durationText: "~2 hrs",
                         details: "2x Lg Bore IVs. Cardiac monitor, cont. SpO2. Labs: BNP 2500, Trop 0.08 (demand), Cr 1.8. ECG: ST, LVH. CXR: Pulm congestion, effusions.",
                         outcomeIndicator: "concern", 
-                        flags: [
-                            { type: "lab_critical", label: "BNP 2500 pg/mL", icon: "🧪" },
-                            { type: "aki", label: "AKI (Cr 1.8)", icon: "երի" } 
-                        ],
-                        linkedNoteSection: "2. Decision Outcome: ADMIT (from ED) - IV, Monitoring, Dx"
+                        flags: [ { type: "lab_critical", label: "BNP 2500 pg/mL", icon: "🧪" }, { type: "aki", label: "AKI (Cr 1.8)", icon: "երի" } ],
+                        linkedNoteSection: "2. Decision Outcome: ADMIT (from ED) - IV, Monitoring, Dx",
+                        benchmarks: { labTurnaround: { value: 45, benchmark: 60, unit: "minutes" }, ecgTime: { value: 20, benchmark: 10, unit: "minutes" } }
                     },
                     {
                         id: "ed_initial_therapy",
@@ -267,10 +313,7 @@
                         durationText: "~1.75 hrs",
                         details: "O2 via NC @4L (SpO2 >92%). IV Furosemide 80mg. Nitroglycerin drip initiated, titrated to BP.",
                         outcomeIndicator: "neutral", 
-                        flags: [
-                            { type: "medication_iv", label: "IV Furosemide", icon: "💧" },
-                            { type: "medication_iv", label: "NTG Drip", icon: "💧" }
-                        ],
+                        flags: [ { type: "medication_iv", label: "IV Furosemide", icon: "💧" }, { type: "medication_iv", label: "NTG Drip", icon: "💧" } ],
                         linkedNoteSection: "2. Decision Outcome: ADMIT (from ED) - Initial Therapy"
                     }
                 ]
@@ -281,18 +324,7 @@
                 phaseStartDate: "2025-05-15T05:00:00Z",
                 phaseEndDate: "2025-05-19T12:00:00Z", 
                 events: [
-                     {
-                        id: "inpt_day1_hemo_profile",
-                        name: "Inpt Day 1: Hemo Profile",
-                        type: "assessment",
-                        startDate: "2025-05-15T08:00:00Z",
-                        endDate: "2025-05-15T10:00:00Z",
-                        durationText: "Ongoing",
-                        details: "Admitted Cardiac Telemetry. Confirmed 'Warm & Wet'. Daily weights, strict I&Os. Gradual improvement with diuresis noted.",
-                        outcomeIndicator: "neutral",
-                        flags: [],
-                        linkedNoteSection: "3. Inpatient Management Phase - Hemodynamic Profiling"
-                    },
+                     { id: "inpt_day1_hemo_profile", name: "Inpt Day 1: Hemo Profile", type: "assessment", startDate: "2025-05-15T08:00:00Z", endDate: "2025-05-15T10:00:00Z", durationText: "Ongoing", details: "Admitted Cardiac Telemetry. Confirmed 'Warm & Wet'. Daily weights, strict I&Os. Gradual improvement with diuresis noted.", outcomeIndicator: "neutral", flags: [], linkedNoteSection: "3. Inpatient Management Phase - Hemodynamic Profiling" },
                     {
                         id: "inpt_day1_3_diuresis_gdmt",
                         name: "Inpt Day 1-3: Diuresis & GDMT Review",
@@ -302,39 +334,12 @@
                         durationText: "~3 Days",
                         details: "IV Furosemide cont., then PO Furosemide 80mg BID (net neg 4.5L). Lisinopril held (AKI, Cr peak 2.1). Metoprolol cont. Spironolactone restarted. Cr stabilized to 1.6.",
                         outcomeIndicator: "concern", 
-                        flags: [
-                            { type: "aki_resolved", label: "AKI (Cr peak 2.1 -> 1.6)", icon: "երի✅" },
-                            { type: "med_hold", label: "Lisinopril Held", icon: "✋" }
-                        ],
-                        linkedNoteSection: "3. Inpatient Management Phase - Diuretic & GDMT Optimization"
+                        flags: [ { type: "aki_resolved", label: "AKI (Cr peak 2.1 -> 1.6)", icon: "երի✅" }, { type: "med_hold", label: "Lisinopril Held", icon: "✋" } ],
+                        linkedNoteSection: "3. Inpatient Management Phase - Diuretic & GDMT Optimization",
+                        benchmarks: { fluidBalance: { value: -4.5, benchmark: -3.0, unit: "L" } }
                     },
-                    {
-                        id: "inpt_day3_entresto_sglt2i_plan",
-                        name: "Inpt Day 3: Entresto Init. & SGLT2i Plan",
-                        type: "treatment_planning",
-                        startDate: "2025-05-17T17:00:00Z",
-                        endDate: "2025-05-18T10:00:00Z",
-                        durationText: "Planning",
-                        details: "Entresto initiated cautiously. Dapagliflozin (SGLT2i) discussed, planned for outpatient initiation due to recent AKI.",
-                        outcomeIndicator: "good", 
-                        flags: [
-                            { type: "med_change_positive", label: "Entresto Initiated", icon: "💊+" },
-                            { type: "med_plan", label: "SGLT2i Outpt Plan", icon: "🗓️" }
-                        ],
-                        linkedNoteSection: "3. Inpatient Management Phase - Diuretic & GDMT Optimization"
-                    },
-                    {
-                        id: "inpt_day4_risk_edu",
-                        name: "Inpt Day 4: Risk Strat. & Education",
-                        type: "assessment_education",
-                        startDate: "2025-05-18T10:00:00Z",
-                        endDate: "2025-05-18T17:00:00Z",
-                        durationText: "Ongoing",
-                        details: "Intermediate readmission risk. Not candidate for advanced therapies. Palliative care declined. Initial HF education by nurse.",
-                        outcomeIndicator: "neutral",
-                        flags: [],
-                        linkedNoteSection: "3. Inpatient Management Phase - Risk Stratification & Education"
-                    }
+                    { id: "inpt_day3_entresto_sglt2i_plan", name: "Inpt Day 3: Entresto Init. & SGLT2i Plan", type: "treatment_planning", startDate: "2025-05-17T17:00:00Z", endDate: "2025-05-18T10:00:00Z", durationText: "Planning", details: "Entresto initiated cautiously. Dapagliflozin (SGLT2i) discussed, planned for outpatient initiation due to recent AKI.", outcomeIndicator: "good", flags: [ { type: "med_change_positive", label: "Entresto Initiated", icon: "💊+" }, { type: "med_plan", label: "SGLT2i Outpt Plan", icon: "🗓️" } ], linkedNoteSection: "3. Inpatient Management Phase - Diuretic & GDMT Optimization" },
+                    { id: "inpt_day4_risk_edu", name: "Inpt Day 4: Risk Strat. & Education", type: "assessment_education", startDate: "2025-05-18T10:00:00Z", endDate: "2025-05-18T17:00:00Z", durationText: "Ongoing", details: "Intermediate readmission risk. Not candidate for advanced therapies. Palliative care declined. Initial HF education by nurse.", outcomeIndicator: "neutral", flags: [], linkedNoteSection: "3. Inpatient Management Phase - Risk Stratification & Education" }
                 ]
             },
             {
@@ -343,42 +348,9 @@
                 phaseStartDate: "2025-05-18T10:00:00Z", 
                 phaseEndDate: "2025-05-19T12:00:00Z",
                 events: [
-                    {
-                        id: "dc_day4_comprehensive_edu",
-                        name: "DC Planning Day 4: Comprehensive Edu.",
-                        type: "education",
-                        startDate: "2025-05-18T14:00:00Z",
-                        endDate: "2025-05-19T10:00:00Z",
-                        durationText: "~1 Day",
-                        details: "Detailed education (meds, diet, weight, symptoms, Stoplight tool, activity) for patient & wife by HF nurse/pharmacist. Teach-back confirmed understanding.",
-                        outcomeIndicator: "good",
-                        flags: [{ type: "patient_engaged", label: "Teach-back OK", icon: "👍" }],
-                        linkedNoteSection: "4. Discharge Planning Phase - Comprehensive Education"
-                    },
-                    {
-                        id: "dc_day5_medrec_fup",
-                        name: "DC Planning Day 5: Med Rec & F/U Appts",
-                        type: "coordination",
-                        startDate: "2025-05-19T09:00:00Z",
-                        endDate: "2025-05-19T11:00:00Z",
-                        durationText: "~2 hrs",
-                        details: "Med rec by pharmacist. F/U Appts: HF Clinic (5/22), PCP (6/5), Cardiology (6/19).",
-                        outcomeIndicator: "good",
-                        flags: [{ type: "fup_scheduled", label: "F/U Scheduled", icon: "🗓️" }],
-                        linkedNoteSection: "4. Discharge Planning Phase - Med Rec & Follow-up Appts"
-                    },
-                    {
-                        id: "dc_day5_summary_handoff_discharge",
-                        name: "DC Day 5: Summary, Handoff & Discharge",
-                        type: "discharge_event",
-                        startDate: "2025-05-19T11:00:00Z",
-                        endDate: "2025-05-19T12:00:00Z", 
-                        durationText: "~1 hr",
-                        details: "Discharge summary completed & faxed. Verbal handoff to HF Clinic NP. Patient discharged home.",
-                        outcomeIndicator: "good",
-                        flags: [{ type: "discharged_home", label: "Discharged Home", icon: "🏠" }],
-                        linkedNoteSection: "4. Discharge Planning Phase - Discharge Summary & Handoff"
-                    }
+                    { id: "dc_day4_comprehensive_edu", name: "DC Planning Day 4: Comprehensive Edu.", type: "education", startDate: "2025-05-18T14:00:00Z", endDate: "2025-05-19T10:00:00Z", durationText: "~1 Day", details: "Detailed education (meds, diet, weight, symptoms, Stoplight tool, activity) for patient & wife by HF nurse/pharmacist. Teach-back confirmed understanding.", outcomeIndicator: "good", flags: [{ type: "patient_engaged", label: "Teach-back OK", icon: "👍" }], linkedNoteSection: "4. Discharge Planning Phase - Comprehensive Education", benchmarks: { educationTime: { value: 90, benchmark: 60, unit: "minutes" } } },
+                    { id: "dc_day5_medrec_fup", name: "DC Planning Day 5: Med Rec & F/U Appts", type: "coordination", startDate: "2025-05-19T09:00:00Z", endDate: "2025-05-19T11:00:00Z", durationText: "~2 hrs", details: "Med rec by pharmacist. F/U Appts: HF Clinic (5/22), PCP (6/5), Cardiology (6/19).", outcomeIndicator: "good", flags: [{ type: "fup_scheduled", label: "F/U Scheduled", icon: "🗓️" }], linkedNoteSection: "4. Discharge Planning Phase - Med Rec & Follow-up Appts", benchmarks: { followUpScheduled: { value: 3, benchmark: 2, unit: "days" } } },
+                    { id: "dc_day5_summary_handoff_discharge", name: "DC Day 5: Summary, Handoff & Discharge", type: "discharge_event", startDate: "2025-05-19T11:00:00Z", endDate: "2025-05-19T12:00:00Z", durationText: "~1 hr", details: "Discharge summary completed & faxed. Verbal handoff to HF Clinic NP. Patient discharged home.", outcomeIndicator: "good", flags: [{ type: "discharged_home", label: "Discharged Home", icon: "🏠" }], linkedNoteSection: "4. Discharge Planning Phase - Discharge Summary & Handoff" }
                 ]
             },
             {
@@ -387,60 +359,15 @@
                 phaseStartDate: "2025-05-19T12:00:01Z",
                 phaseEndDate: "2025-06-19T17:00:00Z", 
                 events: [
-                    {
-                        id: "outpt_call_day2",
-                        name: "Outpt: Post-DC Call (Day +2)",
-                        type: "follow_up_call",
-                        startDate: "2025-05-21T10:00:00Z",
-                        endDate: "2025-05-21T10:30:00Z",
-                        durationText: "~30 min",
-                        details: "HF nurse call: Pt doing well, no acute issues, adhering to meds/weights.",
-                        outcomeIndicator: "good",
-                        flags: [],
-                        linkedNoteSection: "5. Outpatient Management Phase - Early Follow-up"
-                    },
-                    {
-                        id: "outpt_visit_day7",
-                        name: "Outpt: HF Clinic Visit (Day +7)",
-                        type: "follow_up_visit",
-                        startDate: "2025-05-22T14:00:00Z",
-                        endDate: "2025-05-22T15:00:00Z",
-                        durationText: "~1 hr",
-                        details: "NP Visit: Weight stable, no congestion. BP 125/78, HR 70. Meds reviewed, edu reinforced. Labs: Cr 1.5, K+ 4.2. Dapagliflozin 10mg daily initiated.",
-                        outcomeIndicator: "good",
-                        flags: [
-                            { type: "med_change_positive", label: "Dapagliflozin Initiated", icon: "💊+" },
-                            { type: "labs_stable", label: "Labs Stable", icon: "🧪👍" }
-                        ],
-                        linkedNoteSection: "5. Outpatient Management Phase - Early Follow-up"
-                    },
-                    {
-                        id: "outpt_visit_month1_cardiology",
-                        name: "Outpt: Cardiology F/U (Month +1)",
-                        type: "follow_up_visit",
-                        startDate: "2025-06-19T10:00:00Z", 
-                        endDate: "2025-06-19T11:00:00Z",
-                        durationText: "~1 hr",
-                        details: "Dr. Smith Visit: Tolerating Entresto & Dapagliflozin. NYHA II. Metoprolol titration considered. Adherence/lifestyle emphasized.",
-                        outcomeIndicator: "good",
-                        flags: [],
-                        linkedNoteSection: "5. Outpatient Management Phase - Ongoing GDMT Opt. & Monitor"
-                    },
-                    {
-                        id: "outpt_psychosocial_ongoing",
-                        name: "Outpt: Psychosocial (Ongoing)",
-                        type: "assessment_support",
-                        startDate: "2025-05-22T15:00:00Z", 
-                        endDate: "2025-06-19T11:00:00Z", 
-                        durationText: "Ongoing",
-                        details: "PHQ-2 negative at HF clinic. Wife expressed caregiver stress; resources provided.",
-                        outcomeIndicator: "neutral",
-                        flags: [{ type: "caregiver_support", label: "Caregiver Support", icon: "👨‍👩‍👧‍👦" }],
-                        linkedNoteSection: "5. Outpatient Management Phase - Psychosocial Needs & Coord."
-                    }
+                    { id: "outpt_call_day2", name: "Outpt: Post-DC Call (Day +2)", type: "follow_up_call", startDate: "2025-05-21T10:00:00Z", endDate: "2025-05-21T10:30:00Z", durationText: "~30 min", details: "HF nurse call: Pt doing well, no acute issues, adhering to meds/weights.", outcomeIndicator: "good", flags: [], linkedNoteSection: "5. Outpatient Management Phase - Early Follow-up" },
+                    { id: "outpt_visit_day7", name: "Outpt: HF Clinic Visit (Day +7)", type: "follow_up_visit", startDate: "2025-05-22T14:00:00Z", endDate: "2025-05-22T15:00:00Z", durationText: "~1 hr", details: "NP Visit: Weight stable, no congestion. BP 125/78, HR 70. Meds reviewed, edu reinforced. Labs: Cr 1.5, K+ 4.2. Dapagliflozin 10mg daily initiated.", outcomeIndicator: "good", flags: [ { type: "med_change_positive", label: "Dapagliflozin Initiated", icon: "💊+" }, { type: "labs_stable", label: "Labs Stable", icon: "🧪👍" } ], linkedNoteSection: "5. Outpatient Management Phase - Early Follow-up", benchmarks: { followUpTiming: { value: 7, benchmark: 7, unit: "days" } } },
+                    { id: "outpt_visit_month1_cardiology", name: "Outpt: Cardiology F/U (Month +1)", type: "follow_up_visit", startDate: "2025-06-19T10:00:00Z", endDate: "2025-06-19T11:00:00Z", durationText: "~1 hr", details: "Dr. Smith Visit: Tolerating Entresto & Dapagliflozin. NYHA II. Metoprolol titration considered. Adherence/lifestyle emphasized.", outcomeIndicator: "good", flags: [], linkedNoteSection: "5. Outpatient Management Phase - Ongoing GDMT Opt. & Monitor" },
+                    { id: "outpt_psychosocial_ongoing", name: "Outpt: Psychosocial (Ongoing)", type: "assessment_support", startDate: "2025-05-22T15:00:00Z", endDate: "2025-06-19T11:00:00Z", durationText: "Ongoing", details: "PHQ-2 negative at HF clinic. Wife expressed caregiver stress; resources provided.", outcomeIndicator: "neutral", flags: [{ type: "caregiver_support", label: "Caregiver Support", icon: "👨‍👩‍👧‍👦" }], linkedNoteSection: "5. Outpatient Management Phase - Psychosocial Needs & Coord." }
                 ]
             }
         ];
+
+        const eventTypeIcons = { 'event_critical': '🚨', 'decision_outcome': '🎯', 'treatment': '💊', 'treatment_investigation': '🔬', 'treatment_monitoring': '📊', 'treatment_planning': '📋', 'assessment': '📋', 'assessment_education': '🎓', 'assessment_support': '🤝', 'education': '📚', 'coordination': '🔗', 'discharge_event': '🏠', 'follow_up_visit': '🏥', 'follow_up_call': '📞' };
 
         const svgElement = d3.select("#timelineVisualization");
         const detailsPanel = d3.select("#eventDetailsPanel");
@@ -449,142 +376,427 @@
         const toggleButton = d3.select("#toggleDetailsBtn");
 
         const margin = {top: 40, right: 40, bottom: 60, left: 40};
-        const eventNodeHeight = 85; 
-        const eventNodeWidthMin = 180; 
+        const eventNodeHeight = 85;
+        const eventNodeWidthMin = 180;
         const eventHeaderHeight = 22;
         const eventFooterHeight = 20; 
         const eventBodyPadding = 5;
         const phaseHeaderHeight = 45; 
-        const phasePadding = 25; 
-        const verticalSpacingBetweenEventRows = 25; 
-        const stepHorizontalSpacing = 10; 
+        const phasePadding = 25;
+        const verticalSpacingBetweenEventRows = 25;
+        const stepHorizontalSpacing = 10;
+        const elisionMarkerVisualWidth = 60; // px for the compressed gap marker
+        const compressionThresholdDays = 0.8; // Lowered threshold to ~19.2 hours to compress more aggressively
+
+
+        let selectedEventId = null;
+        // let width, timeScale; // These will be determined differently now
+
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartLeftWidth = 0;
+        let dragStartRightWidth = 0;
+
+        const dividerHandle = document.getElementById('dividerHandle');
+        const vizContainer = document.getElementById('timelineVisualizationContainer');
+        const detailsPanelNode = document.getElementById('eventDetailsPanel');
+        const vizArea = document.querySelector('.visualization-area');
+
+        dividerHandle.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartLeftWidth = vizContainer.offsetWidth;
+            dragStartRightWidth = detailsPanelNode.offsetWidth;
+            vizArea.classList.add('dragging');
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const deltaX = e.clientX - dragStartX;
+            const newLeftWidth = dragStartLeftWidth + deltaX;
+            const newRightWidth = dragStartRightWidth - deltaX;
+            
+            if (newLeftWidth > 200 && newRightWidth > 200) { // Min widths for panels
+                // Apply as flex-basis to allow CSS grow/shrink to work
+                vizContainer.style.flexBasis = `${newLeftWidth}px`;
+                detailsPanelNode.style.flexBasis = `${newRightWidth}px`;
+
+                // Clear any inline width/flex that might override CSS grow/shrink definitions
+                vizContainer.style.width = ""; 
+                vizContainer.style.flexGrow = "";
+                vizContainer.style.flexShrink = "";
+                detailsPanelNode.style.width = "";
+                detailsPanelNode.style.flexGrow = "";
+                detailsPanelNode.style.flexShrink = "";
+                
+                localStorage.setItem('timeline-divider-left', newLeftWidth);
+                localStorage.setItem('timeline-divider-right', newRightWidth);
+                drawTimeline(); // Redraw D3 timeline
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                vizArea.classList.remove('dragging');
+            }
+        });
+
+        const savedLeftWidth = localStorage.getItem('timeline-divider-left');
+        const savedRightWidth = localStorage.getItem('timeline-divider-right');
+        if (savedLeftWidth && savedRightWidth) {
+            vizContainer.style.flexBasis = `${savedLeftWidth}px`;
+            detailsPanelNode.style.flexBasis = `${savedRightWidth}px`;
+
+            // Clear other inline properties so CSS flex-grow/shrink can apply
+            vizContainer.style.width = ""; 
+            vizContainer.style.flexGrow = "";
+            vizContainer.style.flexShrink = "";
+            detailsPanelNode.style.width = "";
+            detailsPanelNode.style.flexGrow = "";
+            detailsPanelNode.style.flexShrink = "";
+        }
+
+
+        document.getElementById('searchBox').addEventListener('input', filterEvents);
+        document.getElementById('typeFilter').addEventListener('change', filterEvents);
+        document.getElementById('outcomeFilter').addEventListener('change', filterEvents);
+
+        function filterEvents() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter').value;
+            const outcomeFilter = document.getElementById('outcomeFilter').value;
+            
+            // Filter actual event nodes
+            d3.selectAll('.event-node').each(function(d) {
+                // 'd' here is the event data bound to the node
+                const matchesSearch = !searchTerm || d.name.toLowerCase().includes(searchTerm) || d.details.toLowerCase().includes(searchTerm);
+                const matchesType = !typeFilter || d.type === typeFilter;
+                const matchesOutcome = !outcomeFilter || d.outcomeIndicator === outcomeFilter;
+                d3.select(this).classed('filtered-out', !(matchesSearch && matchesType && matchesOutcome));
+            });
+
+            // Potentially hide elision markers if surrounding events are filtered out
+            // This is more complex and might be a future enhancement.
+            // For now, elision markers will always be visible.
+        }
+        
+        // Helper to map a date to its X coordinate on the compressed timeline
+        function mapDateToCompressedX(targetDate, timelineElements, uncompressedTimeDomainStart, baseTimeScale) {
+            let currentX = 0;
+            let lastDateProcessed = uncompressedTimeDomainStart; // This is a Date object
+
+            for (const el of timelineElements) { // el is {type, item?, x, visualWidth, originalStartDate?, originalEndDate?, originalGapStart?, ...}
+                
+                if (el.type === 'event') {
+                    // el.originalStartDate and el.originalEndDate are Date objects from timelineElements creation
+                    
+                    // If targetDate is in the (potentially uncompressed) gap before this event
+                    if (targetDate >= lastDateProcessed && targetDate < el.originalStartDate) {
+                        return currentX + (baseTimeScale(targetDate) - baseTimeScale(lastDateProcessed));
+                    }
+                    
+                    currentX = el.x; // Align with the start of this event item's visual representation
+
+                    // If targetDate is within this event's original logical span
+                    if (targetDate >= el.originalStartDate && targetDate <= el.originalEndDate) {
+                        if (el.item.isVisuallyTruncated) {
+                            // Map proportionally within the capped visualWidth
+                            const originalDurationMs = el.originalEndDate.getTime() - el.originalStartDate.getTime();
+                            if (originalDurationMs === 0) return el.x; // Avoid division by zero
+                            const targetOffsetMs = targetDate.getTime() - el.originalStartDate.getTime();
+                            const proportionalOffset = (targetOffsetMs / originalDurationMs) * el.visualWidth;
+                            return el.x + proportionalOffset;
+                        } else {
+                            // Non-truncated event: map using baseTimeScale relative to its start
+                            // el.visualWidth for non-truncated events is its baseTimeScale-derived width (or min width)
+                            return el.x + (baseTimeScale(targetDate) - baseTimeScale(el.originalStartDate));
+                        }
+                    }
+                    currentX = el.x + el.visualWidth; // Move currentX to the end of this event's visual representation
+                    lastDateProcessed = el.originalEndDate; // The logical end date of this event
+
+                } else if (el.type === 'elision') {
+                    // el.originalGapStart and el.originalGapEnd are Date objects
+                    
+                    // If targetDate is in the (uncompressed) segment before this elision marker
+                    if (targetDate >= lastDateProcessed && targetDate < el.originalGapStart) {
+                        return currentX + (baseTimeScale(targetDate) - baseTimeScale(lastDateProcessed));
+                    }
+
+                    currentX = el.x; // Align with the start of this elision marker
+
+                    // If targetDate falls within the original span of the compressed gap
+                    if (targetDate >= el.originalGapStart && targetDate <= el.originalGapEnd) {
+                        if (targetDate.getTime() === el.originalGapStart.getTime()) return el.x; // Snap to start if target is exactly gap start
+                        return -1; // Otherwise, mark for skipping if inside a compressed elision
+                    }
+                    currentX = el.x + el.visualWidth; // Move currentX to the end of this elision marker
+                    lastDateProcessed = el.originalGapEnd; // The logical end date of the original gap
+                }
+            }
+            // If targetDate is after all processed elements
+            if (targetDate >= lastDateProcessed) {
+                return currentX + (baseTimeScale(targetDate) - baseTimeScale(lastDateProcessed));
+            }
+            return -1; // Should ideally not be reached if date is within overall domain and handled above
+        }
+
 
         function drawTimeline() {
             svgElement.selectAll("*").remove();
-            const allEvents = johnDoeJourneyData.flatMap(phase => 
+            const allEventsChronological = johnDoeJourneyData.flatMap(phase => 
                 phase.events.map(event => ({...event, phaseId: phase.phaseId, phaseName: phase.phaseName}))
-            );
+            ).sort((a,b) => new Date(a.startDate) - new Date(b.startDate));
 
-            if (allEvents.length === 0) return;
+            if (allEventsChronological.length === 0) return;
 
-            const journeyRealStartDate = d3.min(allEvents, d => new Date(d.startDate));
-            const timeDomainStart = d3.timeDay.floor(journeyRealStartDate); 
-            let timeDomainEnd = d3.max(allEvents, d => new Date(d.endDate));
+            const journeyRealStartDate = d3.min(allEventsChronological, d => new Date(d.startDate));
+            let journeyRealEndDate = d3.max(allEventsChronological, d => new Date(d.endDate));
 
-            if (!timeDomainStart || !timeDomainEnd) { 
-                 console.error("Invalid time domain for events.");
-                 timeDomainStart = new Date();
-                 timeDomainEnd = d3.timeDay.offset(new Date(), 1);
+            const uncompressedTimeDomainStart = d3.timeDay.floor(journeyRealStartDate);
+            let uncompressedTimeDomainEnd = journeyRealEndDate ? d3.timeHour.offset(journeyRealEndDate, 24) : d3.timeDay.offset(uncompressedTimeDomainStart, 7);
+            if (!journeyRealEndDate && johnDoeJourneyData.length > 0) { // Handle case with phases but no events
+                 const lastPhase = johnDoeJourneyData[johnDoeJourneyData.length-1];
+                 journeyRealEndDate = new Date(lastPhase.phaseEndDate);
+                 uncompressedTimeDomainEnd = d3.timeHour.offset(journeyRealEndDate, 24);
+            }
+
+
+            // Base scale for determining uncompressed widths/durations
+            const approxPxPerDayUncompressed = 100; // Adjust for desired density
+            const uncompressedRangeWidth = d3.timeDay.count(uncompressedTimeDomainStart, uncompressedTimeDomainEnd) * approxPxPerDayUncompressed;
+            const baseTimeScale = d3.scaleTime()
+                .domain([uncompressedTimeDomainStart, uncompressedTimeDomainEnd])
+                .range([0, uncompressedRangeWidth]);
+
+            let currentX = 0;
+            const timelineElements = []; // Stores { item?, type: 'event'/'elision', x, visualWidth, originalGapStart?, originalGapEnd?, compressedDurationDays? }
+
+            for (let i = 0; i < allEventsChronological.length; i++) {
+                const event = allEventsChronological[i];
+                const eventStartDate = new Date(event.startDate);
+                const eventEndDate = new Date(event.endDate);
+
+                if (i > 0) {
+                    const prevEvent = allEventsChronological[i-1];
+                    const prevEventEndDate = new Date(prevEvent.endDate);
+                    const gapDurationMs = eventStartDate - prevEventEndDate;
+                    
+                    if (gapDurationMs > 0) { // If there's any gap
+                        const gapDurationDays = gapDurationMs / (1000 * 60 * 60 * 24);
+                        if (gapDurationDays > compressionThresholdDays) {
+                            timelineElements.push({
+                                type: 'elision',
+                                x: currentX,
+                                visualWidth: elisionMarkerVisualWidth,
+                                compressedDurationDays: gapDurationDays,
+                                originalGapStart: prevEventEndDate,
+                                originalGapEnd: eventStartDate
+                            });
+                            currentX += elisionMarkerVisualWidth;
+                        } else { // Uncompressed gap
+                            currentX += baseTimeScale(eventStartDate) - baseTimeScale(prevEventEndDate);
+                        }
+                    }
+                }
+
+                const eventDurationDays = (eventEndDate - eventStartDate) / (1000 * 60 * 60 * 24);
+                const uncompressedEventVisualWidth = baseTimeScale(eventEndDate) - baseTimeScale(eventStartDate);
+                let actualEventVisualWidth = Math.max(eventNodeWidthMin, uncompressedEventVisualWidth);
+                let isVisuallyTruncated = false;
+
+                // If an event's own duration is significantly long, cap its visual width
+                if (eventDurationDays > (compressionThresholdDays * 1.5)) { // e.g., if threshold is 0.8 days, cap if event > 1.2 days
+                    actualEventVisualWidth = eventNodeWidthMin * 1.5; // Cap width to 1.5 times min width
+                    isVisuallyTruncated = true;
+                }
+                if (actualEventVisualWidth < 50 || isNaN(actualEventVisualWidth)) actualEventVisualWidth = eventNodeWidthMin; // Ensure min width still respected
+                
+                timelineElements.push({
+                    type: 'event',
+                    item: {...event, isVisuallyTruncated: isVisuallyTruncated}, // Add truncation flag to item data
+                    x: currentX,
+                    visualWidth: actualEventVisualWidth, // Use potentially capped width
+                    originalStartDate: eventStartDate,
+                    originalEndDate: eventEndDate
+                });
+                currentX += actualEventVisualWidth; // Increment currentX by the width used
             }
             
-            const minEndDate = d3.timeDay.offset(timeDomainStart, 7); 
-            if (timeDomainEnd < minEndDate) timeDomainEnd = minEndDate;
-
-            timeDomainEnd = d3.timeHour.offset(timeDomainEnd, 24); // Increased padding at end
-
-            const svgClientWidth = svgContainer.clientWidth;
-            const estimatedMinWidthForDomain = (d3.timeDay.count(timeDomainStart, timeDomainEnd) + 1) * 120; // Increased px per day
-            let width = Math.max(svgClientWidth - margin.left - margin.right, estimatedMinWidthForDomain, 1500); 
-            
-            const timeScale = d3.scaleTime().domain([timeDomainStart, timeDomainEnd]).range([0, width]);
-            const xAxis = d3.axisBottom(timeScale).ticks(d3.timeDay.every(1)).tickFormat(d3.timeFormat("%b %d"));
+            const totalContentWidth = Math.max(currentX, svgContainer.clientWidth - margin.left - margin.right, 1500); // Ensure minimum width
 
             let currentY = 0;
-            const phaseLayoutData = []; 
-            let overallMaxXExtent = 0;
-
+            const phaseLayoutData = [];
+            let overallMaxXExtent = totalContentWidth; // Initialize with totalContentWidth
 
             johnDoeJourneyData.forEach(phase => {
                 let phaseStartY = currentY;
-                let eventPositions = [];
-                const rows = [[]]; 
+                const rows = [[]];
+                
+                // Map original phase events to their layout details from timelineElements
+                const phaseEventsWithLayout = phase.events.map(origEvent => {
+                    const layoutInfo = timelineElements.find(te => te.type === 'event' && te.item.id === origEvent.id);
+                    if (!layoutInfo) return null; // Should not happen if all events processed
+                    return {
+                        ...origEvent, // Spread original event data
+                        computedX: layoutInfo.x,
+                        computedWidth: layoutInfo.visualWidth
+                    };
+                }).filter(e => e !== null)
+                  .sort((a,b) => a.computedX - b.computedX); // Sort by new computedX for row packing
 
-                phase.events.sort((a,b) => new Date(a.startDate) - new Date(b.startDate)).forEach(event => {
-                    const eventStartDate = new Date(event.startDate);
-                    const eventEndDate = new Date(event.endDate);
-                    let nodeX = timeScale(eventStartDate);
-                    let nodeWidthActual = Math.max(eventNodeWidthMin, timeScale(eventEndDate) - timeScale(eventStartDate) - 2);
-                    if (nodeWidthActual < 50 || isNaN(nodeWidthActual)) nodeWidthActual = eventNodeWidthMin;
-
+                phaseEventsWithLayout.forEach(eventWithLayout => {
                     let placedInRow = false;
                     for (let r = 0; r < rows.length; r++) {
                         const lastEventInThisRow = rows[r].length > 0 ? rows[r][rows[r].length - 1] : null;
-                        if (!lastEventInThisRow || nodeX >= lastEventInThisRow.computedX + lastEventInThisRow.computedWidth + stepHorizontalSpacing) {
-                            rows[r].push({...event, computedX: nodeX, computedY: phaseHeaderHeight + phasePadding + r * (eventNodeHeight + verticalSpacingBetweenEventRows), computedWidth: nodeWidthActual});
+                        if (!lastEventInThisRow || eventWithLayout.computedX >= lastEventInThisRow.computedX + lastEventInThisRow.computedWidth + stepHorizontalSpacing) {
+                            rows[r].push({...eventWithLayout, computedY: phaseHeaderHeight + phasePadding + r * (eventNodeHeight + verticalSpacingBetweenEventRows)});
                             placedInRow = true;
-                            if (nodeX + nodeWidthActual > overallMaxXExtent) overallMaxXExtent = nodeX + nodeWidthActual;
                             break;
                         }
                     }
-                    if (!placedInRow) { 
-                        rows.push([{...event, computedX: nodeX, computedY: phaseHeaderHeight + phasePadding + (rows.length) * (eventNodeHeight + verticalSpacingBetweenEventRows), computedWidth: nodeWidthActual}]);
-                        if (nodeX + nodeWidthActual > overallMaxXExtent) overallMaxXExtent = nodeX + nodeWidthActual;
+                    if (!placedInRow) {
+                        rows.push([{...eventWithLayout, computedY: phaseHeaderHeight + phasePadding + (rows.length) * (eventNodeHeight + verticalSpacingBetweenEventRows)}]);
                     }
                 });
 
-                eventPositions = rows.flat();
-                const maxEventYInPhase = rows.length > 0 ? 
-                    d3.max(eventPositions, ep => ep.computedY + eventNodeHeight) 
+                const flatEventPositions = rows.flat();
+                const maxEventYInPhase = flatEventPositions.length > 0 ? 
+                    d3.max(flatEventPositions, ep => ep.computedY + eventNodeHeight) 
                     : phaseHeaderHeight + phasePadding;
-
                 const calculatedPhaseHeight = maxEventYInPhase + phasePadding;
-                phaseLayoutData.push({
-                    ...phase,
-                    visualY: phaseStartY,
-                    visualHeight: calculatedPhaseHeight,
-                    events: eventPositions 
+                
+                phaseLayoutData.push({ 
+                    ...phase, 
+                    visualY: phaseStartY, 
+                    visualHeight: calculatedPhaseHeight, 
+                    events: flatEventPositions // These now have computedX, computedY, computedWidth
                 });
                 currentY += calculatedPhaseHeight;
             });
             
-            // Adjust width if content exceeds initial estimate
-            width = Math.max(width, overallMaxXExtent);
-            timeScale.range([0, width]); // Update timeScale range with new width
-
             const totalCalculatedHeight = currentY;
-            const height = Math.max(totalCalculatedHeight + margin.top + margin.bottom, svgContainer.clientHeight - 50);
-
-            svgElement.attr("width", width + margin.left + margin.right).attr("height", height);
+            const finalSvgHeight = Math.max(totalCalculatedHeight + margin.top + margin.bottom, svgContainer.clientHeight - 50);
+            svgElement.attr("width", totalContentWidth + margin.left + margin.right).attr("height", finalSvgHeight);
             const mainGroup = svgElement.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-            
-            const days = d3.timeDay.range(timeDomainStart, d3.timeDay.ceil(timeDomainEnd));
+
+            // Render Elision Markers
+            mainGroup.selectAll(".elision-marker")
+                .data(timelineElements.filter(d => d.type === 'elision'))
+                .enter().append("g")
+                .attr("class", "elision-marker")
+                .attr("transform", d => `translate(${d.x}, ${phaseHeaderHeight / 2 - 10})`) // Position vertically in phase header area or similar
+                .each(function(d) {
+                    const g = d3.select(this);
+                    const midX = d.visualWidth / 2;
+                    const lineY = 0; 
+                    g.append("path")
+                        .attr("d", `M${midX - 15},${lineY - 7} L${midX -5},${lineY + 3} M${midX -15},${lineY + 3} L${midX -5},${lineY -7}`) // First part of "//"
+                        .style("stroke-width", 1.5);
+                    g.append("path")
+                        .attr("d", `M${midX + 5},${lineY - 7} L${midX +15},${lineY + 3} M${midX +5},${lineY + 3} L${midX +15},${lineY -7}`) // Second part of "//"
+                        .style("stroke-width", 1.5);
+                    g.append("text")
+                        .attr("x", midX)
+                        .attr("y", lineY + 18) // Below the marker
+                        .text(`${d.compressedDurationDays.toFixed(0)}d`);
+                });
+
+            // Day Markers (using mapDateToCompressedX)
+            const daysInRange = d3.timeDay.range(uncompressedTimeDomainStart, d3.timeDay.ceil(uncompressedTimeDomainEnd));
             let lastDisplayedDayIndex = -1;
             const dayLabelY = -margin.top / 2 + 15;
 
-            days.forEach((day, i) => {
-                const dayX = timeScale(day);
-                const dayNumber = d3.timeDay.count(journeyRealStartDate, day); 
+            daysInRange.forEach((day, i) => {
+                const dayX = mapDateToCompressedX(day, timelineElements, uncompressedTimeDomainStart, baseTimeScale);
+                if (dayX === -1 && !(day.getTime() === uncompressedTimeDomainStart.getTime())) return; // Skip if date falls into middle of compressed region
 
-                if (i - lastDisplayedDayIndex > 3 && lastDisplayedDayIndex !== -1) { 
-                     mainGroup.append("text")
-                        .attr("class", "day-marker-ellipsis")
-                        .attr("x", (timeScale(days[lastDisplayedDayIndex]) + dayX) / 2)
-                        .attr("y", dayLabelY)
-                        .text("...");
-                }
+                const dayNumber = d3.timeDay.count(journeyRealStartDate, day);
                 
-                if (i - lastDisplayedDayIndex <= 3 || i === days.length -1 || lastDisplayedDayIndex === -1 || (i - lastDisplayedDayIndex > 3 && dayNumber % 5 === 0) ) { 
-                    mainGroup.append("line")
-                        .attr("class", "day-marker-line")
-                        .attr("x1", dayX).attr("x2", dayX)
-                        .attr("y1", -margin.top / 2) 
-                        .attr("y2", totalCalculatedHeight + 5); 
-                    mainGroup.append("text")
-                        .attr("class", "day-marker-label")
-                        .attr("x", dayX)
-                        .attr("y", dayLabelY) 
-                        .text(`Day ${dayNumber}`);
-                    lastDisplayedDayIndex = i;
+                // Logic for ellipsis (needs to be adapted for potentially non-linear dayX)
+                // This might be complex if dayX values are not monotonically increasing in a simple way.
+                // For now, let's draw all valid day markers.
+                mainGroup.append("line")
+                    .attr("class", "day-marker-line")
+                    .attr("x1", dayX).attr("x2", dayX)
+                    .attr("y1", -margin.top / 2) 
+                    .attr("y2", totalCalculatedHeight + 5); 
+                mainGroup.append("text")
+                    .attr("class", "day-marker-label")
+                    .attr("x", dayX)
+                    .attr("y", dayLabelY) 
+                    .text(`Day ${dayNumber}`);
+            });
+            
+            // X-Axis (manual ticks using mapDateToCompressedX)
+            const xAxisGroup = mainGroup.append("g")
+                .attr("class", "timeline-axis")
+                .attr("transform", `translate(0, ${totalCalculatedHeight + 10})`);
+            
+            // --- Start of new X-Axis tick generation and rendering ---
+            const candidateTickDateValues = new Set(); // Store date values (ms) for uniqueness
+
+            // 1. Add overall timeline start and end
+            candidateTickDateValues.add(uncompressedTimeDomainStart.getTime());
+            candidateTickDateValues.add(uncompressedTimeDomainEnd.getTime());
+
+            // 2. Add boundaries of elisions and truncated events
+            timelineElements.forEach(el => {
+                if (el.type === 'elision') {
+                    candidateTickDateValues.add(new Date(el.originalGapStart).getTime());
+                    candidateTickDateValues.add(new Date(el.originalGapEnd).getTime());
+                } else if (el.type === 'event' && el.item.isVisuallyTruncated) {
+                    candidateTickDateValues.add(new Date(el.originalStartDate).getTime());
+                    candidateTickDateValues.add(new Date(el.originalEndDate).getTime());
                 }
             });
 
-            mainGroup.append("g")
-                .attr("class", "timeline-axis")
-                .attr("transform", `translate(0, ${totalCalculatedHeight + 10})`)
-                .call(xAxis)
-                .selectAll("text").style("text-anchor", "middle");
+            // 3. No general periodic ticks for Option 1 (Minimal Labels Strategy)
+            // We are only using the explicitly collected boundary dates.
+            
+            // Convert Set to sorted array of Date objects
+            const finalTickDates = Array.from(candidateTickDateValues).map(time => new Date(time)).sort((a,b) => a - b);
 
-            let allDrawnEventsSorted = []; 
+            const validTicksToRender = [];
+            finalTickDates.forEach(date => {
+                const xPos = mapDateToCompressedX(date, timelineElements, uncompressedTimeDomainStart, baseTimeScale);
+                // Ensure tick is within drawable area and mapDateToCompressedX didn't return -1 (for mid-elision)
+                if (xPos !== -1 && xPos >= 0 && xPos <= totalContentWidth) { 
+                    validTicksToRender.push({ date: date, x: xPos });
+                }
+            });
+
+            // Sort by X position again, as mapping might slightly reorder if dates were extremely close
+            validTicksToRender.sort((a, b) => a.x - b.x); 
+
+            // Filter for rendering to avoid overlap
+            const minTickLabelSeparation = 70; 
+            const estimatedLabelWidth = 60;  
+            let lastRenderedTickX = -Infinity;
+
+            xAxisGroup.append("line").attr("x1",0).attr("x2",totalContentWidth).attr("y1",0).attr("y2",0).attr("stroke","currentColor"); // Draw main axis line
+
+            validTicksToRender.forEach(tick => {
+                const tickCenter = tick.x;
+                const labelStart = tickCenter - estimatedLabelWidth / 2;
+                const labelEnd = tickCenter + estimatedLabelWidth / 2;
+
+                if ((tickCenter - lastRenderedTickX >= minTickLabelSeparation) && 
+                    labelStart >= 0 && 
+                    labelEnd <= totalContentWidth) {
+                    
+                    xAxisGroup.append("line").attr("x1", tickCenter).attr("x2", tickCenter).attr("y1", 0).attr("y2", 6).attr("stroke", "currentColor");
+                    xAxisGroup.append("text").attr("x", tickCenter).attr("y", 9).attr("dy", "0.71em")
+                        .attr("text-anchor", "middle").text(d3.timeFormat("%b %d")(tick.date));
+                    lastRenderedTickX = tickCenter;
+                }
+            });
+            // --- End of new X-Axis tick generation and rendering ---
+
+
+            let allDrawnEventElements = []; // For connection lines, using items from phaseLayoutData.events
 
             phaseLayoutData.forEach(phaseData => {
                 const phaseGroup = mainGroup.append("g")
@@ -593,208 +805,173 @@
 
                 phaseGroup.append("rect")
                     .attr("class", "phase-band")
-                    .attr("x", 0).attr("y", 0).attr("width", width) // Use the final calculated width
+                    .attr("x", 0).attr("y", 0).attr("width", totalContentWidth) // Use totalContentWidth
                     .attr("height", phaseData.visualHeight - phasePadding)
                     .style("fill", d3.schemeTableau10[johnDoeJourneyData.findIndex(p => p.phaseId === phaseData.phaseId) % 10]);
 
                 phaseGroup.append("text")
                     .attr("class", "phase-label")
-                    .attr("x", 10) 
-                    .attr("y", phaseHeaderHeight / 2) 
+                    .attr("x", 10).attr("y", phaseHeaderHeight / 2)
                     .text(phaseData.phaseName);
+                
+                if (phaseData.visualY > 0) { 
+                    mainGroup.append("line").attr("class", "phase-divider")
+                        .attr("x1", 0).attr("x2", totalContentWidth)
+                        .attr("y1", phaseData.visualY).attr("y2", phaseData.visualY); 
+                }
 
-                phaseData.events.forEach((event) => {
+                phaseData.events.forEach((eventLayout) => { // eventLayout has computedX, computedY, computedWidth
+                    const eventData = eventLayout; // The original event data is part of eventLayout now
                     const eventGroup = phaseGroup.append("g")
-                        .attr("class", `event-node outcome-${event.outcomeIndicator}`)
-                        .attr("transform", `translate(${event.computedX}, ${event.computedY})`)
-                        .datum(event) 
-                        .on("click", (e,d) => displayEventDetails(d))
-                        .on("mouseover", mouseoverEvent)
-                        .on("mouseout", mouseoutEvent);
+                        .attr("class", `event-node outcome-${eventData.outcomeIndicator} ${selectedEventId === eventData.id ? 'selected' : ''}`)
+                        .attr("transform", `translate(${eventLayout.computedX}, ${eventLayout.computedY})`)
+                        .datum(eventData) // Bind original event data for interactions
+                        .on("click", (e,d) => { 
+                            selectedEventId = d.id; 
+                            d3.selectAll('.event-node').classed('selected', false); 
+                            d3.select(e.currentTarget).classed('selected', true); 
+                            displayEventDetails(d); 
+                        })
+                        .on("mouseover", mouseoverEvent).on("mouseout", mouseoutEvent);
 
-                    eventGroup.append("rect")
-                        .attr("class", "event-bg-rect")
-                        .attr("width", event.computedWidth)
-                        .attr("height", eventNodeHeight);
+                    eventGroup.append("rect").attr("class", "event-bg-rect").attr("width", eventLayout.computedWidth).attr("height", eventNodeHeight);
+                    eventGroup.append("rect").attr("class", "event-header-rect").attr("width", eventLayout.computedWidth).attr("height", eventHeaderHeight);
                     
-                    eventGroup.append("rect")
-                        .attr("class", "event-header-rect")
-                        .attr("width", event.computedWidth)
-                        .attr("height", eventHeaderHeight);
-                        
-                    const textNode = eventGroup.append("text");
-                    formatStructuredEventText(textNode, event, event.computedWidth, eventNodeHeight);
+                    if (eventTypeIcons[eventData.type]) { eventGroup.append("text").attr("class", "event-type-icon").attr("x", 8).attr("y", eventHeaderHeight + 15).text(eventTypeIcons[eventData.type]); }
+                    if (eventData.benchmarks && Object.values(eventData.benchmarks).some(b => b.value > b.benchmark)) { 
+                        eventGroup.append("circle").attr("class", "benchmark-warning")
+                            .attr("cx", eventLayout.computedWidth - 10).attr("cy", 10).attr("r", 5)
+                            .attr("title", "Benchmark(s) exceeded"); 
+                    }
+                    const textNode = eventGroup.append("text"); 
+                    formatStructuredEventText(textNode, eventData, eventLayout.computedWidth, eventNodeHeight);
                     
-                    allDrawnEventsSorted.push({...event, absY: phaseData.visualY + event.computedY});
+                    allDrawnEventElements.push({...eventLayout, absY: phaseData.visualY + eventLayout.computedY});
                 });
             });
 
-            allDrawnEventsSorted.sort((a,b) => new Date(a.startDate) - new Date(b.startDate)); 
-            for (let i = 1; i < allDrawnEventsSorted.length; i++) {
-                const prevEvent = allDrawnEventsSorted[i-1];
-                const currentEvent = allDrawnEventsSorted[i];
-                mainGroup.append("line")
-                    .attr("class", "connection-line")
-                    .attr("x1", prevEvent.computedX + prevEvent.computedWidth) 
-                    .attr("y1", prevEvent.absY + eventNodeHeight / 2) 
-                    .attr("x2", currentEvent.computedX) 
-                    .attr("y2", currentEvent.absY + eventNodeHeight / 2) 
-                    .attr("marker-end", "url(#arrowhead)");
+            allDrawnEventElements.sort((a,b) => a.computedX - b.computedX); // Sort by final X position
+            
+            for (let i = 1; i < allDrawnEventElements.length; i++) {
+                const prevEventLayout = allDrawnEventElements[i-1]; 
+                const currentEventLayout = allDrawnEventElements[i];
+                // Check if there's an elision marker between them visually
+                const visualGapStart = prevEventLayout.computedX + prevEventLayout.computedWidth;
+                const visualGapEnd = currentEventLayout.computedX;
+                const isElisionBetween = timelineElements.some(el => 
+                    el.type === 'elision' && el.x >= visualGapStart && (el.x + el.visualWidth) <= visualGapEnd
+                );
+
+                if (!isElisionBetween || (visualGapEnd - visualGapStart < elisionMarkerVisualWidth + 2*stepHorizontalSpacing)) { // Connect if no elision or if elision is very small part of gap
+                     mainGroup.append("line").attr("class", "connection-line")
+                        .attr("x1", prevEventLayout.computedX + prevEventLayout.computedWidth) 
+                        .attr("y1", prevEventLayout.absY + eventNodeHeight / 2) 
+                        .attr("x2", currentEventLayout.computedX) 
+                        .attr("y2", currentEventLayout.absY + eventNodeHeight / 2) 
+                        .attr("marker-end", "url(#arrowhead)");
+                }
             }
             
-            if (!mainGroup.select("defs #arrowhead").node()){
+            if (!mainGroup.select("defs #arrowhead").node()){ 
                  mainGroup.append("defs").append("marker")
                     .attr("id", "arrowhead").attr("viewBox", "-0 -5 10 10")
                     .attr("refX", 8).attr("refY", 0).attr("orient", "auto")
                     .attr("markerWidth", 4).attr("markerHeight", 4)
                     .append("svg:path").attr("d", "M 0,-5 L 10 ,0 L 0,5 Z").style("fill", "#9ca3af");
             }
+            filterEvents(); // Apply filters after drawing
         }
 
         function formatStructuredEventText(textElement, eventData, width, height) {
             textElement.selectAll("tspan").remove();
-            const padding = 8;
-            const headerTextY = eventHeaderHeight / 2 + 4; 
-            const bodyStartY = eventHeaderHeight + padding;
-            let currentBodyY = bodyStartY;
-
-            const nameLines = wrapText(eventData.name, Math.floor((width - 2 * padding) / 7)); 
-            nameLines.forEach((line, i) => {
-                 if (i === 0) { 
-                    textElement.append("tspan")
-                        .attr("class", "event-name-header")
-                        .attr("x", width / 2)
-                        .attr("y", headerTextY)
-                        .text(line + (nameLines.length > 1 ? "..." : ""));
-                 }
-            });
-
+            const padding = 8; const iconOffset = eventTypeIcons[eventData.type] ? 25 : 0; 
+            const headerTextY = eventHeaderHeight / 2 + 4; let currentBodyY = eventHeaderHeight + padding;
+            const nameLines = wrapText(eventData.name, Math.floor((width - 2 * padding - iconOffset) / 7)); 
+            nameLines.forEach((line, i) => { if (i === 0) { textElement.append("tspan").attr("class", "event-name-header").attr("x", width / 2).attr("y", headerTextY).text(line + (nameLines.length > 1 ? "..." : "")); } });
             const timeStr = `${d3.timeFormat("%H:%M")(new Date(eventData.startDate))} (${eventData.durationText})`;
-            textElement.append("tspan")
-                .attr("class", "event-time-body")
-                .attr("x", padding)
-                .attr("y", currentBodyY + 10)
-                .text(timeStr);
-            currentBodyY += 18; 
-
+            textElement.append("tspan").attr("class", "event-time-body").attr("x", padding + iconOffset).attr("y", currentBodyY + 10).text(timeStr); currentBodyY += 18; 
             if (eventData.details) {
                 const detailSnippet = eventData.details.substring(0, 60) + (eventData.details.length > 60 ? "..." : "");
-                const detailLines = wrapText(detailSnippet, Math.floor((width - 2 * padding) / 6)); 
-                detailLines.forEach((line, i) => {
-                    if (currentBodyY + (i * 11) < height - eventFooterHeight - padding && i < 2) { 
-                        textElement.append("tspan")
-                            .attr("class", "event-details-snippet-body")
-                            .attr("x", padding)
-                            .attr("y", currentBodyY + (i * 11))
-                            .text(line);
-                    }
-                });
+                const detailLines = wrapText(detailSnippet, Math.floor((width - 2 * padding - iconOffset) / 6)); 
+                detailLines.forEach((line, i) => { if (currentBodyY + (i * 11) < height - eventFooterHeight - padding && i < 2) { textElement.append("tspan").attr("class", "event-details-snippet-body").attr("x", padding + iconOffset).attr("y", currentBodyY + (i * 11)).text(line); } });
             }
-            
             if (eventData.flags && eventData.flags.length > 0) {
                 let flagText = eventData.flags.map(f => f.icon || f.type.substring(0,3).toUpperCase()).join(" ");
-                 if (flagText.length * 8 > width - 2*padding) flagText = flagText.substring(0, Math.floor((width - 2*padding)/8)-3) + "...";
-
-                textElement.append("tspan")
-                    .attr("class", "event-flags-footer")
-                    .attr("x", width / 2)
-                    .attr("y", height - padding - 2) 
-                    .text(flagText);
+                if (flagText.length * 8 > width - 2*padding) flagText = flagText.substring(0, Math.floor((width - 2*padding)/8)-3) + "...";
+                textElement.append("tspan").attr("class", "event-flags-footer").attr("x", width / 2).attr("y", height - padding - 2).text(flagText);
             }
         }
-         function wrapText(text, maxCharsPerLine) {
-            if (!text) return [];
-            const words = text.split(/\s+/);
-            const lines = [];
-            if (!words[0]) return lines;
+        function wrapText(text, maxCharsPerLine) {
+            if (!text) return []; const words = text.split(/\s+/); const lines = []; if (!words[0]) return lines;
             let currentLine = words[0];
-            for (let i = 1; i < words.length; i++) {
-                if ((currentLine + " " + words[i]).length > maxCharsPerLine && currentLine.length > 0) {
-                    lines.push(currentLine);
-                    currentLine = words[i];
-                } else {
-                    currentLine += " " + words[i];
-                }
-            }
-            if (currentLine) lines.push(currentLine);
-            return lines;
+            for (let i = 1; i < words.length; i++) { if ((currentLine + " " + words[i]).length > maxCharsPerLine && currentLine.length > 0) { lines.push(currentLine); currentLine = words[i]; } else { currentLine += " " + words[i]; } }
+            if (currentLine) lines.push(currentLine); return lines;
         }
-        
         function mouseoverEvent(event, d) {
             d3.select(this).select(".event-bg-rect").style("filter", "brightness(95%)");
             tooltip.transition().duration(200).style("opacity", .95);
-            let html = `<strong>${d.name}</strong><br/>
-                        Time: ${d3.timeFormat("%b %d, %H:%M")(new Date(d.startDate))} (${d.durationText})<br/>
-                        Outcome: <span style="color:${getOutcomeColor(d.outcomeIndicator)}; font-weight:bold;">${d.outcomeIndicator.toUpperCase()}</span><br/>
-                        Details: ${d.details.substring(0,150)}...`;
-            if (d.flags && d.flags.length > 0) {
-                html += "<br/>Flags: " + d.flags.map(f => `${f.icon || ''} ${f.label}`).join(', ');
-            }
-            tooltip.html(html)
-                .style("left", (event.pageX + 15) + "px")
-                .style("top", (event.pageY - 28) + "px");
+            let html = `<strong>${d.name}</strong><br/>Time: ${d3.timeFormat("%b %d, %H:%M")(new Date(d.startDate))} (${d.durationText})<br/>Outcome: <span style="color:${getOutcomeColor(d.outcomeIndicator)}; font-weight:bold;">${d.outcomeIndicator.toUpperCase()}</span><br/>Details: ${d.details.substring(0,150)}...`;
+            if (d.flags && d.flags.length > 0) { html += "<br/>Flags: " + d.flags.map(f => `${f.icon || ''} ${f.label}`).join(', '); }
+            tooltip.html(html).style("left", (event.pageX + 15) + "px").style("top", (event.pageY - 28) + "px");
         }
-        function mouseoutEvent() {
-            d3.select(this).select(".event-bg-rect").style("filter", "none");
-            tooltip.transition().duration(500).style("opacity", 0);
-        }
-        function getOutcomeColor(outcome) {
-            switch(outcome) {
-                case 'good': return '#10b981'; 
-                case 'neutral': return '#6b7280'; 
-                case 'concern': return '#eab308'; 
-                case 'flag': return '#ef4444'; 
-                case 'decision': return '#4f46e5'; 
-                default: return '#6b7280';
-            }
-        }
-
+        function mouseoutEvent() { d3.select(this).select(".event-bg-rect").style("filter", "none"); tooltip.transition().duration(500).style("opacity", 0); }
+        function getOutcomeColor(outcome) { switch(outcome) { case 'good': return '#10b981'; case 'neutral': return '#6b7280'; case 'concern': return '#eab308'; case 'flag': return '#ef4444'; case 'decision': return '#4f46e5'; default: return '#6b7280'; } }
         function displayEventDetails(eventData) {
             detailsPanel.html(""); 
-            detailsPanel.append("h3").text(eventData.name);
-            detailsPanel.append("p").html(`<strong>Phase:</strong> ${eventData.phaseName}`);
-            detailsPanel.append("p").html(`<strong>Time:</strong> ${d3.timeFormat("%Y-%m-%d %H:%M")(new Date(eventData.startDate))} (Duration: ${eventData.durationText})`);
-            detailsPanel.append("p").html(`<strong>Type:</strong> ${eventData.type}`);
-            detailsPanel.append("p").html(`<strong>Outcome Status:</strong> <span style="color:${getOutcomeColor(eventData.outcomeIndicator)}; font-weight:bold;">${eventData.outcomeIndicator.toUpperCase()}</span>`);
-            
-            detailsPanel.append("p").html(`<strong>Details:</strong><br/>${eventData.details.replace(/\n/g, '<br/>')}`);
-
-            if (eventData.flags && eventData.flags.length > 0) {
-                const flagsDiv = detailsPanel.append("div").classed("mb-2", true);
-                flagsDiv.append("p").html("<strong>Flags/Key Indicators:</strong>");
-                const ulFlags = flagsDiv.append("ul").attr("class", "flag-list");
-                eventData.flags.forEach(flag => ulFlags.append("li").html(`${flag.icon || ''} ${flag.label}`));
-            }
-            if (eventData.linkedNoteSection) {
-                 detailsPanel.append("p").html(`<em>(Refers to clinical note section: ${eventData.linkedNoteSection})</em>`);
-            }
+            const headerSection = detailsPanel.append("div").attr("class", "details-section"); headerSection.append("h3").text(eventData.name);
+            const sections = [ { title: "Basic Information", content: getBasicInfoHTML(eventData), expanded: true }, { title: "Clinical Details", content: getClinicalDetailsHTML(eventData), expanded: true }, { title: "Quality Measures & Benchmarks", content: getBenchmarksHTML(eventData), expanded: false } ];
+            sections.forEach(section => {
+                if (!section.content) return; 
+                const sectionDiv = detailsPanel.append("div").attr("class", "collapsible-section");
+                const header = sectionDiv.append("div").attr("class", "section-header").on("click", function() { const contentElement = d3.select(this.parentNode).select(".section-content"); const isExpanded = contentElement.style("display") !== "none"; contentElement.style("display", isExpanded ? "none" : "block"); d3.select(this).select(".expand-icon").text(isExpanded ? "▶" : "▼"); });
+                header.append("span").attr("class", "expand-icon").text(section.expanded ? "▼" : "▶"); header.append("span").text(section.title);
+                sectionDiv.append("div").attr("class", "section-content").style("display", section.expanded ? "block" : "none").html(section.content);
+            });
         }
-        
+        function getBasicInfoHTML(eventData) { let html = `<p><strong>Phase:</strong> ${eventData.phaseName}</p><p><strong>Time:</strong> ${d3.timeFormat("%Y-%m-%d %H:%M")(new Date(eventData.startDate))} (Duration: ${eventData.durationText})</p><p><strong>Type:</strong> ${eventData.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p><p><strong>Outcome Status:</strong> <span style="color:${getOutcomeColor(eventData.outcomeIndicator)}; font-weight:bold;">${eventData.outcomeIndicator.toUpperCase()}</span></p>`; if (eventData.linkedNoteSection) { html += `<p><em>(Refers to clinical note section: ${eventData.linkedNoteSection})</em></p>`; } return html; }
+        function getClinicalDetailsHTML(eventData) { let html = `<p><strong>Details:</strong><br/>${eventData.details.replace(/\n/g, '<br/>')}</p>`; if (eventData.flags && eventData.flags.length > 0) { html += "<strong>Flags/Key Indicators:</strong>"; const ulFlags = `<ul class="flag-list">` + eventData.flags.map(flag => `<li>${flag.icon || ''} ${flag.label}</li>`).join('') + `</ul>`; html += ulFlags; } return html; }
+        function formatBenchmarkName(key) { return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()); }
+        function getBenchmarksHTML(eventData) {
+            if (!eventData.benchmarks || Object.keys(eventData.benchmarks).length === 0) return "<p>No benchmark data available for this event.</p>";
+            let html = "<ul class='benchmark-list'>";
+            Object.entries(eventData.benchmarks).forEach(([key, data]) => {
+                const status = data.value <= data.benchmark ? "met" : "missed"; const difference = Math.abs(data.value - data.benchmark); let comparisonText = "";
+                if (status === "missed") { comparisonText = ` (Exceeded by ${difference.toFixed(1)} ${data.unit})`; } else if (status === "met" && data.value < data.benchmark) { comparisonText = ` (Met, ${difference.toFixed(1)} ${data.unit} under benchmark)`; } else { comparisonText = ` (Met benchmark)`; }
+                html += `<li class='benchmark-${status}'><strong>${formatBenchmarkName(key)}:</strong> ${data.value} ${data.unit} (Benchmark: ${data.benchmark} ${data.unit})${comparisonText}</li>`;
+            });
+            html += "</ul>"; return html;
+        }
         toggleButton.on("click", function() {
-            const detailsNode = detailsPanel.node();
-            const vizContainerNode = document.getElementById('timelineVisualizationContainer');
+            const detailsNode = detailsPanelNode; const vizContainerNode = vizContainer;
             const isCollapsed = detailsNode.classList.toggle("collapsed");
-
-            if (isCollapsed) {
-                vizContainerNode.style.flexGrow = "10"; 
-                d3.select(this).text("Show Details");
-            } else {
-                vizContainerNode.style.flexGrow = "3"; 
-                d3.select(this).text("Hide Details");
-            }
+            if (isCollapsed) { localStorage.setItem('timeline-flex-grow-before-collapse', vizContainerNode.style.flexGrow || '1'); vizContainerNode.style.flexGrow = "10"; d3.select(this).text("Show Details"); dividerHandle.style.display = 'none'; } 
+            else { const prevFlexGrow = localStorage.getItem('timeline-flex-grow-before-collapse') || '1'; vizContainerNode.style.flexGrow = prevFlexGrow; d3.select(this).text("Hide Details"); dividerHandle.style.display = 'flex'; }
+            drawTimeline(); 
         });
-
         drawTimeline();
-        if(johnDoeJourneyData.length > 0 && johnDoeJourneyData[0].events.length > 0) {
-            displayEventDetails(johnDoeJourneyData[0].events[0]); 
-        }
-
-        let resizeTimer;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(drawTimeline, 250);
-        });
-
+        if(johnDoeJourneyData.length > 0 && johnDoeJourneyData[0].events.length > 0) { selectedEventId = johnDoeJourneyData[0].events[0].id; d3.selectAll('.event-node').filter(d => d.id === selectedEventId).classed('selected', true); displayEventDetails(johnDoeJourneyData[0].events[0]); }
+        let resizeTimer; window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (detailsPanelNode.classList.contains('collapsed')) { vizContainer.style.flexGrow = "10"; } drawTimeline(); }, 250); });
     </script>
 </body>
 </html>
+
+</final_file_content>
+
+IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.
+
+<environment_details>
+# VSCode Visible Files
+pathway.html
+
+# VSCode Open Tabs
+pathway.html
+
+# Current Time
+5/29/2025, 9:48:01 AM (America/Chicago, UTC-5:00)
+
+# Context Window Usage
+143,179 / 1,048.576K tokens used (14%)
+
+# Current Mode
+ACT MODE
+</environment_details>
