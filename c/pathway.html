@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Journey Timeline: John Doe - HF Pathway</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: #f3f4f6; /* Tailwind gray-100 */
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Prevent body scrollbars */
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            flex-grow: 1;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .header-controls {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between; /* Align items */
+            align-items: center;
+            width: 100%;
+            max-width: 1600px; /* Max width for controls */
+            align-self: center;
+            box-sizing: border-box;
+        }
+        .header-controls h1 {
+             margin-right: auto; /* Push title to left, button to right */
+        }
+        #toggleDetailsBtn {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+        .visualization-area {
+            display: flex;
+            width: 100%;
+            max-width: 1600px; /* Max width for vis area */
+            align-self: center;
+            flex-grow: 1;
+            gap: 10px; /* Reduced gap when panel is collapsed */
+            overflow: hidden;
+            transition: gap 0.3s ease-in-out;
+        }
+        #timelineVisualizationContainer {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: auto; /* Enable scrolling for SVG content */
+            position: relative;
+            transition: flex-grow 0.3s ease-in-out;
+        }
+        #timelineVisualization {
+            display: block;
+        }
+        #eventDetailsPanel {
+            flex-grow: 0; /* Initially don't grow */
+            flex-shrink: 0; /* Don't shrink beyond min-width */
+            width: 320px; /* Default width */
+            min-width: 320px; 
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            font-size: 0.9rem;
+            transition: width 0.3s ease-in-out, min-width 0.3s ease-in-out, padding 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        }
+        #eventDetailsPanel.collapsed {
+            width: 0px;
+            min-width: 0px;
+            padding: 0;
+            opacity: 0;
+            overflow: hidden; 
+        }
+
+        #eventDetailsPanel h3 {
+            margin-top: 0; color: #1d4ed8; font-size: 1.2rem; font-weight: 600;
+            border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1rem;
+        }
+        #eventDetailsPanel p { margin-bottom: 0.75rem; line-height: 1.6; color: #374151; }
+        #eventDetailsPanel strong { color: #1f2937; }
+        #eventDetailsPanel ul { list-style-type: disc; margin-left: 18px; padding-left: 5px; margin-bottom: 0.75rem; }
+        .flag-list li { font-size: 0.85rem; padding: 2px 0; }
+
+        .phase-band {
+            fill-opacity: 0.05; 
+        }
+        .phase-label {
+            font-size: 1.1rem; 
+            font-weight: 700; 
+            fill: #374151; 
+            text-anchor: start; 
+            dominant-baseline: middle;
+        }
+        .event-node {
+            cursor: pointer;
+        }
+        .event-node .event-bg-rect { 
+            stroke-width: 1.5px;
+            rx: 6; ry: 6;
+            transition: transform 0.2s ease-out, fill 0.3s, stroke 0.3s;
+        }
+         .event-node .event-header-rect { 
+            rx: 5px 5px 0 0; 
+            height: 22px; 
+        }
+        .event-node:hover .event-bg-rect {
+            transform: scale(1.03); 
+        }
+
+        .event-node text {
+            font-size: 10px;
+            pointer-events: none;
+            fill: #374151; 
+        }
+        .event-node .event-name-header { 
+            font-weight: 600;
+            font-size: 11px;
+            fill: white; 
+            text-anchor: middle;
+        }
+        .event-node .event-time-body {
+            font-size: 9px;
+            fill: #6b7280; 
+        }
+        .event-node .event-details-snippet-body {
+            font-size: 9.5px;
+        }
+        .event-node .event-flags-footer {
+            font-size: 12px;
+            text-anchor: middle;
+        }
+
+        /* Outcome Indicators for Header and Border */
+        .outcome-good .event-bg-rect { stroke: #10b981; fill: #f0fdf4; } 
+        .outcome-good .event-header-rect { fill: #10b981; }
+
+        .outcome-neutral .event-bg-rect { stroke: #6b7280; fill: #f9fafb; } 
+        .outcome-neutral .event-header-rect { fill: #6b7280; }
+
+        .outcome-concern .event-bg-rect { stroke: #eab308; fill: #fefce8;} 
+        .outcome-concern .event-header-rect { fill: #eab308; }
+        .outcome-concern .event-name-header { fill: #713f12; } 
+
+
+        .outcome-flag .event-bg-rect { stroke: #ef4444; fill: #fef2f2; } 
+        .outcome-flag .event-header-rect { fill: #ef4444; }
+
+        .outcome-decision .event-bg-rect { stroke: #4f46e5; fill: #eef2ff; } 
+        .outcome-decision .event-header-rect { fill: #4f46e5; }
+
+
+        .timeline-axis path, .timeline-axis line { stroke: #9ca3af; }
+        .timeline-axis text { fill: #4b5563; font-size: 0.8rem; }
+        .connection-line { stroke: #9ca3af; stroke-width: 1.5px; stroke-dasharray: 3,3; opacity: 0.7; }
+        .tooltip {
+            position: absolute; text-align: left; padding: 10px; font-size: 0.85rem;
+            background: rgba(0,0,0,0.85); color: white; border-radius: 6px;
+            pointer-events: none; opacity: 0; transition: opacity 0.2s; max-width: 350px; z-index: 1000;
+            line-height: 1.4;
+        }
+        .tooltip strong { color: #a5f3fc; } 
+        .day-marker-line {
+            stroke: #e5e7eb; /* Tailwind gray-200 */
+            stroke-width: 1px;
+            stroke-dasharray: 2,2;
+        }
+        .day-marker-label, .day-marker-ellipsis {
+            font-size: 0.75rem;
+            fill: #6b7280; /* Tailwind gray-500 */
+            text-anchor: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-controls">
+            <h1 class="text-2xl font-bold text-sky-700">Patient Journey: John Doe - Heart Failure</h1>
+            <button id="toggleDetailsBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Hide Details
+            </button>
+        </div>
+        <div class="visualization-area">
+            <div id="timelineVisualizationContainer" style="flex-grow: 3;"> {/* Initial flex-grow */}
+                <svg id="timelineVisualization"></svg>
+            </div>
+            <div id="eventDetailsPanel">
+                <h3>Event Details</h3>
+                <p>Click on an event in the timeline to see more information.</p>
+            </div>
+        </div>
+    </div>
+    <div class="tooltip"></div>
+
+    <script>
+        const johnDoeJourneyData = [
+            // Phase 1: ED / Initial Assessment
+            {
+                phaseName: "ED / Initial Assessment",
+                phaseId: "phase_ed",
+                phaseStartDate: "2025-05-15T00:00:00Z", 
+                phaseEndDate: "2025-05-15T06:00:00Z", 
+                events: [
+                    {
+                        id: "ed_arrival_triage",
+                        name: "ED Arrival & Triage",
+                        type: "event_critical",
+                        startDate: "2025-05-15T00:00:00Z", 
+                        endDate: "2025-05-15T01:00:00Z",
+                        durationText: "~1 hr",
+                        details: "Presented c/o acute dyspnea, orthopnea (3-pillow), BLE edema x3 days. Hx HFrEF (EF 30%). Vitals: BP 160/95, HR 110, RR 28, SpO2 88% RA. Triaged 'Warm & Wet'.",
+                        outcomeIndicator: "concern",
+                        flags: [
+                            { type: "hypoxia", label: "Hypoxia (SpO2 88%)", icon: "💨" },
+                            { type: "hypertension", label: "Hypertension (160/95)", icon: "⬆️BP" },
+                            { type: "tachycardia", label: "Tachycardia (HR 110)", icon: "💓" }
+                        ],
+                        linkedNoteSection: "1. ED / Initial Assessment Phase - Arrival & Triage"
+                    },
+                    {
+                        id: "ed_decision_admit",
+                        name: "Decision: ADMIT",
+                        type: "decision_outcome",
+                        startDate: "2025-05-15T01:00:00Z",
+                        endDate: "2025-05-15T01:15:00Z",
+                        durationText: "Key Decision",
+                        details: "Condition Met: Severe symptoms, instability (hypoxia), high-risk features warranted inpatient admission.",
+                        outcomeIndicator: "decision",
+                        flags: [],
+                        linkedNoteSection: "2. Decision Outcome: ADMIT (from ED)"
+                    },
+                    {
+                        id: "ed_admitted_workup",
+                        name: "Admitted: IV, Monitor, Dx",
+                        type: "treatment_investigation",
+                        startDate: "2025-05-15T01:15:00Z",
+                        endDate: "2025-05-15T03:15:00Z",
+                        durationText: "~2 hrs",
+                        details: "2x Lg Bore IVs. Cardiac monitor, cont. SpO2. Labs: BNP 2500, Trop 0.08 (demand), Cr 1.8. ECG: ST, LVH. CXR: Pulm congestion, effusions.",
+                        outcomeIndicator: "concern", 
+                        flags: [
+                            { type: "lab_critical", label: "BNP 2500 pg/mL", icon: "🧪" },
+                            { type: "aki", label: "AKI (Cr 1.8)", icon: "երի" } 
+                        ],
+                        linkedNoteSection: "2. Decision Outcome: ADMIT (from ED) - IV, Monitoring, Dx"
+                    },
+                    {
+                        id: "ed_initial_therapy",
+                        name: "Admitted: Initial Therapy",
+                        type: "treatment",
+                        startDate: "2025-05-15T03:15:00Z",
+                        endDate: "2025-05-15T05:00:00Z", 
+                        durationText: "~1.75 hrs",
+                        details: "O2 via NC @4L (SpO2 >92%). IV Furosemide 80mg. Nitroglycerin drip initiated, titrated to BP.",
+                        outcomeIndicator: "neutral", 
+                        flags: [
+                            { type: "medication_iv", label: "IV Furosemide", icon: "💧" },
+                            { type: "medication_iv", label: "NTG Drip", icon: "💧" }
+                        ],
+                        linkedNoteSection: "2. Decision Outcome: ADMIT (from ED) - Initial Therapy"
+                    }
+                ]
+            },
+            {
+                phaseName: "Inpatient Management (Day 1-5)",
+                phaseId: "phase_inpatient",
+                phaseStartDate: "2025-05-15T05:00:00Z",
+                phaseEndDate: "2025-05-19T12:00:00Z", 
+                events: [
+                     {
+                        id: "inpt_day1_hemo_profile",
+                        name: "Inpt Day 1: Hemo Profile",
+                        type: "assessment",
+                        startDate: "2025-05-15T08:00:00Z",
+                        endDate: "2025-05-15T10:00:00Z",
+                        durationText: "Ongoing",
+                        details: "Admitted Cardiac Telemetry. Confirmed 'Warm & Wet'. Daily weights, strict I&Os. Gradual improvement with diuresis noted.",
+                        outcomeIndicator: "neutral",
+                        flags: [],
+                        linkedNoteSection: "3. Inpatient Management Phase - Hemodynamic Profiling"
+                    },
+                    {
+                        id: "inpt_day1_3_diuresis_gdmt",
+                        name: "Inpt Day 1-3: Diuresis & GDMT Review",
+                        type: "treatment_monitoring",
+                        startDate: "2025-05-15T10:00:00Z",
+                        endDate: "2025-05-17T17:00:00Z",
+                        durationText: "~3 Days",
+                        details: "IV Furosemide cont., then PO Furosemide 80mg BID (net neg 4.5L). Lisinopril held (AKI, Cr peak 2.1). Metoprolol cont. Spironolactone restarted. Cr stabilized to 1.6.",
+                        outcomeIndicator: "concern", 
+                        flags: [
+                            { type: "aki_resolved", label: "AKI (Cr peak 2.1 -> 1.6)", icon: "երի✅" },
+                            { type: "med_hold", label: "Lisinopril Held", icon: "✋" }
+                        ],
+                        linkedNoteSection: "3. Inpatient Management Phase - Diuretic & GDMT Optimization"
+                    },
+                    {
+                        id: "inpt_day3_entresto_sglt2i_plan",
+                        name: "Inpt Day 3: Entresto Init. & SGLT2i Plan",
+                        type: "treatment_planning",
+                        startDate: "2025-05-17T17:00:00Z",
+                        endDate: "2025-05-18T10:00:00Z",
+                        durationText: "Planning",
+                        details: "Entresto initiated cautiously. Dapagliflozin (SGLT2i) discussed, planned for outpatient initiation due to recent AKI.",
+                        outcomeIndicator: "good", 
+                        flags: [
+                            { type: "med_change_positive", label: "Entresto Initiated", icon: "💊+" },
+                            { type: "med_plan", label: "SGLT2i Outpt Plan", icon: "🗓️" }
+                        ],
+                        linkedNoteSection: "3. Inpatient Management Phase - Diuretic & GDMT Optimization"
+                    },
+                    {
+                        id: "inpt_day4_risk_edu",
+                        name: "Inpt Day 4: Risk Strat. & Education",
+                        type: "assessment_education",
+                        startDate: "2025-05-18T10:00:00Z",
+                        endDate: "2025-05-18T17:00:00Z",
+                        durationText: "Ongoing",
+                        details: "Intermediate readmission risk. Not candidate for advanced therapies. Palliative care declined. Initial HF education by nurse.",
+                        outcomeIndicator: "neutral",
+                        flags: [],
+                        linkedNoteSection: "3. Inpatient Management Phase - Risk Stratification & Education"
+                    }
+                ]
+            },
+            {
+                phaseName: "Discharge Planning (Day 4-5)",
+                phaseId: "phase_discharge",
+                phaseStartDate: "2025-05-18T10:00:00Z", 
+                phaseEndDate: "2025-05-19T12:00:00Z",
+                events: [
+                    {
+                        id: "dc_day4_comprehensive_edu",
+                        name: "DC Planning Day 4: Comprehensive Edu.",
+                        type: "education",
+                        startDate: "2025-05-18T14:00:00Z",
+                        endDate: "2025-05-19T10:00:00Z",
+                        durationText: "~1 Day",
+                        details: "Detailed education (meds, diet, weight, symptoms, Stoplight tool, activity) for patient & wife by HF nurse/pharmacist. Teach-back confirmed understanding.",
+                        outcomeIndicator: "good",
+                        flags: [{ type: "patient_engaged", label: "Teach-back OK", icon: "👍" }],
+                        linkedNoteSection: "4. Discharge Planning Phase - Comprehensive Education"
+                    },
+                    {
+                        id: "dc_day5_medrec_fup",
+                        name: "DC Planning Day 5: Med Rec & F/U Appts",
+                        type: "coordination",
+                        startDate: "2025-05-19T09:00:00Z",
+                        endDate: "2025-05-19T11:00:00Z",
+                        durationText: "~2 hrs",
+                        details: "Med rec by pharmacist. F/U Appts: HF Clinic (5/22), PCP (6/5), Cardiology (6/19).",
+                        outcomeIndicator: "good",
+                        flags: [{ type: "fup_scheduled", label: "F/U Scheduled", icon: "🗓️" }],
+                        linkedNoteSection: "4. Discharge Planning Phase - Med Rec & Follow-up Appts"
+                    },
+                    {
+                        id: "dc_day5_summary_handoff_discharge",
+                        name: "DC Day 5: Summary, Handoff & Discharge",
+                        type: "discharge_event",
+                        startDate: "2025-05-19T11:00:00Z",
+                        endDate: "2025-05-19T12:00:00Z", 
+                        durationText: "~1 hr",
+                        details: "Discharge summary completed & faxed. Verbal handoff to HF Clinic NP. Patient discharged home.",
+                        outcomeIndicator: "good",
+                        flags: [{ type: "discharged_home", label: "Discharged Home", icon: "🏠" }],
+                        linkedNoteSection: "4. Discharge Planning Phase - Discharge Summary & Handoff"
+                    }
+                ]
+            },
+            {
+                phaseName: "Outpatient Management (Post-Discharge)",
+                phaseId: "phase_outpatient",
+                phaseStartDate: "2025-05-19T12:00:01Z",
+                phaseEndDate: "2025-06-19T17:00:00Z", 
+                events: [
+                    {
+                        id: "outpt_call_day2",
+                        name: "Outpt: Post-DC Call (Day +2)",
+                        type: "follow_up_call",
+                        startDate: "2025-05-21T10:00:00Z",
+                        endDate: "2025-05-21T10:30:00Z",
+                        durationText: "~30 min",
+                        details: "HF nurse call: Pt doing well, no acute issues, adhering to meds/weights.",
+                        outcomeIndicator: "good",
+                        flags: [],
+                        linkedNoteSection: "5. Outpatient Management Phase - Early Follow-up"
+                    },
+                    {
+                        id: "outpt_visit_day7",
+                        name: "Outpt: HF Clinic Visit (Day +7)",
+                        type: "follow_up_visit",
+                        startDate: "2025-05-22T14:00:00Z",
+                        endDate: "2025-05-22T15:00:00Z",
+                        durationText: "~1 hr",
+                        details: "NP Visit: Weight stable, no congestion. BP 125/78, HR 70. Meds reviewed, edu reinforced. Labs: Cr 1.5, K+ 4.2. Dapagliflozin 10mg daily initiated.",
+                        outcomeIndicator: "good",
+                        flags: [
+                            { type: "med_change_positive", label: "Dapagliflozin Initiated", icon: "💊+" },
+                            { type: "labs_stable", label: "Labs Stable", icon: "🧪👍" }
+                        ],
+                        linkedNoteSection: "5. Outpatient Management Phase - Early Follow-up"
+                    },
+                    {
+                        id: "outpt_visit_month1_cardiology",
+                        name: "Outpt: Cardiology F/U (Month +1)",
+                        type: "follow_up_visit",
+                        startDate: "2025-06-19T10:00:00Z", 
+                        endDate: "2025-06-19T11:00:00Z",
+                        durationText: "~1 hr",
+                        details: "Dr. Smith Visit: Tolerating Entresto & Dapagliflozin. NYHA II. Metoprolol titration considered. Adherence/lifestyle emphasized.",
+                        outcomeIndicator: "good",
+                        flags: [],
+                        linkedNoteSection: "5. Outpatient Management Phase - Ongoing GDMT Opt. & Monitor"
+                    },
+                    {
+                        id: "outpt_psychosocial_ongoing",
+                        name: "Outpt: Psychosocial (Ongoing)",
+                        type: "assessment_support",
+                        startDate: "2025-05-22T15:00:00Z", 
+                        endDate: "2025-06-19T11:00:00Z", 
+                        durationText: "Ongoing",
+                        details: "PHQ-2 negative at HF clinic. Wife expressed caregiver stress; resources provided.",
+                        outcomeIndicator: "neutral",
+                        flags: [{ type: "caregiver_support", label: "Caregiver Support", icon: "👨‍👩‍👧‍👦" }],
+                        linkedNoteSection: "5. Outpatient Management Phase - Psychosocial Needs & Coord."
+                    }
+                ]
+            }
+        ];
+
+        const svgElement = d3.select("#timelineVisualization");
+        const detailsPanel = d3.select("#eventDetailsPanel");
+        const tooltip = d3.select(".tooltip");
+        const svgContainer = document.getElementById('timelineVisualizationContainer');
+        const toggleButton = d3.select("#toggleDetailsBtn");
+
+        const margin = {top: 40, right: 40, bottom: 60, left: 40};
+        const eventNodeHeight = 85; 
+        const eventNodeWidthMin = 180; 
+        const eventHeaderHeight = 22;
+        const eventFooterHeight = 20; 
+        const eventBodyPadding = 5;
+        const phaseHeaderHeight = 45; 
+        const phasePadding = 25; 
+        const verticalSpacingBetweenEventRows = 25; 
+        const stepHorizontalSpacing = 10; 
+
+        function drawTimeline() {
+            svgElement.selectAll("*").remove();
+            const allEvents = johnDoeJourneyData.flatMap(phase => 
+                phase.events.map(event => ({...event, phaseId: phase.phaseId, phaseName: phase.phaseName}))
+            );
+
+            if (allEvents.length === 0) return;
+
+            const journeyRealStartDate = d3.min(allEvents, d => new Date(d.startDate));
+            const timeDomainStart = d3.timeDay.floor(journeyRealStartDate); 
+            let timeDomainEnd = d3.max(allEvents, d => new Date(d.endDate));
+
+            if (!timeDomainStart || !timeDomainEnd) { 
+                 console.error("Invalid time domain for events.");
+                 timeDomainStart = new Date();
+                 timeDomainEnd = d3.timeDay.offset(new Date(), 1);
+            }
+            
+            const minEndDate = d3.timeDay.offset(timeDomainStart, 7); 
+            if (timeDomainEnd < minEndDate) timeDomainEnd = minEndDate;
+
+            timeDomainEnd = d3.timeHour.offset(timeDomainEnd, 24); // Increased padding at end
+
+            const svgClientWidth = svgContainer.clientWidth;
+            const estimatedMinWidthForDomain = (d3.timeDay.count(timeDomainStart, timeDomainEnd) + 1) * 120; // Increased px per day
+            let width = Math.max(svgClientWidth - margin.left - margin.right, estimatedMinWidthForDomain, 1500); 
+            
+            const timeScale = d3.scaleTime().domain([timeDomainStart, timeDomainEnd]).range([0, width]);
+            const xAxis = d3.axisBottom(timeScale).ticks(d3.timeDay.every(1)).tickFormat(d3.timeFormat("%b %d"));
+
+            let currentY = 0;
+            const phaseLayoutData = []; 
+            let overallMaxXExtent = 0;
+
+
+            johnDoeJourneyData.forEach(phase => {
+                let phaseStartY = currentY;
+                let eventPositions = [];
+                const rows = [[]]; 
+
+                phase.events.sort((a,b) => new Date(a.startDate) - new Date(b.startDate)).forEach(event => {
+                    const eventStartDate = new Date(event.startDate);
+                    const eventEndDate = new Date(event.endDate);
+                    let nodeX = timeScale(eventStartDate);
+                    let nodeWidthActual = Math.max(eventNodeWidthMin, timeScale(eventEndDate) - timeScale(eventStartDate) - 2);
+                    if (nodeWidthActual < 50 || isNaN(nodeWidthActual)) nodeWidthActual = eventNodeWidthMin;
+
+                    let placedInRow = false;
+                    for (let r = 0; r < rows.length; r++) {
+                        const lastEventInThisRow = rows[r].length > 0 ? rows[r][rows[r].length - 1] : null;
+                        if (!lastEventInThisRow || nodeX >= lastEventInThisRow.computedX + lastEventInThisRow.computedWidth + stepHorizontalSpacing) {
+                            rows[r].push({...event, computedX: nodeX, computedY: phaseHeaderHeight + phasePadding + r * (eventNodeHeight + verticalSpacingBetweenEventRows), computedWidth: nodeWidthActual});
+                            placedInRow = true;
+                            if (nodeX + nodeWidthActual > overallMaxXExtent) overallMaxXExtent = nodeX + nodeWidthActual;
+                            break;
+                        }
+                    }
+                    if (!placedInRow) { 
+                        rows.push([{...event, computedX: nodeX, computedY: phaseHeaderHeight + phasePadding + (rows.length) * (eventNodeHeight + verticalSpacingBetweenEventRows), computedWidth: nodeWidthActual}]);
+                        if (nodeX + nodeWidthActual > overallMaxXExtent) overallMaxXExtent = nodeX + nodeWidthActual;
+                    }
+                });
+
+                eventPositions = rows.flat();
+                const maxEventYInPhase = rows.length > 0 ? 
+                    d3.max(eventPositions, ep => ep.computedY + eventNodeHeight) 
+                    : phaseHeaderHeight + phasePadding;
+
+                const calculatedPhaseHeight = maxEventYInPhase + phasePadding;
+                phaseLayoutData.push({
+                    ...phase,
+                    visualY: phaseStartY,
+                    visualHeight: calculatedPhaseHeight,
+                    events: eventPositions 
+                });
+                currentY += calculatedPhaseHeight;
+            });
+            
+            // Adjust width if content exceeds initial estimate
+            width = Math.max(width, overallMaxXExtent);
+            timeScale.range([0, width]); // Update timeScale range with new width
+
+            const totalCalculatedHeight = currentY;
+            const height = Math.max(totalCalculatedHeight + margin.top + margin.bottom, svgContainer.clientHeight - 50);
+
+            svgElement.attr("width", width + margin.left + margin.right).attr("height", height);
+            const mainGroup = svgElement.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+            
+            const days = d3.timeDay.range(timeDomainStart, d3.timeDay.ceil(timeDomainEnd));
+            let lastDisplayedDayIndex = -1;
+            const dayLabelY = -margin.top / 2 + 15;
+
+            days.forEach((day, i) => {
+                const dayX = timeScale(day);
+                const dayNumber = d3.timeDay.count(journeyRealStartDate, day); 
+
+                if (i - lastDisplayedDayIndex > 3 && lastDisplayedDayIndex !== -1) { 
+                     mainGroup.append("text")
+                        .attr("class", "day-marker-ellipsis")
+                        .attr("x", (timeScale(days[lastDisplayedDayIndex]) + dayX) / 2)
+                        .attr("y", dayLabelY)
+                        .text("...");
+                }
+                
+                if (i - lastDisplayedDayIndex <= 3 || i === days.length -1 || lastDisplayedDayIndex === -1 || (i - lastDisplayedDayIndex > 3 && dayNumber % 5 === 0) ) { 
+                    mainGroup.append("line")
+                        .attr("class", "day-marker-line")
+                        .attr("x1", dayX).attr("x2", dayX)
+                        .attr("y1", -margin.top / 2) 
+                        .attr("y2", totalCalculatedHeight + 5); 
+                    mainGroup.append("text")
+                        .attr("class", "day-marker-label")
+                        .attr("x", dayX)
+                        .attr("y", dayLabelY) 
+                        .text(`Day ${dayNumber}`);
+                    lastDisplayedDayIndex = i;
+                }
+            });
+
+            mainGroup.append("g")
+                .attr("class", "timeline-axis")
+                .attr("transform", `translate(0, ${totalCalculatedHeight + 10})`)
+                .call(xAxis)
+                .selectAll("text").style("text-anchor", "middle");
+
+            let allDrawnEventsSorted = []; 
+
+            phaseLayoutData.forEach(phaseData => {
+                const phaseGroup = mainGroup.append("g")
+                    .attr("class", `phase-group-${phaseData.phaseId}`)
+                    .attr("transform", `translate(0, ${phaseData.visualY})`);
+
+                phaseGroup.append("rect")
+                    .attr("class", "phase-band")
+                    .attr("x", 0).attr("y", 0).attr("width", width) // Use the final calculated width
+                    .attr("height", phaseData.visualHeight - phasePadding)
+                    .style("fill", d3.schemeTableau10[johnDoeJourneyData.findIndex(p => p.phaseId === phaseData.phaseId) % 10]);
+
+                phaseGroup.append("text")
+                    .attr("class", "phase-label")
+                    .attr("x", 10) 
+                    .attr("y", phaseHeaderHeight / 2) 
+                    .text(phaseData.phaseName);
+
+                phaseData.events.forEach((event) => {
+                    const eventGroup = phaseGroup.append("g")
+                        .attr("class", `event-node outcome-${event.outcomeIndicator}`)
+                        .attr("transform", `translate(${event.computedX}, ${event.computedY})`)
+                        .datum(event) 
+                        .on("click", (e,d) => displayEventDetails(d))
+                        .on("mouseover", mouseoverEvent)
+                        .on("mouseout", mouseoutEvent);
+
+                    eventGroup.append("rect")
+                        .attr("class", "event-bg-rect")
+                        .attr("width", event.computedWidth)
+                        .attr("height", eventNodeHeight);
+                    
+                    eventGroup.append("rect")
+                        .attr("class", "event-header-rect")
+                        .attr("width", event.computedWidth)
+                        .attr("height", eventHeaderHeight);
+                        
+                    const textNode = eventGroup.append("text");
+                    formatStructuredEventText(textNode, event, event.computedWidth, eventNodeHeight);
+                    
+                    allDrawnEventsSorted.push({...event, absY: phaseData.visualY + event.computedY});
+                });
+            });
+
+            allDrawnEventsSorted.sort((a,b) => new Date(a.startDate) - new Date(b.startDate)); 
+            for (let i = 1; i < allDrawnEventsSorted.length; i++) {
+                const prevEvent = allDrawnEventsSorted[i-1];
+                const currentEvent = allDrawnEventsSorted[i];
+                mainGroup.append("line")
+                    .attr("class", "connection-line")
+                    .attr("x1", prevEvent.computedX + prevEvent.computedWidth) 
+                    .attr("y1", prevEvent.absY + eventNodeHeight / 2) 
+                    .attr("x2", currentEvent.computedX) 
+                    .attr("y2", currentEvent.absY + eventNodeHeight / 2) 
+                    .attr("marker-end", "url(#arrowhead)");
+            }
+            
+            if (!mainGroup.select("defs #arrowhead").node()){
+                 mainGroup.append("defs").append("marker")
+                    .attr("id", "arrowhead").attr("viewBox", "-0 -5 10 10")
+                    .attr("refX", 8).attr("refY", 0).attr("orient", "auto")
+                    .attr("markerWidth", 4).attr("markerHeight", 4)
+                    .append("svg:path").attr("d", "M 0,-5 L 10 ,0 L 0,5 Z").style("fill", "#9ca3af");
+            }
+        }
+
+        function formatStructuredEventText(textElement, eventData, width, height) {
+            textElement.selectAll("tspan").remove();
+            const padding = 8;
+            const headerTextY = eventHeaderHeight / 2 + 4; 
+            const bodyStartY = eventHeaderHeight + padding;
+            let currentBodyY = bodyStartY;
+
+            const nameLines = wrapText(eventData.name, Math.floor((width - 2 * padding) / 7)); 
+            nameLines.forEach((line, i) => {
+                 if (i === 0) { 
+                    textElement.append("tspan")
+                        .attr("class", "event-name-header")
+                        .attr("x", width / 2)
+                        .attr("y", headerTextY)
+                        .text(line + (nameLines.length > 1 ? "..." : ""));
+                 }
+            });
+
+            const timeStr = `${d3.timeFormat("%H:%M")(new Date(eventData.startDate))} (${eventData.durationText})`;
+            textElement.append("tspan")
+                .attr("class", "event-time-body")
+                .attr("x", padding)
+                .attr("y", currentBodyY + 10)
+                .text(timeStr);
+            currentBodyY += 18; 
+
+            if (eventData.details) {
+                const detailSnippet = eventData.details.substring(0, 60) + (eventData.details.length > 60 ? "..." : "");
+                const detailLines = wrapText(detailSnippet, Math.floor((width - 2 * padding) / 6)); 
+                detailLines.forEach((line, i) => {
+                    if (currentBodyY + (i * 11) < height - eventFooterHeight - padding && i < 2) { 
+                        textElement.append("tspan")
+                            .attr("class", "event-details-snippet-body")
+                            .attr("x", padding)
+                            .attr("y", currentBodyY + (i * 11))
+                            .text(line);
+                    }
+                });
+            }
+            
+            if (eventData.flags && eventData.flags.length > 0) {
+                let flagText = eventData.flags.map(f => f.icon || f.type.substring(0,3).toUpperCase()).join(" ");
+                 if (flagText.length * 8 > width - 2*padding) flagText = flagText.substring(0, Math.floor((width - 2*padding)/8)-3) + "...";
+
+                textElement.append("tspan")
+                    .attr("class", "event-flags-footer")
+                    .attr("x", width / 2)
+                    .attr("y", height - padding - 2) 
+                    .text(flagText);
+            }
+        }
+         function wrapText(text, maxCharsPerLine) {
+            if (!text) return [];
+            const words = text.split(/\s+/);
+            const lines = [];
+            if (!words[0]) return lines;
+            let currentLine = words[0];
+            for (let i = 1; i < words.length; i++) {
+                if ((currentLine + " " + words[i]).length > maxCharsPerLine && currentLine.length > 0) {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                } else {
+                    currentLine += " " + words[i];
+                }
+            }
+            if (currentLine) lines.push(currentLine);
+            return lines;
+        }
+        
+        function mouseoverEvent(event, d) {
+            d3.select(this).select(".event-bg-rect").style("filter", "brightness(95%)");
+            tooltip.transition().duration(200).style("opacity", .95);
+            let html = `<strong>${d.name}</strong><br/>
+                        Time: ${d3.timeFormat("%b %d, %H:%M")(new Date(d.startDate))} (${d.durationText})<br/>
+                        Outcome: <span style="color:${getOutcomeColor(d.outcomeIndicator)}; font-weight:bold;">${d.outcomeIndicator.toUpperCase()}</span><br/>
+                        Details: ${d.details.substring(0,150)}...`;
+            if (d.flags && d.flags.length > 0) {
+                html += "<br/>Flags: " + d.flags.map(f => `${f.icon || ''} ${f.label}`).join(', ');
+            }
+            tooltip.html(html)
+                .style("left", (event.pageX + 15) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        }
+        function mouseoutEvent() {
+            d3.select(this).select(".event-bg-rect").style("filter", "none");
+            tooltip.transition().duration(500).style("opacity", 0);
+        }
+        function getOutcomeColor(outcome) {
+            switch(outcome) {
+                case 'good': return '#10b981'; 
+                case 'neutral': return '#6b7280'; 
+                case 'concern': return '#eab308'; 
+                case 'flag': return '#ef4444'; 
+                case 'decision': return '#4f46e5'; 
+                default: return '#6b7280';
+            }
+        }
+
+        function displayEventDetails(eventData) {
+            detailsPanel.html(""); 
+            detailsPanel.append("h3").text(eventData.name);
+            detailsPanel.append("p").html(`<strong>Phase:</strong> ${eventData.phaseName}`);
+            detailsPanel.append("p").html(`<strong>Time:</strong> ${d3.timeFormat("%Y-%m-%d %H:%M")(new Date(eventData.startDate))} (Duration: ${eventData.durationText})`);
+            detailsPanel.append("p").html(`<strong>Type:</strong> ${eventData.type}`);
+            detailsPanel.append("p").html(`<strong>Outcome Status:</strong> <span style="color:${getOutcomeColor(eventData.outcomeIndicator)}; font-weight:bold;">${eventData.outcomeIndicator.toUpperCase()}</span>`);
+            
+            detailsPanel.append("p").html(`<strong>Details:</strong><br/>${eventData.details.replace(/\n/g, '<br/>')}`);
+
+            if (eventData.flags && eventData.flags.length > 0) {
+                const flagsDiv = detailsPanel.append("div").classed("mb-2", true);
+                flagsDiv.append("p").html("<strong>Flags/Key Indicators:</strong>");
+                const ulFlags = flagsDiv.append("ul").attr("class", "flag-list");
+                eventData.flags.forEach(flag => ulFlags.append("li").html(`${flag.icon || ''} ${flag.label}`));
+            }
+            if (eventData.linkedNoteSection) {
+                 detailsPanel.append("p").html(`<em>(Refers to clinical note section: ${eventData.linkedNoteSection})</em>`);
+            }
+        }
+        
+        toggleButton.on("click", function() {
+            const detailsNode = detailsPanel.node();
+            const vizContainerNode = document.getElementById('timelineVisualizationContainer');
+            const isCollapsed = detailsNode.classList.toggle("collapsed");
+
+            if (isCollapsed) {
+                vizContainerNode.style.flexGrow = "10"; 
+                d3.select(this).text("Show Details");
+            } else {
+                vizContainerNode.style.flexGrow = "3"; 
+                d3.select(this).text("Hide Details");
+            }
+        });
+
+        drawTimeline();
+        if(johnDoeJourneyData.length > 0 && johnDoeJourneyData[0].events.length > 0) {
+            displayEventDetails(johnDoeJourneyData[0].events[0]); 
+        }
+
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(drawTimeline, 250);
+        });
+
+    </script>
+</body>
+</html>
