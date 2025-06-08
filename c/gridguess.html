@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross Clues - React Version</title>
+
+    <!-- Load React and ReactDOM from CDN -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+
+    <!-- Load Babel to transpile JSX in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Load Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /* A little extra style for text shadow which is cleaner in CSS */
+        .text-shadow {
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+        }
+        @keyframes fade-in {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.5s ease-out forwards;
+        }
+        /* Utility class to prevent text selection on click */
+        .noselect {
+            -webkit-touch-callout: none; /* iOS Safari */
+            -webkit-user-select: none; /* Safari */
+            -khtml-user-select: none; /* Konqueror HTML */
+            -moz-user-select: none; /* Old versions of Firefox */
+            -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version */
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-purple-500 to-indigo-600 min-h-screen flex items-center justify-center p-2 sm:p-4 font-sans">
+
+    <!-- The root element where the React app will be mounted -->
+    <div id="root" class="w-full max-w-4xl"></div>
+
+    <!-- The React application code with type="text/babel" -->
+    <script type="text/babel">
+
+        const { useState, useEffect, useMemo, useCallback, useReducer } = React;
+
+        // --- Helper Functions (Seeded RNG) ---
+        const generateBaseSeed = () => {
+            const now = new Date();
+            const utc = new Date(now.getTime() + (now.getTimezoneOffset() * 60000));
+            const day = utc.getUTCDate().toString().padStart(2, '0');
+            const month = (utc.getUTCMonth() + 1).toString().padStart(2, '0');
+            const year = utc.getUTCFullYear();
+            const hour = utc.getUTCHours().toString().padStart(2, '0');
+            return `${year}${month}${day}${hour}`;
+        };
+        
+        const seedRandom = (seed) => {
+            let m = 0x80000000;
+            let a = 1103515245;
+            let c = 12345;
+            let state = parseInt(seed, 10) % m;
+            return () => {
+                state = (a * state + c) % m;
+                return state / (m - 1);
+            };
+        };
+        
+        const shuffleArray = (array, rng) => {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(rng() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        };
+        
+        // --- Constants ---
+        const CODE_WORDS = ['Animal', 'Art', 'Beach', 'Book', 'Car', 'Cat', 'City', 'Color', 'Dance', 'Dog', 'Dream', 'Earth', 'Fire', 'Fish', 'Flower', 'Food', 'Forest', 'Friend', 'Game', 'Garden', 'Guitar', 'Happy', 'Heart', 'Home', 'Hope', 'House', 'Ice', 'Joy', 'King', 'Light', 'Love', 'Magic', 'Moon', 'Music', 'Ocean', 'Peace', 'Planet', 'Queen', 'Rain', 'River', 'Rock', 'School', 'Sky', 'Snow', 'Song', 'Star', 'Sun', 'Time', 'Tree', 'Water', 'Wind', 'Winter', 'Wonder', 'Work', 'World', 'Doctor', 'Teacher', 'Chef', 'Artist', 'Pilot', 'Mountain', 'Valley', 'Bridge', 'Castle', 'Tower', 'Island', 'Desert', 'Jungle', 'Meadow', 'Cave', 'Thunder', 'Lightning', 'Rainbow', 'Cloud', 'Storm', 'Sunset', 'Dawn', 'Twilight', 'Midnight', 'Noon', 'Gold', 'Silver', 'Diamond', 'Pearl', 'Ruby', 'Crystal', 'Metal', 'Glass', 'Stone', 'Wood', 'Speed', 'Power', 'Energy', 'Force', 'Motion', 'Sound', 'Echo', 'Voice', 'Whisper', 'Silence', 'Battle', 'Victory', 'Honor', 'Courage', 'Wisdom', 'Truth', 'Faith', 'Spirit', 'Soul', 'Mind', 'Adventure', 'Journey', 'Quest', 'Discovery', 'Mystery', 'Secret', 'Treasure', 'Legend', 'Hero', 'Story'];
+        const PLAYER_COLORS = ['bg-rose-400', 'bg-sky-400', 'bg-teal-400', 'bg-amber-400', 'bg-violet-400', 'bg-lime-400'];
+
+        // --- React Components ---
+
+        const SetupScreen = ({ onStartGame }) => {
+            const [difficulty, setDifficulty] = useState(4);
+            const [totalPlayers, setTotalPlayers] = useState(2);
+            const [myPlayerNumber, setMyPlayerNumber] = useState(1);
+            const [baseSeed] = useState(generateBaseSeed());
+
+            const gameSeed = useMemo(() => `${baseSeed}000`, [baseSeed]);
+
+            const handleStart = () => {
+                onStartGame({
+                    difficulty,
+                    totalPlayers,
+                    myPlayerNumber,
+                    seed: gameSeed + difficulty,
+                });
+            };
+
+            const playerNumberOptions = Array.from({ length: totalPlayers }, (_, i) => i + 1);
+            
+            useEffect(() => {
+                if(myPlayerNumber > totalPlayers) {
+                    setMyPlayerNumber(totalPlayers);
+                }
+            }, [totalPlayers, myPlayerNumber]);
+
+            const difficultyButtonClasses = (level) => 
+                `px-6 py-3 rounded-xl font-bold text-white shadow-lg transition-all transform hover:-translate-y-1 ${
+                    level === 3 ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                    level === 4 ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+                                'bg-gradient-to-br from-red-500 to-red-600'
+                } ${difficulty !== level ? 'opacity-60' : ''}`;
+
+            return (
+                <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-2xl w-full text-center animate-fade-in">
+                    <h1 className="text-4xl font-bold text-gray-700 mb-6 text-shadow">Cross Clues</h1>
+                    <div className="bg-slate-100 border-2 border-slate-200 rounded-xl p-4 mb-6">
+                        <h3 className="font-bold text-lg text-gray-600">How It Works</h3>
+                        <p className="text-gray-500 mt-2 text-sm sm:text-base">Each player opens this page. The game is synchronized using the current UTC hour.</p>
+                        <p className="text-gray-500 mt-1 text-sm sm:text-base">The clue-giver gives a clue. Any player can tap the grid to register the group's guess.</p>
+                        <div className="font-mono text-xs sm:text-sm bg-slate-200 text-slate-600 rounded-md p-2 mt-3">Hourly Game Seed: {gameSeed}</div>
+                    </div>
+                    <h3 className="font-bold text-lg text-gray-600 mb-4">Choose Difficulty</h3>
+                    <div className="flex justify-center gap-2 sm:gap-4 mb-8 flex-wrap">
+                        <button className={difficultyButtonClasses(3)} onClick={() => setDifficulty(3)}>Easy <small className="block font-normal">3×3 Grid</small></button>
+                        <button className={difficultyButtonClasses(4)} onClick={() => setDifficulty(4)}>Medium <small className="block font-normal">4×4 Grid</small></button>
+                        <button className={difficultyButtonClasses(5)} onClick={() => setDifficulty(5)}>Hard <small className="block font-normal">5×5 Grid</small></button>
+                    </div>
+                    <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 mb-8">
+                        <div>
+                            <label htmlFor="totalPlayers" className="font-semibold text-gray-600 mr-3">Total Players:</label>
+                            <select id="totalPlayers" value={totalPlayers} onChange={(e) => setTotalPlayers(parseInt(e.target.value))} className="p-2 border-2 border-slate-200 rounded-lg">
+                                {[2,3,4,5,6].map(n => <option key={n} value={n}>{n} Players</option>)}
+                            </select>
+                        </div>
+                         <div>
+                            <label htmlFor="myPlayerNumber" className="font-semibold text-gray-600 mr-3">I am Player:</label>
+                            <select id="myPlayerNumber" value={myPlayerNumber} onChange={(e) => setMyPlayerNumber(parseInt(e.target.value))} className="p-2 border-2 border-slate-200 rounded-lg">
+                                {playerNumberOptions.map(n => <option key={n} value={n}>Player {n}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                    <button onClick={handleStart} className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white font-bold text-xl py-3 px-10 rounded-full shadow-lg transition-all transform hover:scale-105 hover:-translate-y-1">Start Game</button>
+                </div>
+            );
+        };
+        
+        const GameGrid = ({ difficulty, gridWords, allCards, onGridClick }) => {
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.slice(0, difficulty);
+            const gridTemplateColumns = `minmax(60px, 1fr) repeat(${difficulty}, minmax(60px, 1fr))`;
+
+            return (
+                 <div className="flex justify-center my-4 sm:my-6">
+                    <div className="inline-grid gap-1 bg-slate-300 p-2 sm:p-4 rounded-xl shadow-lg" style={{ gridTemplateColumns }}>
+                       <div className="flex items-center justify-center bg-slate-400 text-white font-bold text-xs sm:text-sm rounded-lg h-16 sm:h-24 noselect">Cross<br/>Clues</div>
+                       {gridWords.slice(difficulty).map((word, i) => (
+                           <div key={`col-header-${i}`} className="flex flex-col items-center justify-center text-center bg-gradient-to-br from-green-500 to-green-600 text-white p-1 rounded-lg noselect">
+                                <div className="font-bold text-base sm:text-2xl">{i+1}</div>
+                                <div className="text-xs leading-tight break-all">{word}</div>
+                           </div>
+                       ))}
+                       {Array.from({length: difficulty}).map((_, i) => (
+                           <React.Fragment key={`row-${i}`}>
+                               <div className="flex flex-col items-center justify-center text-center bg-gradient-to-br from-blue-500 to-blue-600 text-white p-1 rounded-lg h-16 sm:h-24 noselect">
+                                   <div className="font-bold text-base sm:text-2xl">{letters[i]}</div>
+                                   <div className="text-xs leading-tight break-all">{gridWords[i]}</div>
+                               </div>
+                               {Array.from({length: difficulty}).map((_, j) => {
+                                   const coord = `${letters[i]}${j + 1}`;
+                                   const card = allCards.find(c => c.coordinate === coord);
+                                   
+                                   let cellClass = `flex flex-col items-center justify-center rounded-lg transition-all h-16 sm:h-24 p-1 relative noselect`;
+                                   
+                                   if (card?.isPlaced) {
+                                       cellClass += ` text-white ${PLAYER_COLORS[card.placedBy - 1]}`;
+                                   } else if (card?.isDiscarded) {
+                                       cellClass += " bg-gray-800 text-white";
+                                   } else {
+                                       cellClass += " bg-white border-2 border-dashed border-slate-300 cursor-pointer hover:bg-slate-100 hover:border-purple-400";
+                                   }
+
+                                   return (
+                                       <div key={coord} className={cellClass} onClick={() => onGridClick(coord)}>
+                                           {card?.isPlaced ? (
+                                                <React.Fragment>
+                                                    <div className="absolute top-1 left-1.5 bg-black bg-opacity-30 text-white font-bold text-xs rounded-full h-5 w-5 flex items-center justify-center">{card.placedBy}</div>
+                                                    <div className="font-bold text-sm sm:text-base">{coord}</div>
+                                                    <div className="text-2xl">✓</div>
+                                                </React.Fragment>
+                                           ) : card?.isDiscarded ? (
+                                                <React.Fragment>
+                                                    <div className="font-bold text-sm sm:text-base text-gray-500 line-through">{coord}</div>
+                                                    <div className="text-3xl">☠️</div>
+                                                </React.Fragment>
+                                           ) : (
+                                               <div className="font-bold text-sm sm:text-base">{coord}</div>
+                                           )}
+                                       </div>
+                                   )
+                               })}
+                           </React.Fragment>
+                       ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const FinalScoreDisplay = ({ score, totalPossible, onPlayAgain }) => {
+            const percentage = totalPossible > 0 ? Math.round((score / totalPossible) * 100) : 0;
+            const getRating = () => {
+                if (percentage >= 95) return { title: 'Awesome!', description: "A perfect score!", color: 'text-green-500' };
+                if (percentage >= 75) return { title: 'Good!', description: "A strong connection!", color: 'text-blue-500' };
+                if (percentage >= 50) return { title: 'Average', description: "A basic understanding.", color: 'text-orange-500' };
+                return { title: 'Failed', description: "You don't understand each other at all.", color: 'text-red-500' };
+            };
+            const rating = getRating();
+
+            return (
+                <div className="text-center bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4 mb-4 sm:mb-6 animate-fade-in">
+                    <h3 className="font-bold text-2xl text-yellow-800">Game Over!</h3>
+                    <div className="font-bold text-4xl my-2">{score} / {totalPossible} ({percentage}%)</div>
+                    <p className={`font-bold text-xl ${rating.color}`}>{rating.title} <span className="text-gray-600 font-normal text-lg">{rating.description}</span></p>
+                     <button onClick={onPlayAgain} className="mt-4 bg-gradient-to-br from-purple-500 to-indigo-600 text-white font-bold text-lg py-2 px-8 rounded-full shadow-lg transition-all transform hover:scale-105">Play Again</button>
+                </div>
+            );
+        }
+
+        // --- Game Logic Reducer ---
+        function gameReducer(state, action) {
+            switch(action.type) {
+                case 'MAKE_GUESS': {
+                    const { clickedCoord, totalPlayers } = action.payload;
+                    const { allCards, playerHands, deck, currentPlayerTurn } = state;
+
+                    const currentTurnCard = playerHands[currentPlayerTurn]?.[0];
+                    const clickedCardData = allCards.find(c => c.coordinate === clickedCoord);
+                    
+                    if (!currentTurnCard || clickedCardData.isPlaced || clickedCardData.isDiscarded) {
+                        return state; // Invalid click
+                    }
+                    
+                    const newAllCards = allCards.map(c => ({...c}));
+                    const newPlayerHands = playerHands.map(hand => hand.map(c => ({...c})));
+                    const newDeck = [...deck];
+                    let newScore = state.score;
+                    let logMessage, logType;
+                    
+                    const correctCard = newAllCards.find(c => c.id === currentTurnCard.id);
+                    const clueGiver = currentPlayerTurn;
+                    
+                    if (clickedCoord === correctCard.coordinate) {
+                        correctCard.isPlaced = true;
+                        correctCard.placedBy = clueGiver;
+                        newScore++;
+                        logMessage = `Correct! Player ${clueGiver}'s clue for ${clickedCoord} was right.`;
+                        logType = 'correct';
+                    } else {
+                        correctCard.isDiscarded = true;
+                        logMessage = `Incorrect! Player ${clueGiver}'s clue was for ${correctCard.coordinate}, not ${clickedCoord}.`;
+                        logType = 'incorrect';
+                    }
+
+                    let clueGiverHand = newPlayerHands[clueGiver];
+                    clueGiverHand.shift(); 
+                    
+                    if (newDeck.length > 0) {
+                        clueGiverHand.push(newDeck.shift());
+                    }
+                    newPlayerHands[clueGiver] = clueGiverHand;
+
+                    let nextPlayer = currentPlayerTurn;
+                    let nextPlayerHasCards = false;
+                    for (let i = 0; i < totalPlayers; i++) {
+                        nextPlayer = (nextPlayer % totalPlayers) + 1;
+                        if (newPlayerHands[nextPlayer]?.length > 0) {
+                            nextPlayerHasCards = true;
+                            break;
+                        }
+                    }
+
+                    const time = new Date().toLocaleTimeString();
+                    const newLog = [{ text: logMessage, type: logType, time }, ...state.log];
+                    
+                    if(nextPlayerHasCards) {
+                        newLog.unshift({ text: `Turn passes to Player ${nextPlayer}.`, type: 'info', time });
+                    }
+
+                    return {
+                        ...state,
+                        score: newScore,
+                        allCards: newAllCards,
+                        log: newLog,
+                        playerHands: newPlayerHands,
+                        deck: newDeck,
+                        currentPlayerTurn: nextPlayer,
+                        isComplete: !nextPlayerHasCards,
+                    };
+                }
+                
+                case 'END_GAME': {
+                    return {...state, isComplete: true};
+                }
+
+                default:
+                    return state;
+            }
+        }
+
+
+        const GameScreen = ({ settings, onEndGame }) => {
+            const { difficulty, totalPlayers, myPlayerNumber, seed } = settings;
+            
+            const { gridWords, initialCards, initialPlayerHands, initialDeck } = useMemo(() => {
+                const rng = seedRandom(seed);
+                const shuffledWords = shuffleArray(CODE_WORDS, rng);
+                const gridWords = shuffledWords.slice(0, difficulty * 2);
+                const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.slice(0, difficulty);
+                const cards = [];
+                for (let i = 0; i < difficulty; i++) {
+                    for (let j = 0; j < difficulty; j++) {
+                        cards.push({ id: `${letters[i]}${j + 1}`, coordinate: `${letters[i]}${j + 1}`, rowWord: gridWords[i], colWord: gridWords[difficulty + j], isPlaced: false, isDiscarded: false, placedBy: null });
+                    }
+                }
+                const initialCards = shuffleArray(cards, rng);
+                const deck = [...initialCards];
+                
+                const hands = Array.from({ length: totalPlayers + 1 }, () => []);
+                const cardsPerPlayer = (totalPlayers <= 3) ? 2 : 1;
+                for(let p = 1; p <= totalPlayers; p++){
+                    for(let i=0; i < cardsPerPlayer; i++){
+                       if(deck.length > 0) hands[p].push(deck.shift());
+                    }
+                }
+                return { gridWords, initialCards, initialPlayerHands: hands, initialDeck: deck };
+            }, [difficulty, totalPlayers, seed]);
+
+            const [state, dispatch] = useReducer(gameReducer, {
+                score: 0,
+                currentPlayerTurn: 1,
+                log: [],
+                isComplete: false,
+                allCards: initialCards,
+                playerHands: initialPlayerHands,
+                deck: initialDeck
+            });
+
+            const { score, currentPlayerTurn, log, isComplete, allCards, playerHands } = state;
+            
+            const isMyTurn = myPlayerNumber === currentPlayerTurn;
+            const currentTurnCard = playerHands[currentPlayerTurn]?.[0];
+
+            const handleGridClick = (clickedCoord) => {
+                if (isComplete) return; // Don't allow clicks after game is over
+                dispatch({ type: 'MAKE_GUESS', payload: { clickedCoord, totalPlayers } });
+            };
+
+            return (
+                <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 w-full animate-fade-in">
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-4 mb-4 text-center">
+                        <div className="font-bold text-base sm:text-lg text-indigo-600 flex items-center gap-2">You: <div className={`w-5 h-5 rounded-full ${PLAYER_COLORS[myPlayerNumber - 1]}`}></div> Player {myPlayerNumber}</div>
+                        <div className="text-lg sm:text-xl font-bold text-gray-700 bg-slate-100 px-4 py-2 rounded-lg flex items-center gap-2">Turn: <div className={`w-5 h-5 rounded-full ${PLAYER_COLORS[currentPlayerTurn - 1]}`}></div> Player {currentPlayerTurn}</div>
+                        <div className="text-lg sm:text-xl font-bold text-gray-700">Score: <span className="text-green-600">{score}</span></div>
+                    </div>
+
+                    <GameGrid difficulty={difficulty} gridWords={gridWords} allCards={allCards} onGridClick={handleGridClick} />
+                    
+                    {isComplete ? (
+                        <FinalScoreDisplay score={score} totalPossible={allCards.length} onPlayAgain={onEndGame} />
+                    ) : (
+                        <div className="text-center bg-purple-100 border-2 border-purple-300 rounded-xl p-4 mb-4 sm:mb-6">
+                            <h3 className="font-bold text-lg text-purple-800">
+                               {isMyTurn ? "Your Turn - Give a Clue for:" : `Guessing for Player ${currentPlayerTurn}'s Clue`}
+                            </h3>
+                            {currentTurnCard ? (
+                                isMyTurn ? (
+                                <div className="bg-white rounded-lg p-3 mt-2 inline-block shadow">
+                                    <span className="font-bold text-xl text-purple-700">{currentTurnCard.coordinate}</span>
+                                    <span className="text-gray-600 mx-2">:</span>
+                                    <span className="font-semibold">{currentTurnCard.rowWord} × {currentTurnCard.colWord}</span>
+                                </div>
+                                ) : (
+                                <div className="mt-2 text-gray-600">Discuss the clue, then any player can tap the grid to guess.</div>
+                                )
+                            ) : (
+                                 <div className="mt-2 text-gray-600">This player is out of cards!</div>
+                            )}
+                        </div>
+                    )}
+                    
+                    <div className="flex justify-between items-start gap-4">
+                        <div className="bg-slate-100 border-2 border-slate-200 rounded-xl p-4 flex-grow">
+                            <h4 className="font-bold text-gray-600 mb-2">Game Log</h4>
+                            <div className="max-h-32 overflow-y-auto text-sm space-y-1 pr-2">
+                               {log.map((entry, i) => (
+                                   <div key={i} className={`p-1 rounded ${entry.type === 'correct' ? 'text-green-700' : entry.type === 'incorrect' ? 'text-red-700' : 'text-blue-700'}`}>
+                                       <span className="font-mono text-xs mr-2">{entry.time}</span> {entry.text}
+                                   </div>
+                               ))}
+                            </div>
+                        </div>
+                        {!isComplete && <button onClick={() => dispatch({type: 'END_GAME'})} className="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg shadow-md transition transform hover:scale-105 self-end">🏁 End Game</button>}
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [gameState, setGameState] = useState('setup');
+            const [gameSettings, setGameSettings] = useState(null);
+
+            const handleStartGame = (settings) => {
+                setGameSettings(settings);
+                setGameState('playing');
+            };
+
+            const handleEndGame = () => {
+                setGameState('setup');
+                setGameSettings(null);
+            };
+
+            return (
+                <div className="w-full">
+                    {gameState === 'setup' && <SetupScreen onStartGame={handleStartGame} />}
+                    {gameState === 'playing' && <GameScreen settings={gameSettings} onEndGame={handleEndGame} />}
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+
+    </script>
+</body>
+</html>
