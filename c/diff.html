@@ -1,281 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Recursive Diff Playground (v4‑fixed)</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>DOCX Visual‑Diff Prototype (Structured HTML Renderer)</title>
 
-<!-- ─────────────  STYLE  ───────────── -->
-<style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;margin:0;padding:20px;color:#333}
-h1{text-align:center;margin:0 0 25px;color:#2c3e50}
-textarea{width:100%;min-height:200px;font-family:monospace;font-size:14px;padding:10px;border:1px solid #ccc;border-radius:4px;resize:vertical}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
-select,button{padding:9px 22px;font-size:15px;border-radius:4px;border:none;cursor:pointer}
-button{background:#3498db;color:#fff} button:hover{background:#2980b9}
-.output{background:#fff;border-radius:6px;padding:20px;box-shadow:0 2px 4px rgba(0,0,0,.1)}
-.json{background:#f7f7f7;border-radius:6px;padding:15px;overflow-x:auto;margin-top:15px;font-size:12px}
-/* word tokens */
-.word-delete{background:#ffd4d4;color:#c0392b;text-decoration:line-through;padding:2px 4px;border-radius:3px}
-.word-insert{background:#d4f4dd;color:#2e7d32;padding:2px 4px;border-radius:3px}
-.word-keep{color:#333}
-/* blocks */
-.change-block{margin:12px 0;padding:10px;border-left:4px solid #2196f3;background:#e3f2fd;border-radius:4px;font-size:14px}
-.insert-block{background:#e8f5e9;border-color:#43a047}
-.delete-block{background:#ffebee;border-color:#e53935}
-.modify-block{background:#fff8e1;border-color:#fb8c00}
-/* cell / item marks */
-.cell-added,.item-added{background:#d4f4dd}
-.cell-deleted,.item-deleted{background:#ffd4d4;text-decoration:line-through}
-.cell-modified,.item-modified{background:#fff8e1}
-/* legend & tests */
-.legend{display:flex;flex-wrap:wrap;gap:18px;background:#fafafa;border-radius:6px;padding:15px;margin-bottom:20px}
-.legend span{display:inline-block;padding:2px 8px;border-radius:3px;margin-right:6px}
-.status{float:right;padding:4px 11px;border-radius:12px;font-size:13px}
-.pass{background:#d4f4dd;color:#27ae60}
-.fail{background:#ffd4d4;color:#c0392b}
-.case{background:#fff;border-radius:6px;padding:15px;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-pre{background:#f7f7f7;padding:10px;border-radius:4px;overflow-x:auto;font-size:12px}
-</style>
+  <!-- Tailwind (Play CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React & ReactDOM (v18 UMD) + Babel for in‑browser JSX -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /*  🔆  Diff highlight utilities  */
+    .diff-add   { background:#c6ffd1; color:#065f46; font-weight:600; }
+    .diff-del   { background:#ffd6d5; color:#8b0000; text-decoration:line-through; }
+    table.diff  { border-collapse:collapse; }
+    table.diff td { border:1px solid #d1d5db; padding:2px 6px; }
+  </style>
 </head>
-<body>
-<h1>Recursive Structure‑Aware Diff Playground</h1>
 
-<!-- legend -->
-<div class="legend">
-  <div><span class="word-delete"></span>Deleted word</div>
-  <div><span class="word-insert"></span>Inserted word</div>
-  <div><span class="change-block" style="padding:2px 8px"></span>Table/List change</div>
-</div>
+<body class="bg-gray-50 p-8">
+  <div id="root"></div>
 
-<!-- example loader -->
-<select id="exampleSelect"></select>
-<button id="loadBtn">Load Example</button>
+  <script type="text/babel">
+    /******************************************************************
+     * 1.  Sample diffParts  – normally produced by Myers diff engine *
+     ******************************************************************/
+    const sampleDiff = [
+      { value:'«p»' },
+      { value:'The',  old:{blockId:'p1',runIdx:0}, new:{blockId:'p1',runIdx:0} },
+      { value:' ',    old:{}, new:{} },
+      { value:'quick',old:{blockId:'p1',runIdx:1}, new:{blockId:'p1',runIdx:1} },
+      { value:' ',    old:{}, new:{} },
+      { value:'brown',old:{blockId:'p1',runIdx:2}, removed:true },
+      { value:'red',                   new:{blockId:'p1',runIdx:2}, added:true },
+      { value:' ', old:{}, new:{} },
+      { value:'fox',  old:{blockId:'p1',runIdx:3}, new:{blockId:'p1',runIdx:3} },
+      { value:'«/p»' },
 
-<!-- editors -->
-<div class="grid">
- <div><h3>Original</h3><textarea id="doc1"></textarea></div>
- <div><h3>Modified</h3><textarea id="doc2"></textarea></div>
-</div>
+      { value:'«table»' },
+      { value:'«tr»' },
+      { value:'«tc»' },
+      { value:'Cell', old:{}, new:{} },
+      { value:' ',    old:{}, new:{} },
+      { value:'1',    old:{}, new:{} },
+      { value:'«/tc»' },
 
-<button id="diffBtn">Calculate Diff</button>
+      { value:'«tc»' },
+      { value:'Modified', added:true, new:{blockId:'tbl0.tr0.tc1',runIdx:0} },
+      { value:' ',       added:true, new:{blockId:'tbl0.tr0.tc1',runIdx:1} },
+      { value:'Cell',    old:{blockId:'tbl0.tr0.tc1',runIdx:0}, new:{blockId:'tbl0.tr0.tc1',runIdx:2} },
+      { value:'«/tc»' },
 
-<!-- diff outputs -->
-<div id="result" class="output" style="margin-top:25px"><em>Diff appears here…</em></div>
-<pre id="jsonOut" class="json"></pre>
+      { value:'«tc»' },
+      { value:'Extra', added:true, new:{blockId:'tbl0.tr0.tc2',runIdx:0} },
+      { value:'«/tc»' },
+      { value:'«/tr»' },
+      { value:'«/table»' }
+    ];
 
-<!-- tests -->
-<div id="tests">
- <h2>Built‑in Test Suite</h2>
- <button id="testBtn">Run All Tests</button>
- <div id="testResults" style="margin-top:20px"></div>
-</div>
+    /******************************************************************
+     * 2.  Minimal stub metaMap – just widths for table columns        *
+     ******************************************************************/
+    const metaMap = {
+      'tbl0.tr0.tc0': { width: 2500 },
+      'tbl0.tr0.tc1': { width: 2500 },
+      'tbl0.tr0.tc2': { width: 2500 },
+    };
 
-<!-- ─────────────  SCRIPT  ───────────── -->
-<script>
-// ==============  utility  ==============
-const WORD_RE=/(\S+)(\s*)/g;
-function words(text){const a=[];let m;while((m=WORD_RE.exec(text)))a.push({type:'word',text:m[1]});return a;}
+    const twipToPx = twip => Math.round((twip || 2400) * 0.05); // 1 twip ≈ 0.05 px
 
-// ==============  ListDiff  =============
-class ListDiff{
-  constructor(){this.ops=[]}
-  #lis(html){return [...new DOMParser().parseFromString(html,'text/html').querySelectorAll('li')]
-              .map(li=>li.innerHTML.trim())}
-  #map(a,b){const m={};b.forEach((v,j)=>{const i=a.findIndex((x,idx)=>x===v&&!m[idx]);if(i!==-1)m[i]=j});return m}
-  diff(o,n){
-    this.ops=[];const A=this.#lis(o),B=this.#lis(n),map=this.#map(A,B),wd=new WordDiff();
-    B.forEach((_,j)=>!Object.values(map).includes(j)&&this.ops.push({type:'item-add',index:j,html:B[j]}));
-    A.forEach((_,i)=>!(i in map)&&this.ops.push({type:'item-remove',index:i,html:A[i]}));
-    for(const[i,j]of Object.entries(map)){
-      if(+i!==+j)this.ops.push({type:'item-move',from:+i,to:+j,html:A[i]});
-      if(A[i]!==B[j])this.ops.push({type:'item-modify',index:+j,subOps:wd.diff(A[i],B[j])});
+    /******************************************************************
+     * 3.  Structured renderer → HTML string                           *
+     ******************************************************************/
+    function diffPartsToHtml(diff, meta) {
+      const root = document.createElement('div');
+      const stack = [];
+
+      const open = (tag, attrs = {}) => {
+        const el = document.createElement(tag);
+        Object.entries(attrs).forEach(([k, v]) => (el[k] = v));
+        (stack[stack.length - 1] || root).appendChild(el);
+        stack.push(el);
+      };
+      const close = () => stack.pop();
+
+      for (const part of diff) {
+        const { value, added, removed } = part;
+
+        // --- markers -------------------------------------------------
+        if (value.startsWith('«') && value.endsWith('»')) {
+          switch (true) {
+            case value === '«p»':     open('p');                break;
+            case value === '«/p»':    close();                 break;
+
+            case value === '«table»': open('table', { className:'diff' }); break;
+            case value === '«/table»':close();                 break;
+
+            case value === '«tr»':    open('tr');               break;
+            case value === '«/tr»':   close();                 break;
+
+            case value === '«tc»': {
+              const blockId = part.new?.blockId || part.old?.blockId;
+              const width   = twipToPx(meta[blockId]?.width);
+              open('td', { style:`width:${width}px` });
+              break;
+            }
+            case value === '«/tc»':   close();                 break;
+
+            // list markers etc. could be handled here
+          }
+          continue;
+        }
+
+        // --- word / whitespace ---------------------------------------
+        const span = document.createElement('span');
+        span.textContent = value;
+        if (added)   span.className = 'diff-add';
+        if (removed) span.className = 'diff-del';
+        (stack[stack.length - 1] || root).appendChild(span);
+      }
+      return root.innerHTML;
     }
-    return this.ops;
-  }
-}
 
-// ==============  TableDiff  ============  (sub‑ops on cells)
-class TableDiff{
-  constructor(){this.ops=[]}
-  #cells(h){
-    const rows=[...new DOMParser().parseFromString(h,'text/html').querySelectorAll('table tr')];
-    return rows.map(r=>[...r.children].map(c=>({html:c.innerHTML.trim(),tag:c.tagName.toLowerCase()})));
-  }
-  #mapCols(h1,h2){
-    const m={};h2.forEach((c2,j2)=>{const j1=h1.findIndex(c1=>c1.html===c2.html);if(j1!==-1)m[j1]=j2});
-    if(!Object.keys(m).length&&h1.length===h2.length)h1.forEach((_,i)=>m[i]=i);return m;
-  }
-  #rowSim(r1,r2,cmap){
-    let t=0,m=0;
-    if(Object.keys(cmap).length)for(const[k1,k2]of Object.entries(cmap))
-      {if(r1[k1]&&r2[k2]){t++;if(r1[k1].html===r2[k2].html)m++}}
-    else for(let j=0;j<Math.min(r1.length,r2.length);j++){t++;if(r1[j].html===r2[j].html)m++}
-    return t?m/t:0;
-  }
-  #mapRows(A,B,cmap){
-    const map={};for(let j=1;j<B.length;j++){
-      let best=-1,sc=0;for(let i=1;i<A.length;i++)if(!(i in map)){
-        const s=this.#rowSim(A[i],B[j],cmap);if(s>sc&&s>=.3){sc=s;best=i}}
-      if(best!==-1)map[best]=j;
-    }return map;
-  }
-  diff(oldHTML,newHTML){
-    this.ops=[];const A=this.#cells(oldHTML),B=this.#cells(newHTML);
-    if(!A.length||!B.length)return this.ops;
-    const cmap=this.#mapCols(A[0],B[0]),rmap=this.#mapRows(A,B,cmap),wd=new WordDiff();
-    // column add/remove/move
-    B[0].forEach((c,j)=>!Object.values(cmap).includes(j)&&this.ops.push({type:'column-add',index:j,header:c.html}));
-    A[0].forEach((c,i)=>!(i in cmap)&&this.ops.push({type:'column-remove',index:i,header:c.html}));
-    for(const[i,j]of Object.entries(cmap))if(+i!==+j)this.ops.push({type:'column-move',from:+i,to:+j,header:A[0][i].html});
-    // row ops
-    B.forEach((_,j)=>j&& !Object.values(rmap).includes(j)&&this.ops.push({type:'row-add',index:j,data:B[j].map(c=>c.html)}));
-    A.forEach((_,i)=>i&& !(i in rmap)&&this.ops.push({type:'row-remove',index:i,data:A[i].map(c=>c.html)}));
-    for(const[i,j]of Object.entries(rmap))if(+i!==+j)this.ops.push({type:'row-move',from:+i,to:+j,data:A[i].map(c=>c.html)});
-    // cell mods
-    const handle=(r1,r2,row,col)=>{if(r1&&r2&&r1.html!==r2.html)
-        this.ops.push({type:'cell-modify',row,col,subOps:wd.diff(r1.html,r2.html)})};
-    for(const[i,j]of Object.entries(rmap)){
-      const r1=A[i],r2=B[j];
-      if(Object.keys(cmap).length)for(const[k1,k2]of Object.entries(cmap))handle(r1[k1],r2[k2],+j,+k2);
-      else for(let c=0;c<Math.min(r1.length,r2.length);c++)handle(r1[c],r2[c],+j,c);
+    /******************************************************************
+     * 4.  React demo component                                        *
+     ******************************************************************/
+    function App() {
+      const html = diffPartsToHtml(sampleDiff, metaMap);
+
+      return (
+        <div className="max-w-3xl mx-auto bg-white shadow rounded p-8">
+          <h1 className="text-2xl font-bold mb-4">Structured HTML preview</h1>
+          <div
+            className="border border-gray-300 p-4 prose max-w-none"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        </div>
+      );
     }
-    return this.ops;
-  }
-}
 
-// ==============  WordDiff  =============
-class WordDiff{
-  #split=/(\s+|<table[\s\S]*?<\/table>|<ul[\s\S]*?<\/ul>|<ol[\s\S]*?<\/ol>)/i;
-  #tok(html){
-    const arr=[],parts=html.split(this.#split);let id=0;
-    parts.forEach(p=>{
-      if(!p||/^\s+$/.test(p))return;
-      if(/^<table/i.test(p))arr.push({type:'table',html:p,id:id++});
-      else if(/^<ul/i.test(p)||/^<ol/i.test(p))arr.push({type:'list',html:p,id:id++});
-      else arr.push(...words(p.replace(/<[^>]+>/g,'')));
-    });return arr;
-  }
-  #eq(a,b){return (a.type==='word'&&b.type==='word'&&a.text===b.text)||(a.type===b.type&&a.type!=='word')}
-  diff(x,y){
-    const A=this.#tok(x),B=this.#tok(y),n=A.length,m=B.length,dp=Array.from({length:n+1},()=>Array(m+1).fill(0));
-    for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)dp[i][j]=this.#eq(A[i],B[j])?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
-    const ops=[];let i=0,j=0;
-    while(i<n&&j<m){
-      if(this.#eq(A[i],B[j]))ops.push({type:'keep',a:A[i++],b:B[j++]});
-      else if(dp[i+1][j]>=dp[i][j+1])ops.push({type:'delete',token:A[i++]});
-      else ops.push({type:'insert',token:B[j++]});
-    }
-    while(i<n)ops.push({type:'delete',token:A[i++]});
-    while(j<m)ops.push({type:'insert',token:B[j++]});
-    // enhance lists & tables
-    const out=[];ops.forEach(o=>{
-      if(o.type==='keep'&&o.a.type==='list'){
-        const diff=new ListDiff().diff(o.a.html,o.b.html);
-        out.push(diff.length?{type:'list-modify',diff,old:o.a.html,new:o.b.html}:{type:'keep-list'});
-      }else if(o.type==='keep'&&o.a.type==='table'){
-        const diff=new TableDiff().diff(o.a.html,o.b.html);
-        out.push(diff.length?{type:'table-modify',diff,old:o.a.html,new:o.b.html}:{type:'keep-table'});
-      }else out.push(o);
-    });
-    return out;
-  }
-}
-
-// ==============  Renderers  ===========
-
-function renderTableDiff(ops,oldHTML,newHTML){
-  const doc=new DOMParser().parseFromString(newHTML,'text/html'),table=doc.querySelector('table'),
-        rows=[...table.rows].map(r=>[...r.cells]);
-  ops.forEach(op=>{
-    if(op.type==='row-add')rows[op.index].forEach(td=>td.classList.add('cell-added'));
-    if(op.type==='column-add')rows.forEach(r=>r[op.index]?.classList.add('cell-added'));
-    if(op.type==='cell-modify'){const td=rows[op.row][op.col];td.classList.add('cell-modified');
-       td.innerHTML=renderDiffHTML(op.subOps);}
-  });
-  ops.filter(o=>o.type==='row-remove').forEach(op=>{
-    const tr=table.insertRow();op.data.forEach(d=>{const td=tr.insertCell();td.className='cell-deleted';td.innerHTML=d;});
-  });
-  ops.filter(o=>o.type==='column-remove').forEach(op=>{
-    const cap=table.createCaption();cap.style.cssText='text-align:left;color:#c0392b;font-size:13px';
-    cap.textContent=`⟠ column “${op.header}” removed`;});
-  return table.outerHTML;
-}
-
-function renderListDiff(ops,oldHTML,newHTML){
-  const doc=new DOMParser().parseFromString(newHTML,'text/html'),list=doc.querySelector('ul,ol'),
-        items=[...list.children];
-  ops.forEach(op=>{
-    if(op.type==='item-add')items[op.index].classList.add('item-added');
-    if(op.type==='item-modify'){const li=items[op.index];li.classList.add('item-modified');
-       li.innerHTML=renderDiffHTML(op.subOps);}
-  });
-  ops.filter(o=>o.type==='item-remove').forEach(op=>{
-    const li=document.createElement('li');li.className='item-deleted';li.innerHTML=op.html;list.appendChild(li);});
-  return list.outerHTML;
-}
-
-function renderDiffHTML(ops){
-  return ops.map(o=>{
-    if(o.type==='keep'&&o.a?.type==='word')return `<span class="word-keep">${o.a.text}</span>`;
-    if(o.type==='delete'&&o.token.type==='word')return `<span class="word-delete">${o.token.text}</span>`;
-    if(o.type==='insert'&&o.token.type==='word')return `<span class="word-insert">${o.token.text}</span>`;
-    if(o.type==='insert'&&o.token.type==='table')return `<div class="change-block insert-block">[Table inserted]</div>`;
-    if(o.type==='delete'&&o.token.type==='table')return `<div class="change-block delete-block">[Table deleted]</div>`;
-    if(o.type==='table-modify')return `<div class="change-block modify-block">${renderTableDiff(o.diff,o.old,o.new)}</div>`;
-    if(o.type==='insert'&&o.token.type==='list')return `<div class="change-block insert-block">[List inserted]</div>`;
-    if(o.type==='delete'&&o.token.type==='list')return `<div class="change-block delete-block">[List deleted]</div>`;
-    if(o.type==='list-modify')return `<div class="change-block modify-block">${renderListDiff(o.diff,o.old,o.new)}</div>`;
-    return '';
-  }).join(' ');
-}
-
-// ==============  UI  =================
-const examples=[
-  {name:"(default) Paragraph + Table + List",doc1:`<p>Hello. Here is a table and a list.</p>
-<table><tr><th>Item</th><th>Qty</th></tr><tr><td>Apples</td><td>3</td></tr></table>
-<ul><li>Buy bread</li><li>Milk</li></ul>`,
-   doc2:`<p>Hello. Here is a <strong>modified</strong> table and a list.</p>
-<table><tr><th>Item</th><th>Qty</th></tr><tr><td>Apples</td><td>5</td></tr><tr><td>Oranges</td><td>2</td></tr></table>
-<ul><li>Buy bread</li><li>Eggs</li><li>Milk</li></ul>`},
-  {name:"Simple Word Replace",doc1:"<p>Hello world</p>",doc2:"<p>Hello there</p>"},
-  {name:"List Only",doc1:"<ul><li>A</li><li>B</li></ul>",doc2:"<ul><li>A</li><li>C</li><li>B</li></ul>"}
-];
-const sel=document.getElementById('exampleSelect');
-examples.forEach((ex,i)=>{const o=new Option(ex.name,i);sel.add(o);});
-function loadExample(){const ex=examples[+sel.value];doc1.value=ex.doc1.trim();doc2.value=ex.doc2.trim();}
-document.getElementById('loadBtn').onclick=loadExample;
-loadExample();
-
-function performDiff(){
-  const ops=new WordDiff().diff(doc1.value,doc2.value);
-  result.innerHTML=renderDiffHTML(ops);
-  jsonOut.textContent=JSON.stringify(ops,null,2);
-}
-document.getElementById('diffBtn').onclick=performDiff;
-
-// ==============  Tests ===============
-function inject(name,ok,data){
-  const div=document.createElement('div');div.className='case';
-  div.innerHTML=`<h3>${name}<span class="status ${ok?'pass':'fail'}">${ok?'PASS':'FAIL'}</span></h3>
-  <pre>${JSON.stringify(data,null,2)}</pre>`;testResults.appendChild(div);
-}
-function runAllTests(){
-  testResults.innerHTML='';
-  let pass=0,fail=0;
-  // list op test
-  const lops=new ListDiff().diff("<ul><li>A</li><li>B</li></ul>","<ul><li>A</li><li>C</li><li>B</li></ul>");
-  const okList=lops.some(o=>o.type==='item-add'&&o.html==='C');
-  inject("List add",okList,{lops});okList?pass++:fail++;
-  // table cell modify test
-  const tops=new TableDiff().diff("<table><tr><td>1</td></tr></table>","<table><tr><td>2</td></tr></table>");
-  const okTable=tops.some(o=>o.type==='cell-modify');
-  inject("Table cell modify",okTable,{tops});okTable?pass++:fail++;
-  testResults.insertAdjacentHTML('afterbegin',`<div style="margin-bottom:14px;font-size:18px">
-    Passed <b style="color:#27ae60">${pass}</b> | Failed <b style="color:#c0392b">${fail}</b></div>`);
-}
-document.getElementById('testBtn').onclick=runAllTests;
-</script>
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
 </body>
 </html>
- 
