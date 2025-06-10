@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>DOCX Visual‑Diff — React UI (Zip‑safe)</title>
+  <title>DOCX Visual‑Diff (Download demo)</title>
 
-  <!-- Tailwind utility classes -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- React 18 UMD + Babel for JSX -->
+  <!-- React 18 UMD + Babel -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- JSZip for reading / writing .docx -->
+  <!-- JSZip -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <style>
@@ -27,17 +27,15 @@
   <div id="root"></div>
 
   <script type="text/babel">
-/* ---------------------------------------------------------------- *  
- *  0.  Build a REAL .docx (ZIP) around supplied document.xml       *
- * ---------------------------------------------------------------- */
+
+/* ------------------------------------------------------------------ *
+ * 0 • buildDocx – wraps document.xml into a minimal valid DOCX       *
+ * ------------------------------------------------------------------ */
 async function buildDocx(documentXml){
-  const zip = new JSZip();
+  const zip=new JSZip();
+  zip.folder('word').file('document.xml',documentXml);
 
-  /* core part */
-  zip.folder('word').file('document.xml', documentXml);
-
-  /* [Content_Types].xml */
-  zip.file('[Content_Types].xml', `
+  zip.file('[Content_Types].xml',`
     <?xml version="1.0" encoding="UTF-8"?>
     <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
       <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
@@ -46,8 +44,7 @@ async function buildDocx(documentXml){
                 ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
     </Types>`);
 
-  /* package relationships */
-  zip.folder('_rels').file('.rels', `
+  zip.folder('_rels').file('.rels',`
     <?xml version="1.0" encoding="UTF-8"?>
     <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
       <Relationship Id="rId1"
@@ -55,246 +52,225 @@ async function buildDocx(documentXml){
         Target="word/document.xml"/>
     </Relationships>`);
 
-  return zip.generateAsync({ type:'arraybuffer' });
+  return zip.generateAsync({type:'arraybuffer'});
 }
 
-/* ---------------------------------------------------------------- *
- *  1.  Helpers / constants                                         *
- * ---------------------------------------------------------------- */
-const twipToPx = tw => Math.round((tw || 2400) * 0.05);
+/* ------------------------------------------------------------------ *
+ * 1 • Helpers & sample XML                                           *
+ * ------------------------------------------------------------------ */
+const twipToPx = tw => Math.round((tw||2400)*0.05);
 
-const SAMPLE_OLD_XML = `<?xml version="1.0"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
- <w:body>
-  <w:p>
-    <w:r><w:t>The</w:t></w:r><w:r><w:t> </w:t></w:r>
-    <w:r><w:t>quick</w:t></w:r><w:r><w:t> </w:t></w:r>
-    <w:r><w:t>brown</w:t></w:r><w:r><w:t> </w:t></w:r>
-    <w:r><w:t>fox</w:t></w:r>
-  </w:p>
-  <w:tbl>
-    <w:tr>
-      <w:tc><w:p><w:r><w:t>Old</w:t></w:r></w:p></w:tc>
-      <w:tc><w:p><w:r><w:t>Table</w:t></w:r></w:p></w:tc>
-    </w:tr>
-  </w:tbl>
- </w:body>
-</w:document>`;
+const SAMPLE_OLD_XML=`<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Hello</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>world</w:t></w:r></w:p></w:body></w:document>`;
+const SAMPLE_NEW_XML=`<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Hello</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>dear</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>world</w:t></w:r></w:p></w:body></w:document>`;
 
-const SAMPLE_NEW_XML = `<?xml version="1.0"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
- <w:body>
-  <w:p>
-    <w:r><w:t>The</w:t></w:r><w:r><w:t> </w:t></w:r>
-    <w:r><w:t>quick</w:t></w:r><w:r><w:t> </w:t></w:r>
-    <w:r><w:t>red</w:t></w:r><w:r><w:t> </w:t></w:r>
-    <w:r><w:t>fox</w:t></w:r>
-  </w:p>
-  <w:tbl>
-    <w:tr>
-      <w:tc><w:p><w:r><w:t>New</w:t></w:r></w:p></w:tc>
-      <w:tc><w:p><w:r><w:t>Table</w:t></w:r></w:p></w:tc>
-      <w:tc><w:p><w:r><w:t>Column</w:t></w:r></w:p></w:tc>
-    </w:tr>
-  </w:tbl>
- </w:body>
-</w:document>`;
-
-/* Myers diff & Canonicaliser remain identical to the previous answer -------- */
-
+/* ------------------------------------------------------------------ *
+ * 2 • Myers diff (token level) & Canonicaliser (paragraph + table)   *
+ * ------------------------------------------------------------------ */
 function eqTok(a,b){return a.type==='whitespace'&&b.type==='whitespace'||a.text===b.text;}
 
-function myers(oldT,newT){
-  const n=oldT.length,m=newT.length,max=n+m,v={};v[1]=0;const trace=[];
+function myers(a,b){
+  const n=a.length,m=b.length,max=n+m,v={};v[1]=0;const trace=[];
   for(let d=0;d<=max;d++){
     trace.push({...v});
     for(let k=-d;k<=d;k+=2){
       let x;
       if(k===-d||(k!==d&&v[k-1]<v[k+1])) x=v[k+1]; else x=v[k-1]+1;
-      let y=x-k;
-      while(x<n&&y<m&&eqTok(oldT[x],newT[y])){x++;y++;}
-      v[k]=x; if(x>=n&&y>=m) return back(trace,oldT,newT,x,y,d);
+      let y=x-k; while(x<n&&y<m&&eqTok(a[x],b[y])){x++;y++;}
+      v[k]=x; if(x>=n&&y>=m) return back(trace,a,b,x,y,d);
     }
-  }return[];
+  }return [];
 }
-function back(trace,oldT,newT,x,y,d){
+function back(trace,a,b,x,y,d){
   const diff=[];
   for(let d2=d;d2>=0&&(x>0||y>0);d2--){
     const v=trace[d2],k=x-y;
     const prevK=(k===-d2||(k!==d2&&v[k-1]<v[k+1]))?k+1:k-1;
     const prevX=v[prevK],prevY=prevX-prevK;
     while(x>prevX&&y>prevY){
-      diff.unshift({value:oldT[x-1].text,old:oldT[x-1].runKey,new:newT[y-1].runKey});
+      diff.unshift({value:a[x-1].text,old:a[x-1].runKey,new:b[y-1].runKey});
       x--;y--;
     }
     if(d2>0){
-      if(x>prevX){diff.unshift({value:oldT[x-1].text,old:oldT[x-1].runKey,removed:true});x--;}
-      else{diff.unshift({value:newT[y-1].text,new:newT[y-1].runKey,added:true});y--;}
+      if(x>prevX){diff.unshift({value:a[x-1].text,old:a[x-1].runKey,removed:true});x--;}
+      else{diff.unshift({value:b[y-1].text,new:b[y-1].runKey,added:true});y--;}
     }
   }return diff;
 }
 
-/* --- Canonicaliser (paragraph + table) ----------------------------------- */
 class Canon{
   constructor(){this.p=0;this.t=0;this.meta={};}
   async parseBuffer(buf){
     const zip=await JSZip.loadAsync(buf);
     const xml=await zip.file('word/document.xml').async('string');
-    return this.parseXml(xml);
+    return this.parse(xml);
   }
-  parseXml(xml){
+  parse(xml){
     const doc=new DOMParser().parseFromString(xml,'application/xml');
-    const tokens=[]; this.walk(doc.querySelector('w\\:body,body'),tokens);
-    return {tokens,meta:this.meta};
+    const body=doc.querySelector('w\\:body,body'); const tokens=[];
+    this.walk(body,tokens); return {tokens,meta:this.meta};
   }
   walk(node,tokens){
     node.childNodes.forEach(n=>{
       if(n.nodeType!==1) return;
-      if(/p$/i.test(n.tagName)) this.pPara(n,tokens);
-      else if(/tbl$/i.test(n.tagName)) this.pTable(n,tokens);
+      if(/p$/i.test(n.tagName)) this.para(n,tokens);
+      else if(/tbl$/i.test(n.tagName)) this.table(n,tokens);
     });
   }
-  pPara(p,tokens){
-    const id='p'+this.p++; tokens.push(mk('«p»',id));
-    let idx=0;
+  para(p,tokens){
+    const id='p'+this.p++; tokens.push(mark('«p»',id)); let idx=0;
     p.querySelectorAll('w\\:t,t').forEach(t=>{
       (t.textContent.match(/\S+|\s+/g)||[]).forEach(part=>{
         tokens.push({type:/\s/.test(part)?'whitespace':'word',text:/\s/.test(part)?' ':part,runKey:{blockId:id,runIdx:idx++}});
       });
     });
-    tokens.push(mk('«/p»',id));
+    tokens.push(mark('«/p»',id));
   }
-  pTable(tbl,tokens){
-    const tid='tbl'+this.t++; tokens.push(mk('«table»',tid));
+  table(tbl,tokens){
+    const tid='tbl'+this.t++; tokens.push(mark('«table»',tid));
     tbl.querySelectorAll('w\\:tr,tr').forEach((tr,i)=>{
-      const rid=`${tid}.tr${i}`; tokens.push(mk('«tr»',rid));
+      const rid=`${tid}.tr${i}`; tokens.push(mark('«tr»',rid));
       tr.querySelectorAll('w\\:tc,tc').forEach((tc,j)=>{
         const cid=`${rid}.tc${j}`; this.meta[cid]={width:this.tcWidth(tc)};
-        tokens.push(mk('«tc»',cid));
-        tc.querySelectorAll('w\\:p,p').forEach(p=>this.pPara(p,tokens));
-        tokens.push(mk('«/tc»',cid));
+        tokens.push(mark('«tc»',cid));
+        tc.querySelectorAll('w\\:p,p').forEach(p=>this.para(p,tokens));
+        tokens.push(mark('«/tc»',cid));
       });
-      tokens.push(mk('«/tr»',rid));
+      tokens.push(mark('«/tr»',rid));
     });
-    tokens.push(mk('«/table»',tid));
+    tokens.push(mark('«/table»',tid));
   }
   tcWidth(tc){
     const w=tc.querySelector('w\\:tcw'); return w?parseInt(w.getAttribute('w:w')):null;
   }
 }
-const mk=(text,bid)=>({type:'marker',text,runKey:{blockId:bid,runIdx:-1}});
+const mark=(t,bid)=>({type:'marker',text:t,runKey:{blockId:bid,runIdx:-1}});
 
-/* --- Structured HTML renderer ------------------------------------------- */
-function diffHtml(diff,meta){
+/* ------------------------------------------------------------------ *
+ * 3 • Renderer helpers                                               *
+ * ------------------------------------------------------------------ */
+function diffToHtml(diff,meta){
   const root=document.createElement('div'),stack=[];
-  const open=(tag,attr={})=>{
-    const el=document.createElement(tag);
-    Object.entries(attr).forEach(([k,v])=>el.setAttribute(k,v));
-    (stack[stack.length-1]||root).appendChild(el); stack.push(el);
-  };
+  const open=(tag,a={})=>{const el=document.createElement(tag);Object.entries(a).forEach(([k,v])=>el.setAttribute(k,v));(stack[stack.length-1]||root).appendChild(el);stack.push(el);};
   const close=()=>stack.pop();
-
   diff.forEach(p=>{
     if(p.value.startsWith('«')){
       switch(p.value){
         case '«p»':open('p');break; case '«/p»':close();break;
         case '«table»':open('table',{class:'diff'});break; case '«/table»':close();break;
         case '«tr»':open('tr');break; case '«/tr»':close();break;
-        case '«tc»':{
-          const id=p.new?.blockId||p.old?.blockId;
-          open('td',{style:`width:${twipToPx(meta[id]?.width)}px`});
-          break;
-        }
+        case '«tc»':{const id=p.new?.blockId||p.old?.blockId;open('td',{style:`width:${twipToPx(meta[id]?.width)}px`});break;}
         case '«/tc»':close();break;
       }return;
     }
-    const span=document.createElement('span');
-    span.textContent=p.value; if(p.added) span.className='diff-add'; if(p.removed) span.className='diff-del';
+    const span=document.createElement('span');span.textContent=p.value;
+    if(p.added) span.className='diff-add'; if(p.removed) span.className='diff-del';
     (stack[stack.length-1]||root).appendChild(span);
   });
   return root.innerHTML;
 }
 
-/* ---------------------------------------------------------------- *
- *  2.  React component                                             *
- * ---------------------------------------------------------------- */
+/* ---  diff -> document.xml (simplified: paragraph text only)  ----------- */
+function diffToDocumentXml(diff){
+  let xmlHeader=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+            xmlns:xml="http://www.w3.org/XML/1998/namespace"><w:body>`;
+  let currentParaRuns='';
+
+  const flush=()=>{ if(currentParaRuns){xmlHeader+=`<w:p>${currentParaRuns}</w:p>`; currentParaRuns='';}};
+
+  const runXml=(text,style)=>`<w:r>${style||''}<w:t xml:space="preserve">${text}</w:t></w:r>`;
+  const addStyle   ='<w:rPr><w:color w:val="00B050"/><w:highlight w:val="lightGreen"/></w:rPr>';
+  const delStyle   ='<w:rPr><w:color w:val="FF0000"/><w:strike w:val="true"/></w:rPr>';
+
+  diff.forEach(p=>{
+    if(p.value.startsWith('«')){
+      if(p.value==='«p»') flush();
+      return;
+    }
+    if(p.added)      currentParaRuns+=runXml(p.value,addStyle);
+    else if(p.removed) currentParaRuns+=runXml(p.value,delStyle);
+    else             currentParaRuns+=runXml(p.value,'');
+  });
+  flush();
+  xmlHeader+='</w:body></w:document>';
+  return xmlHeader;
+}
+
+/* ------------------------------------------------------------------ *
+ * 4 • React component                                               *
+ * ------------------------------------------------------------------ */
 function App(){
   const [oldBuf,setOld]=React.useState(null);
   const [newBuf,setNew]=React.useState(null);
-  const [busy,setBusy]=React.useState(false);
   const [logs,setLogs]=React.useState([]);
+  const [busy,setBusy]=React.useState(false);
   const [stats,setStats]=React.useState(null);
-  const [preview,setPreview]=React.useState('');
-  const [raw,setRaw]=React.useState(null);
+  const [html,setHtml]=React.useState('');
+  const [diffBuf,setDiffBuf]=React.useState(null);
 
   const log=msg=>setLogs(l=>[...l,`${new Date().toLocaleTimeString()}  ${msg}`]);
 
-  /* file upload */
-  const onFile=(e,which)=>{
+  const upFile=(e,which)=>{
     const f=e.target.files[0]; if(!f) return;
-    const r=new FileReader();
-    r.onload=()=>{ which==='old'?setOld(r.result):setNew(r.result); log(`${f.name} read`); };
-    r.readAsArrayBuffer(f);
+    const fr=new FileReader(); fr.onload=()=>{which==='old'?setOld(fr.result):setNew(fr.result); log(`${f.name} loaded`);};
+    fr.readAsArrayBuffer(f);
   };
 
-  /* quick‑text */
-  const onQuickText= async (txt,which)=>{
+  const quick=async(txt,which)=>{
     if(!txt.trim()) return;
-    const xml=`<?xml version="1.0"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p>
-${txt.split(' ').map(w=>`<w:r><w:t>${w}</w:t></w:r><w:r><w:t> </w:t></w:r>`).join('')}
-</w:p></w:body></w:document>`;
-    const buf=await buildDocx(xml);
-    which==='old'?setOld(buf):setNew(buf);
-    log(`Quick‑text captured into ${which}`);
+    const xml=`<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p>${txt.split(' ').map(w=>`<w:r><w:t>${w}</w:t></w:r><w:r><w:t> </w:t></w:r>`).join('')}</w:p></w:body></w:document>`;
+    (which==='old'?setOld:setNew)(await buildDocx(xml));
+    log(`Quick text set for ${which}`);
   };
 
-  /* load built‑in samples */
   const loadSamples=async()=>{
-    setBusy(true);
-    setStats(null); setPreview(''); setRaw(null);
-    try{
+    setBusy(true); try{
       setOld(await buildDocx(SAMPLE_OLD_XML));
       setNew(await buildDocx(SAMPLE_NEW_XML));
-      log('Built‑in samples loaded');
+      log('Sample DOCX loaded');
     }finally{setBusy(false);}
   };
 
-  /* run diff */
   const generate=async()=>{
-    if(!oldBuf||!newBuf) return alert('Provide both files / texts');
-    setBusy(true); setStats(null); setPreview(''); setRaw(null);
+    if(!oldBuf||!newBuf) return alert('Provide both inputs');
+    setBusy(true); setStats(null); setHtml(''); setDiffBuf(null);
     try{
       const [oldC,newC]=[new Canon(),new Canon()];
       const [o,n]=await Promise.all([oldC.parseBuffer(oldBuf),newC.parseBuffer(newBuf)]);
-      log(`Tokens  old:${o.tokens.length}  new:${n.tokens.length}`);
+      log(`Tokenised old:${o.tokens.length}  new:${n.tokens.length}`);
       const diff=myers(o.tokens,n.tokens);
-      setStats({
-        total:diff.length,
-        added:diff.filter(p=>p.added).length,
-        removed:diff.filter(p=>p.removed).length,
-        unchanged:diff.filter(p=>!p.added&&!p.removed).length
-      });
-      setPreview(diffHtml(diff,n.meta));
-      setRaw(diff);
-      log('Diff generated ✓');
-    }catch(err){console.error(err);alert(err.message);}
+      setStats({total:diff.length,added:diff.filter(p=>p.added).length,removed:diff.filter(p=>p.removed).length,unchanged:diff.filter(p=>!p.added&&!p.removed).length});
+      setHtml(diffToHtml(diff,n.meta));
+
+      /* build diff.docx */
+      const diffXml=diffToDocumentXml(diff);
+      const buf=await buildDocx(diffXml);
+      setDiffBuf(buf);
+      log('diff.docx generated');
+    }catch(e){console.error(e);alert(e.message);}
     finally{setBusy(false);}
+  };
+
+  const saveDocx=()=>{
+    if(!diffBuf) return;
+    const blob=new Blob([diffBuf],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='diff.docx'; a.click();
+    URL.revokeObjectURL(url);
   };
 
   return(
     <div className="max-w-6xl mx-auto bg-white shadow rounded p-8">
-      <h1 className="text-3xl font-bold mb-6">DOCX Visual‑Diff (React UI)</h1>
+      <h1 className="text-3xl font-bold mb-6">DOCX Visual‑Diff (React UI + Download)</h1>
 
-      {/* INPUT */}
+      {/* Inputs */}
       <div className="grid grid-cols-2 gap-6 mb-6">
-        {['old','new'].map(which=>(
-          <div key={which}>
-            <label className="block font-medium mb-1 capitalize">{which} .docx</label>
-            <input type="file" accept=".docx" onChange={e=>onFile(e,which)}
-                   className="w-full text-sm mb-2"/>
-            <textarea placeholder={`…or quick text for ${which}`} className="w-full h-24 border p-2 text-sm"
-                      onBlur={e=>onQuickText(e.target.value,which)}/>
+        {['old','new'].map(w=>(
+          <div key={w}>
+            <label className="font-medium capitalize">{w} .docx</label>
+            <input type="file" accept=".docx" className="w-full mb-2" onChange={e=>upFile(e,w)}/>
+            <textarea placeholder={`quick text for ${w}`} className="w-full h-24 border p-2 text-sm"
+                      onBlur={e=>quick(e.target.value,w)} />
           </div>
         ))}
       </div>
@@ -305,9 +281,13 @@ ${txt.split(' ').map(w=>`<w:r><w:t>${w}</w:t></w:r><w:r><w:t> </w:t></w:r>`).joi
                 className="px-6 py-2 bg-blue-600 text-white rounded disabled:opacity-50">
           {busy?'Processing…':'Generate diff'}
         </button>
+        <button disabled={!diffBuf} onClick={saveDocx}
+                className="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50">
+          Download diff.docx
+        </button>
       </div>
 
-      {/* STATS */}
+      {/* Stats */}
       {stats&&(
         <div className="grid grid-cols-4 gap-4 text-center mb-8">
           <div className="bg-gray-50 p-4 rounded"><p>Total</p><p className="text-2xl">{stats.total}</p></div>
@@ -317,27 +297,16 @@ ${txt.split(' ').map(w=>`<w:r><w:t>${w}</w:t></w:r><w:r><w:t> </w:t></w:r>`).joi
         </div>
       )}
 
-      {/* PREVIEW */}
-      {preview&&(
+      {/* preview */}
+      {html&&(
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-2">Visual diff preview</h2>
           <div className="prose max-w-none border border-gray-300 rounded p-4 overflow-x-auto"
-               dangerouslySetInnerHTML={{__html:preview}}/>
+               dangerouslySetInnerHTML={{__html:html}} />
         </div>
       )}
 
-      {/* RAW toggle */}
-      {raw&&(
-        <details className="mb-8">
-          <summary className="cursor-pointer text-indigo-600 mb-2">Show raw DiffPart[] (first 100)</summary>
-          <pre className="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto text-xs">
-{JSON.stringify(raw.slice(0,100),null,2)}
-{raw.length>100&&`\n… ${raw.length-100} more items`}
-          </pre>
-        </details>
-      )}
-
-      {/* LOGS */}
+      {/* logs */}
       <details open>
         <summary className="cursor-pointer text-indigo-600 mb-2">Process log</summary>
         <div className="bg-gray-900 text-gray-100 p-3 h-40 overflow-y-auto text-xs rounded">
