@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>DOCX Visual‑Diff (React UI Demo)</title>
+  <title>DOCX Visual‑Diff — React UI (Zip‑safe)</title>
 
-  <!-- Tailwind (utility classes) -->
+  <!-- Tailwind utility classes -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- React 18 & React‑DOM UMD + Babel for in‑browser JSX -->
+  <!-- React 18 UMD + Babel for JSX -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- JSZip for reading .docx -->
+  <!-- JSZip for reading / writing .docx -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <style>
@@ -27,14 +27,51 @@
   <div id="root"></div>
 
   <script type="text/babel">
-/* ------------------------------------------------------------- *
- *  1.  Small helpers                                            *
- * ------------------------------------------------------------- */
+/* ---------------------------------------------------------------- *  
+ *  0.  Build a REAL .docx (ZIP) around supplied document.xml       *
+ * ---------------------------------------------------------------- */
+async function buildDocx(documentXml){
+  const zip = new JSZip();
+
+  /* core part */
+  zip.folder('word').file('document.xml', documentXml);
+
+  /* [Content_Types].xml */
+  zip.file('[Content_Types].xml', `
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+      <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+      <Default Extension="xml"  ContentType="application/xml"/>
+      <Override PartName="/word/document.xml"
+                ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+    </Types>`);
+
+  /* package relationships */
+  zip.folder('_rels').file('.rels', `
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+      <Relationship Id="rId1"
+        Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
+        Target="word/document.xml"/>
+    </Relationships>`);
+
+  return zip.generateAsync({ type:'arraybuffer' });
+}
+
+/* ---------------------------------------------------------------- *
+ *  1.  Helpers / constants                                         *
+ * ---------------------------------------------------------------- */
 const twipToPx = tw => Math.round((tw || 2400) * 0.05);
-const sampleOld = `<?xml version="1.0"?>
+
+const SAMPLE_OLD_XML = `<?xml version="1.0"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
  <w:body>
-  <w:p><w:r><w:t>The</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>quick</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>brown</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>fox</w:t></w:r></w:p>
+  <w:p>
+    <w:r><w:t>The</w:t></w:r><w:r><w:t> </w:t></w:r>
+    <w:r><w:t>quick</w:t></w:r><w:r><w:t> </w:t></w:r>
+    <w:r><w:t>brown</w:t></w:r><w:r><w:t> </w:t></w:r>
+    <w:r><w:t>fox</w:t></w:r>
+  </w:p>
   <w:tbl>
     <w:tr>
       <w:tc><w:p><w:r><w:t>Old</w:t></w:r></w:p></w:tc>
@@ -43,10 +80,16 @@ const sampleOld = `<?xml version="1.0"?>
   </w:tbl>
  </w:body>
 </w:document>`;
-const sampleNew = `<?xml version="1.0"?>
+
+const SAMPLE_NEW_XML = `<?xml version="1.0"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
  <w:body>
-  <w:p><w:r><w:t>The</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>quick</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>red</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>fox</w:t></w:r></w:p>
+  <w:p>
+    <w:r><w:t>The</w:t></w:r><w:r><w:t> </w:t></w:r>
+    <w:r><w:t>quick</w:t></w:r><w:r><w:t> </w:t></w:r>
+    <w:r><w:t>red</w:t></w:r><w:r><w:t> </w:t></w:r>
+    <w:r><w:t>fox</w:t></w:r>
+  </w:p>
   <w:tbl>
     <w:tr>
       <w:tc><w:p><w:r><w:t>New</w:t></w:r></w:p></w:tc>
@@ -57,9 +100,8 @@ const sampleNew = `<?xml version="1.0"?>
  </w:body>
 </w:document>`;
 
-/* ------------------------------------------------------------- *
- *  2.  Myers diff (token level)                                 *
- * ------------------------------------------------------------- */
+/* Myers diff & Canonicaliser remain identical to the previous answer -------- */
+
 function eqTok(a,b){return a.type==='whitespace'&&b.type==='whitespace'||a.text===b.text;}
 
 function myers(oldT,newT){
@@ -73,7 +115,7 @@ function myers(oldT,newT){
       while(x<n&&y<m&&eqTok(oldT[x],newT[y])){x++;y++;}
       v[k]=x; if(x>=n&&y>=m) return back(trace,oldT,newT,x,y,d);
     }
-  } return [];
+  }return[];
 }
 function back(trace,oldT,newT,x,y,d){
   const diff=[];
@@ -89,12 +131,10 @@ function back(trace,oldT,newT,x,y,d){
       if(x>prevX){diff.unshift({value:oldT[x-1].text,old:oldT[x-1].runKey,removed:true});x--;}
       else{diff.unshift({value:newT[y-1].text,new:newT[y-1].runKey,added:true});y--;}
     }
-  } return diff;
+  }return diff;
 }
 
-/* ------------------------------------------------------------- *
- *  3.  Canonicalise DOCX → token stream (paragraph + table)     *
- * ------------------------------------------------------------- */
+/* --- Canonicaliser (paragraph + table) ----------------------------------- */
 class Canon{
   constructor(){this.p=0;this.t=0;this.meta={};}
   async parseBuffer(buf){
@@ -110,16 +150,16 @@ class Canon{
   walk(node,tokens){
     node.childNodes.forEach(n=>{
       if(n.nodeType!==1) return;
-      if(n.tagName.match(/p$/i)) this.pPara(n,tokens);
-      else if(n.tagName.match(/tbl$/i)) this.pTable(n,tokens);
+      if(/p$/i.test(n.tagName)) this.pPara(n,tokens);
+      else if(/tbl$/i.test(n.tagName)) this.pTable(n,tokens);
     });
   }
   pPara(p,tokens){
     const id='p'+this.p++; tokens.push(mk('«p»',id));
     let idx=0;
     p.querySelectorAll('w\\:t,t').forEach(t=>{
-      (t.textContent.match(/\S+|\s+/g)||[]).forEach(ch=>{
-        tokens.push({type:/\s/.test(ch)?'whitespace':'word',text:/\s/.test(ch)?' ':ch,runKey:{blockId:id,runIdx:idx++}});
+      (t.textContent.match(/\S+|\s+/g)||[]).forEach(part=>{
+        tokens.push({type:/\s/.test(part)?'whitespace':'word',text:/\s/.test(part)?' ':part,runKey:{blockId:id,runIdx:idx++}});
       });
     });
     tokens.push(mk('«/p»',id));
@@ -129,7 +169,7 @@ class Canon{
     tbl.querySelectorAll('w\\:tr,tr').forEach((tr,i)=>{
       const rid=`${tid}.tr${i}`; tokens.push(mk('«tr»',rid));
       tr.querySelectorAll('w\\:tc,tc').forEach((tc,j)=>{
-        const cid=`${rid}.tc${j}`; this.meta[cid]={width:this.getWidth(tc)};
+        const cid=`${rid}.tc${j}`; this.meta[cid]={width:this.tcWidth(tc)};
         tokens.push(mk('«tc»',cid));
         tc.querySelectorAll('w\\:p,p').forEach(p=>this.pPara(p,tokens));
         tokens.push(mk('«/tc»',cid));
@@ -138,18 +178,20 @@ class Canon{
     });
     tokens.push(mk('«/table»',tid));
   }
-  getWidth(tc){
+  tcWidth(tc){
     const w=tc.querySelector('w\\:tcw'); return w?parseInt(w.getAttribute('w:w')):null;
   }
 }
-const mk=(txt,bid)=>({type:'marker',text:txt,runKey:{blockId:bid,runIdx:-1}});
+const mk=(text,bid)=>({type:'marker',text,runKey:{blockId:bid,runIdx:-1}});
 
-/* ------------------------------------------------------------- *
- *  4.  Render diff ► structured HTML                            *
- * ------------------------------------------------------------- */
+/* --- Structured HTML renderer ------------------------------------------- */
 function diffHtml(diff,meta){
   const root=document.createElement('div'),stack=[];
-  const open=(tag,attr={})=>{const el=document.createElement(tag);Object.entries(attr).forEach(([k,v])=>el.setAttribute(k,v));(stack[stack.length-1]||root).appendChild(el);stack.push(el);};
+  const open=(tag,attr={})=>{
+    const el=document.createElement(tag);
+    Object.entries(attr).forEach(([k,v])=>el.setAttribute(k,v));
+    (stack[stack.length-1]||root).appendChild(el); stack.push(el);
+  };
   const close=()=>stack.pop();
 
   diff.forEach(p=>{
@@ -159,87 +201,110 @@ function diffHtml(diff,meta){
         case '«table»':open('table',{class:'diff'});break; case '«/table»':close();break;
         case '«tr»':open('tr');break; case '«/tr»':close();break;
         case '«tc»':{
-          const id=p.new?.blockId||p.old?.blockId; const w=twipToPx(meta[id]?.width);
-          open('td',{style:`width:${w}px`});break;}
+          const id=p.new?.blockId||p.old?.blockId;
+          open('td',{style:`width:${twipToPx(meta[id]?.width)}px`});
+          break;
+        }
         case '«/tc»':close();break;
-      } return;
+      }return;
     }
     const span=document.createElement('span');
-    span.textContent=p.value;
-    if(p.added) span.className='diff-add'; if(p.removed) span.className='diff-del';
+    span.textContent=p.value; if(p.added) span.className='diff-add'; if(p.removed) span.className='diff-del';
     (stack[stack.length-1]||root).appendChild(span);
   });
   return root.innerHTML;
 }
 
-/* ------------------------------------------------------------- *
- *  5.  React UI                                                 *
- * ------------------------------------------------------------- */
+/* ---------------------------------------------------------------- *
+ *  2.  React component                                             *
+ * ---------------------------------------------------------------- */
 function App(){
   const [oldBuf,setOld]=React.useState(null);
   const [newBuf,setNew]=React.useState(null);
-  const [logs,setLogs]=React.useState([]);
-  const [html,setHtml]=React.useState('');
-  const [stats,setStats]=React.useState(null);
-  const [raw,setRaw]=React.useState(null);
   const [busy,setBusy]=React.useState(false);
+  const [logs,setLogs]=React.useState([]);
+  const [stats,setStats]=React.useState(null);
+  const [preview,setPreview]=React.useState('');
+  const [raw,setRaw]=React.useState(null);
 
   const log=msg=>setLogs(l=>[...l,`${new Date().toLocaleTimeString()}  ${msg}`]);
 
-  const handleFile=(e,type)=>{
+  /* file upload */
+  const onFile=(e,which)=>{
     const f=e.target.files[0]; if(!f) return;
-    const r=new FileReader(); r.onload=()=>{ type==='old'?setOld(r.result):setNew(r.result); log(`${f.name} loaded`); };
+    const r=new FileReader();
+    r.onload=()=>{ which==='old'?setOld(r.result):setNew(r.result); log(`${f.name} read`); };
     r.readAsArrayBuffer(f);
   };
 
-  const handleText=(txt,type)=>{
-    const xml=`<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p>${txt.split(' ').map(w=>`<w:r><w:t>${w}</w:t></w:r><w:r><w:t> </w:t></w:r>`).join('')}</w:p></w:body></w:document>`;
-    const buf=new TextEncoder().encode(xml).buffer; type==='old'?setOld(buf):setNew(buf); log(`Manual ${type} text captured`);
+  /* quick‑text */
+  const onQuickText= async (txt,which)=>{
+    if(!txt.trim()) return;
+    const xml=`<?xml version="1.0"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p>
+${txt.split(' ').map(w=>`<w:r><w:t>${w}</w:t></w:r><w:r><w:t> </w:t></w:r>`).join('')}
+</w:p></w:body></w:document>`;
+    const buf=await buildDocx(xml);
+    which==='old'?setOld(buf):setNew(buf);
+    log(`Quick‑text captured into ${which}`);
   };
 
-  const loadSamples=()=>{
-    setOld(new TextEncoder().encode(sampleOld).buffer);
-    setNew(new TextEncoder().encode(sampleNew).buffer);
-    log('Loaded built‑in samples');
-  };
-
-  const generate=async()=>{
-    if(!oldBuf||!newBuf) return alert('Upload or input both docs');
-    setBusy(true); log('Starting canonicalisation…');
+  /* load built‑in samples */
+  const loadSamples=async()=>{
+    setBusy(true);
+    setStats(null); setPreview(''); setRaw(null);
     try{
-      const oldC=new Canon(),newC=new Canon();
+      setOld(await buildDocx(SAMPLE_OLD_XML));
+      setNew(await buildDocx(SAMPLE_NEW_XML));
+      log('Built‑in samples loaded');
+    }finally{setBusy(false);}
+  };
+
+  /* run diff */
+  const generate=async()=>{
+    if(!oldBuf||!newBuf) return alert('Provide both files / texts');
+    setBusy(true); setStats(null); setPreview(''); setRaw(null);
+    try{
+      const [oldC,newC]=[new Canon(),new Canon()];
       const [o,n]=await Promise.all([oldC.parseBuffer(oldBuf),newC.parseBuffer(newBuf)]);
-      log(`Tokenised: old=${o.tokens.length}, new=${n.tokens.length}`);
+      log(`Tokens  old:${o.tokens.length}  new:${n.tokens.length}`);
       const diff=myers(o.tokens,n.tokens);
-      setStats({total:diff.length,added:diff.filter(d=>d.added).length,removed:diff.filter(d=>d.removed).length,unchanged:diff.filter(d=>!d.added&&!d.removed).length});
-      setHtml(diffHtml(diff,n.meta));
+      setStats({
+        total:diff.length,
+        added:diff.filter(p=>p.added).length,
+        removed:diff.filter(p=>p.removed).length,
+        unchanged:diff.filter(p=>!p.added&&!p.removed).length
+      });
+      setPreview(diffHtml(diff,n.meta));
       setRaw(diff);
-      log('Diff done ✓');
-    }catch(e){console.error(e);alert(e.message);}
+      log('Diff generated ✓');
+    }catch(err){console.error(err);alert(err.message);}
     finally{setBusy(false);}
   };
 
   return(
     <div className="max-w-6xl mx-auto bg-white shadow rounded p-8">
-      <h1 className="text-3xl font-bold mb-6">DOCX Visual‑Diff Demo</h1>
+      <h1 className="text-3xl font-bold mb-6">DOCX Visual‑Diff (React UI)</h1>
 
-      {/* INPUT AREA */}
+      {/* INPUT */}
       <div className="grid grid-cols-2 gap-6 mb-6">
-        <div>
-          <label className="block font-medium mb-1">Old .docx</label>
-          <input type="file" accept=".docx" className="w-full text-sm mb-2" onChange={e=>handleFile(e,'old')} />
-          <textarea placeholder="Or type quick text…" className="w-full h-24 border p-2 text-sm" onBlur={e=>handleText(e.target.value,'old')}></textarea>
-        </div>
-        <div>
-          <label className="block font-medium mb-1">New .docx</label>
-          <input type="file" accept=".docx" className="w-full text-sm mb-2" onChange={e=>handleFile(e,'new')} />
-          <textarea placeholder="Or type quick text…" className="w-full h-24 border p-2 text-sm" onBlur={e=>handleText(e.target.value,'new')}></textarea>
-        </div>
+        {['old','new'].map(which=>(
+          <div key={which}>
+            <label className="block font-medium mb-1 capitalize">{which} .docx</label>
+            <input type="file" accept=".docx" onChange={e=>onFile(e,which)}
+                   className="w-full text-sm mb-2"/>
+            <textarea placeholder={`…or quick text for ${which}`} className="w-full h-24 border p-2 text-sm"
+                      onBlur={e=>onQuickText(e.target.value,which)}/>
+          </div>
+        ))}
       </div>
 
       <div className="flex gap-4 mb-8">
         <button onClick={loadSamples} className="px-4 py-2 bg-gray-600 text-white rounded">Load samples</button>
-        <button disabled={busy} onClick={generate} className="px-6 py-2 bg-blue-600 text-white rounded disabled:opacity-50">{busy?'Processing…':'Generate diff'}</button>
+        <button disabled={busy} onClick={generate}
+                className="px-6 py-2 bg-blue-600 text-white rounded disabled:opacity-50">
+          {busy?'Processing…':'Generate diff'}
+        </button>
       </div>
 
       {/* STATS */}
@@ -252,15 +317,16 @@ function App(){
         </div>
       )}
 
-      {/* VISUAL OUTPUT */}
-      {html&&(
+      {/* PREVIEW */}
+      {preview&&(
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-2">Visual diff preview</h2>
-          <div className="prose max-w-none border border-gray-300 rounded p-4 overflow-x-auto" dangerouslySetInnerHTML={{__html:html}}/>
+          <div className="prose max-w-none border border-gray-300 rounded p-4 overflow-x-auto"
+               dangerouslySetInnerHTML={{__html:preview}}/>
         </div>
       )}
 
-      {/* RAW DATA TOGGLE */}
+      {/* RAW toggle */}
       {raw&&(
         <details className="mb-8">
           <summary className="cursor-pointer text-indigo-600 mb-2">Show raw DiffPart[] (first 100)</summary>
@@ -271,7 +337,7 @@ function App(){
         </details>
       )}
 
-      {/* PROCESS LOG */}
+      {/* LOGS */}
       <details open>
         <summary className="cursor-pointer text-indigo-600 mb-2">Process log</summary>
         <div className="bg-gray-900 text-gray-100 p-3 h-40 overflow-y-auto text-xs rounded">
