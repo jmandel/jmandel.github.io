@@ -377,20 +377,29 @@ function diffToDocumentXml(diff,meta){
     const cellIdx = parseInt(cid.split('.tc')[1]);
     const w = tableInfo?.colWidths[cellIdx] || meta[cid]?.width || 2400;
     const shade=added?'<w:shd w:val="clear" w:fill="C6FFD1"/>':removed?'<w:shd w:val="clear" w:fill="FFD6D5"/>':'';
-    xml+=`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${shade}</w:tcPr><w:p>`;
+    xml+=`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${shade}</w:tcPr>`;
     state='tc';
   };
-  const closeCell=()=>{xml+='</w:p></w:tc>'; state='tr';};
+  const closeCell=()=>{xml+='</w:tc>'; state='tr';};
   const openPara=(blockId)=>{
-    xml+='<w:p>';
+    // Don't open a new paragraph if we're already in a table cell
+    if(state !== 'tc') {
+      xml+='<w:p>';
+    } else {
+      // For table cells, we still need to open a paragraph
+      xml+='<w:p>';
+    }
     // Add list numbering if present
     const pMeta = meta[blockId];
     if(pMeta?.numId) {
       xml+=`<w:pPr><w:numPr><w:ilvl w:val="${pMeta.ilvl||'0'}"/><w:numId w:val="${pMeta.numId}"/></w:numPr></w:pPr>`;
     }
-    state='p';
+    state = state === 'tc' ? 'tcp' : 'p'; // tcp = table cell paragraph
   };
-  const closePara=()=>{xml+='</w:p>'; state='out';};
+  const closePara=()=>{
+    xml+='</w:p>'; 
+    state = state === 'tcp' ? 'tc' : 'out';
+  };
 
   diff.forEach(p=>{
     if(p.value.startsWith('«')){
