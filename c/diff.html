@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>DOCX Visual‑Diff (Download demo)</title>
+  <title>DOCX Visual‑Diff — React UI (Download ready)</title>
 
-  <!-- Tailwind -->
+  <!-- Tailwind (Play CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- React 18 UMD + Babel -->
@@ -27,59 +27,134 @@
   <div id="root"></div>
 
   <script type="text/babel">
-
 /* ------------------------------------------------------------------ *
- * 0 • buildDocx – wraps document.xml into a minimal valid DOCX       *
+ * 0 ▸ buildDocx  – wraps document.xml into a *valid* .docx ZIP       *
  * ------------------------------------------------------------------ */
 async function buildDocx(documentXml){
-  const zip=new JSZip();
-  zip.folder('word').file('document.xml',documentXml);
+  const zip = new JSZip();
 
-  zip.file('[Content_Types].xml',`
-    <?xml version="1.0" encoding="UTF-8"?>
-    <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-      <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-      <Default Extension="xml"  ContentType="application/xml"/>
-      <Override PartName="/word/document.xml"
-                ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-    </Types>`);
+  /* 0.1 main document part */
+  zip.folder('word').file('document.xml', documentXml);
+  zip.folder('word').folder('_rels')
+     .file('document.xml.rels',
+       `<?xml version="1.0" encoding="UTF-8"?>
+        <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>`);
 
-  zip.folder('_rels').file('.rels',`
-    <?xml version="1.0" encoding="UTF-8"?>
-    <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-      <Relationship Id="rId1"
-        Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
-        Target="word/document.xml"/>
-    </Relationships>`);
+  /* 0.2 root relationships */
+  zip.folder('_rels').file('.rels',
+    `<?xml version="1.0" encoding="UTF-8"?>
+     <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+       <Relationship Id="r1"
+         Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
+         Target="word/document.xml"/>
+     </Relationships>`);
 
-  return zip.generateAsync({type:'arraybuffer'});
+  /* 0.3 docProps (optional, silences Word warnings) */
+  zip.folder('docProps').file('core.xml',
+    `<?xml version="1.0"?>
+     <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
+        xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms"
+        xmlns:dcmitype="http://purl.org/dc/dcmitype" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+       <dc:title>Visual‑Diff result</dc:title>
+       <cp:lastModifiedBy>Visual‑Diff Demo</cp:lastModifiedBy>
+       <dcterms:created xsi:type="dcterms:W3CDTF">2025-06-10T00:00:00Z</dcterms:created>
+     </cp:coreProperties>`);
+
+  zip.folder('docProps').file('app.xml',
+    `<?xml version="1.0"?>
+     <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties">
+       <Application>Visual‑Diff Demo</Application>
+     </Properties>`);
+
+  /* 0.4 content–types */
+  zip.file('[Content_Types].xml',
+    `<?xml version="1.0"?>
+     <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+       <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+       <Default Extension="xml"  ContentType="application/xml"/>
+       <Override PartName="/word/document.xml"
+                 ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+       <Override PartName="/docProps/core.xml"
+                 ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+       <Override PartName="/docProps/app.xml"
+                 ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+     </Types>`);
+
+  return zip.generateAsync({ type:'arraybuffer' });
 }
 
 /* ------------------------------------------------------------------ *
- * 1 • Helpers & sample XML                                           *
+ * 1 ▸ Representative sample DOCX bodies (old / new)                  *
  * ------------------------------------------------------------------ */
-const twipToPx = tw => Math.round((tw||2400)*0.05);
+const SAMPLE_OLD_XML=`<?xml version="1.0"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>
+  <w:p><w:r><w:t>The quick brown fox jumps over the lazy dog.</w:t></w:r></w:p>
 
-const SAMPLE_OLD_XML=`<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Hello</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>world</w:t></w:r></w:p></w:body></w:document>`;
-const SAMPLE_NEW_XML=`<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Hello</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>dear</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>world</w:t></w:r></w:p></w:body></w:document>`;
+  <w:p><w:r><w:t>- Apples</w:t></w:r></w:p>
+  <w:p><w:r><w:t>- Bananas</w:t></w:r></w:p>
+  <w:p><w:r><w:t>- Cherries</w:t></w:r></w:p>
+
+  <w:tbl>
+    <w:tr>
+      <w:tc><w:p><w:r><w:t>Item</w:t></w:r></w:p></w:tc>
+      <w:tc><w:p><w:r><w:t>Price</w:t></w:r></w:p></w:tc>
+    </w:tr>
+    <w:tr>
+      <w:tc><w:p><w:r><w:t>Notebook</w:t></w:r></w:p></w:tc>
+      <w:tc><w:p><w:r><w:t>1.99</w:t></w:r></w:p></w:tc>
+    </w:tr>
+  </w:tbl>
+
+  <w:p><w:r><w:t>This paragraph will be removed.</w:t></w:r></w:p>
+</w:body></w:document>`;
+
+const SAMPLE_NEW_XML=`<?xml version="1.0"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>
+  <w:p><w:r><w:t>The quick red fox leaps over the lazy dog.</w:t></w:r></w:p>
+
+  <w:p><w:r><w:t>- Apples</w:t></w:r></w:p>
+  <w:p><w:r><w:t>- Blueberries</w:t></w:r></w:p>
+  <w:p><w:r><w:t>- Cherries</w:t></w:r></w:p>
+  <w:p><w:r><w:t>- Dates</w:t></w:r></w:p>
+
+  <w:tbl>
+    <w:tr>
+      <w:tc><w:p><w:r><w:t>Item</w:t></w:r></w:p></w:tc>
+      <w:tc><w:p><w:r><w:t>Price</w:t></w:r></w:p></w:tc>
+      <w:tc><w:p><w:r><w:t>Stock</w:t></w:r></w:p></w:tc>
+    </w:tr>
+    <w:tr>
+      <w:tc><w:p><w:r><w:t>Notebook</w:t></w:r></w:p></w:tc>
+      <w:tc><w:p><w:r><w:t>2.49</w:t></w:r></w:p></w:tc>
+      <w:tc><w:p><w:r><w:t>17</w:t></w:r></w:p></w:tc>
+    </w:tr>
+  </w:tbl>
+
+  <w:p><w:r><w:t>This is an entirely new paragraph added at the end.</w:t></w:r></w:p>
+</w:body></w:document>`;
 
 /* ------------------------------------------------------------------ *
- * 2 • Myers diff (token level) & Canonicaliser (paragraph + table)   *
+ * 2 ▸ Myers shortest‑edit‑script (token level, unchanged)            *
  * ------------------------------------------------------------------ */
 function eqTok(a,b){return a.type==='whitespace'&&b.type==='whitespace'||a.text===b.text;}
 
 function myers(a,b){
-  const n=a.length,m=b.length,max=n+m,v={};v[1]=0;const trace=[];
+  const n=a.length,m=b.length,max=n+m,v={}; v[1]=0; const trace=[];
   for(let d=0;d<=max;d++){
     trace.push({...v});
     for(let k=-d;k<=d;k+=2){
       let x;
       if(k===-d||(k!==d&&v[k-1]<v[k+1])) x=v[k+1]; else x=v[k-1]+1;
-      let y=x-k; while(x<n&&y<m&&eqTok(a[x],b[y])){x++;y++;}
-      v[k]=x; if(x>=n&&y>=m) return back(trace,a,b,x,y,d);
+      let y=x-k;
+      while(x<n&&y<m&&eqTok(a[x],b[y])){x++;y++;}
+      v[k]=x;
+      if(x>=n&&y>=m) return back(trace,a,b,x,y,d);
     }
-  }return [];
+  } return [];
 }
+
 function back(trace,a,b,x,y,d){
   const diff=[];
   for(let d2=d;d2>=0&&(x>0||y>0);d2--){
@@ -91,12 +166,21 @@ function back(trace,a,b,x,y,d){
       x--;y--;
     }
     if(d2>0){
-      if(x>prevX){diff.unshift({value:a[x-1].text,old:a[x-1].runKey,removed:true});x--;}
-      else{diff.unshift({value:b[y-1].text,new:b[y-1].runKey,added:true});y--;}
+      if(x>prevX){
+        diff.unshift({value:a[x-1].text,old:a[x-1].runKey,removed:true});
+        x--;
+      }else{
+        diff.unshift({value:b[y-1].text,new:b[y-1].runKey,added:true});
+        y--;
+      }
     }
-  }return diff;
+  }
+  return diff;
 }
 
+/* ------------------------------------------------------------------ *
+ * 3 ▸ Canonicaliser  (paragraphs + simple tables)                    *
+ * ------------------------------------------------------------------ */
 class Canon{
   constructor(){this.p=0;this.t=0;this.meta={};}
   async parseBuffer(buf){
@@ -106,8 +190,8 @@ class Canon{
   }
   parse(xml){
     const doc=new DOMParser().parseFromString(xml,'application/xml');
-    const body=doc.querySelector('w\\:body,body'); const tokens=[];
-    this.walk(body,tokens); return {tokens,meta:this.meta};
+    const body=doc.querySelector('w\\:body,body');
+    const tokens=[]; this.walk(body,tokens); return {tokens,meta:this.meta};
   }
   walk(node,tokens){
     node.childNodes.forEach(n=>{
@@ -120,7 +204,8 @@ class Canon{
     const id='p'+this.p++; tokens.push(mark('«p»',id)); let idx=0;
     p.querySelectorAll('w\\:t,t').forEach(t=>{
       (t.textContent.match(/\S+|\s+/g)||[]).forEach(part=>{
-        tokens.push({type:/\s/.test(part)?'whitespace':'word',text:/\s/.test(part)?' ':part,runKey:{blockId:id,runIdx:idx++}});
+        tokens.push({type:/\s/.test(part)?'whitespace':'word',text:/\s/.test(part)?' ':part,
+                     runKey:{blockId:id,runIdx:idx++}});
       });
     });
     tokens.push(mark('«/p»',id));
@@ -143,83 +228,94 @@ class Canon{
     const w=tc.querySelector('w\\:tcw'); return w?parseInt(w.getAttribute('w:w')):null;
   }
 }
-const mark=(t,bid)=>({type:'marker',text:t,runKey:{blockId:bid,runIdx:-1}});
+const mark=(text,bid)=>({type:'marker',text,runKey:{blockId:bid,runIdx:-1}});
 
 /* ------------------------------------------------------------------ *
- * 3 • Renderer helpers                                               *
+ * 4 ▸ Helpers  – render diff to HTML & to WordprocessingML           *
  * ------------------------------------------------------------------ */
+const twipToPx=tw=>Math.round((tw||2400)*0.05);
+
 function diffToHtml(diff,meta){
   const root=document.createElement('div'),stack=[];
-  const open=(tag,a={})=>{const el=document.createElement(tag);Object.entries(a).forEach(([k,v])=>el.setAttribute(k,v));(stack[stack.length-1]||root).appendChild(el);stack.push(el);};
+  const open=(tag,a={})=>{const el=document.createElement(tag);
+    Object.entries(a).forEach(([k,v])=>el.setAttribute(k,v));
+    (stack[stack.length-1]||root).appendChild(el); stack.push(el);};
   const close=()=>stack.pop();
+
   diff.forEach(p=>{
     if(p.value.startsWith('«')){
       switch(p.value){
         case '«p»':open('p');break; case '«/p»':close();break;
         case '«table»':open('table',{class:'diff'});break; case '«/table»':close();break;
         case '«tr»':open('tr');break; case '«/tr»':close();break;
-        case '«tc»':{const id=p.new?.blockId||p.old?.blockId;open('td',{style:`width:${twipToPx(meta[id]?.width)}px`});break;}
+        case '«tc»':{const id=p.new?.blockId||p.old?.blockId;
+          open('td',{style:`width:${twipToPx(meta[id]?.width)}px`}); break;}
         case '«/tc»':close();break;
-      }return;
+      } return;
     }
-    const span=document.createElement('span');span.textContent=p.value;
+    const span=document.createElement('span'); span.textContent=p.value;
     if(p.added) span.className='diff-add'; if(p.removed) span.className='diff-del';
     (stack[stack.length-1]||root).appendChild(span);
   });
   return root.innerHTML;
 }
 
-/* ---  diff -> document.xml (simplified: paragraph text only)  ----------- */
+/* -- diff ➜ minimal document.xml (paragraph only) --------------------- */
 function diffToDocumentXml(diff){
-  let xmlHeader=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  let out=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
             xmlns:xml="http://www.w3.org/XML/1998/namespace"><w:body>`;
-  let currentParaRuns='';
 
-  const flush=()=>{ if(currentParaRuns){xmlHeader+=`<w:p>${currentParaRuns}</w:p>`; currentParaRuns='';}};
+  let current='';
 
-  const runXml=(text,style)=>`<w:r>${style||''}<w:t xml:space="preserve">${text}</w:t></w:r>`;
-  const addStyle   ='<w:rPr><w:color w:val="00B050"/><w:highlight w:val="lightGreen"/></w:rPr>';
-  const delStyle   ='<w:rPr><w:color w:val="FF0000"/><w:strike w:val="true"/></w:rPr>';
+  const flush=()=>{ if(current){out+=`<w:p>${current}</w:p>`; current='';} };
+  const run=(txt,rStyle)=>`<w:r>${rStyle||''}<w:t xml:space="preserve">${txt}</w:t></w:r>`;
+  const addStyle='<w:rPr><w:color w:val="00B050"/><w:highlight w:val="lightGreen"/></w:rPr>';
+  const delStyle='<w:rPr><w:color w:val="FF0000"/><w:strike w:val="true"/></w:rPr>';
 
   diff.forEach(p=>{
     if(p.value.startsWith('«')){
       if(p.value==='«p»') flush();
       return;
     }
-    if(p.added)      currentParaRuns+=runXml(p.value,addStyle);
-    else if(p.removed) currentParaRuns+=runXml(p.value,delStyle);
-    else             currentParaRuns+=runXml(p.value,'');
+    if(p.added)      current+=run(p.value,addStyle);
+    else if(p.removed) current+=run(p.value,delStyle);
+    else             current+=run(p.value);
   });
   flush();
-  xmlHeader+='</w:body></w:document>';
-  return xmlHeader;
+  out+='</w:body></w:document>';
+  return out;
 }
 
 /* ------------------------------------------------------------------ *
- * 4 • React component                                               *
+ * 5 ▸ React UI                                                       *
  * ------------------------------------------------------------------ */
 function App(){
   const [oldBuf,setOld]=React.useState(null);
   const [newBuf,setNew]=React.useState(null);
-  const [logs,setLogs]=React.useState([]);
   const [busy,setBusy]=React.useState(false);
+  const [logs,setLogs]=React.useState([]);
   const [stats,setStats]=React.useState(null);
   const [html,setHtml]=React.useState('');
-  const [diffBuf,setDiffBuf]=React.useState(null);
+  const [docxBuf,setDocxBuf]=React.useState(null);
 
   const log=msg=>setLogs(l=>[...l,`${new Date().toLocaleTimeString()}  ${msg}`]);
 
-  const upFile=(e,which)=>{
+  const loadFile=(e,which)=>{
     const f=e.target.files[0]; if(!f) return;
     const fr=new FileReader(); fr.onload=()=>{which==='old'?setOld(fr.result):setNew(fr.result); log(`${f.name} loaded`);};
     fr.readAsArrayBuffer(f);
   };
 
-  const quick=async(txt,which)=>{
+  const quickText=async(txt,which)=>{
     if(!txt.trim()) return;
-    const xml=`<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p>${txt.split(' ').map(w=>`<w:r><w:t>${w}</w:t></w:r><w:r><w:t> </w:t></w:r>`).join('')}</w:p></w:body></w:document>`;
-    (which==='old'?setOld:setNew)(await buildDocx(xml));
+    const xml=`<?xml version="1.0"?>
+      <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:body><w:p>${
+        txt.split(' ').map(w=>`<w:r><w:t>${w}</w:t></w:r><w:r><w:t> </w:t></w:r>`).join('')}
+        </w:p></w:body></w:document>`;
+    const buf=await buildDocx(xml);
+    which==='old'?setOld(buf):setNew(buf);
     log(`Quick text set for ${which}`);
   };
 
@@ -227,33 +323,35 @@ function App(){
     setBusy(true); try{
       setOld(await buildDocx(SAMPLE_OLD_XML));
       setNew(await buildDocx(SAMPLE_NEW_XML));
-      log('Sample DOCX loaded');
+      log('Sample documents loaded');
     }finally{setBusy(false);}
   };
 
   const generate=async()=>{
-    if(!oldBuf||!newBuf) return alert('Provide both inputs');
-    setBusy(true); setStats(null); setHtml(''); setDiffBuf(null);
+    if(!oldBuf||!newBuf){alert('Provide both inputs'); return;}
+    setBusy(true); setStats(null); setHtml(''); setDocxBuf(null); setLogs([]);
     try{
       const [oldC,newC]=[new Canon(),new Canon()];
       const [o,n]=await Promise.all([oldC.parseBuffer(oldBuf),newC.parseBuffer(newBuf)]);
-      log(`Tokenised old:${o.tokens.length}  new:${n.tokens.length}`);
+      log(`Tokenised  old:${o.tokens.length}  new:${n.tokens.length}`);
       const diff=myers(o.tokens,n.tokens);
-      setStats({total:diff.length,added:diff.filter(p=>p.added).length,removed:diff.filter(p=>p.removed).length,unchanged:diff.filter(p=>!p.added&&!p.removed).length});
+      setStats({total:diff.length,added:diff.filter(d=>d.added).length,
+                removed:diff.filter(d=>d.removed).length,
+                unchanged:diff.filter(d=>!d.added&&!d.removed).length});
       setHtml(diffToHtml(diff,n.meta));
 
-      /* build diff.docx */
       const diffXml=diffToDocumentXml(diff);
       const buf=await buildDocx(diffXml);
-      setDiffBuf(buf);
-      log('diff.docx generated');
-    }catch(e){console.error(e);alert(e.message);}
+      setDocxBuf(buf);
+      log('diff.docx built ✓');
+    }catch(err){console.error(err);alert(err.message);}
     finally{setBusy(false);}
   };
 
-  const saveDocx=()=>{
-    if(!diffBuf) return;
-    const blob=new Blob([diffBuf],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  const downloadDocx=()=>{
+    if(!docxBuf) return;
+    const blob=new Blob([docxBuf],{
+      type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url; a.download='diff.docx'; a.click();
     URL.revokeObjectURL(url);
@@ -261,27 +359,29 @@ function App(){
 
   return(
     <div className="max-w-6xl mx-auto bg-white shadow rounded p-8">
-      <h1 className="text-3xl font-bold mb-6">DOCX Visual‑Diff (React UI + Download)</h1>
+      <h1 className="text-3xl font-bold mb-6">DOCX Visual‑Diff (Demo)</h1>
 
       {/* Inputs */}
       <div className="grid grid-cols-2 gap-6 mb-6">
-        {['old','new'].map(w=>(
-          <div key={w}>
-            <label className="font-medium capitalize">{w} .docx</label>
-            <input type="file" accept=".docx" className="w-full mb-2" onChange={e=>upFile(e,w)}/>
-            <textarea placeholder={`quick text for ${w}`} className="w-full h-24 border p-2 text-sm"
-                      onBlur={e=>quick(e.target.value,w)} />
+        {['old','new'].map(which=>(
+          <div key={which}>
+            <label className="font-medium capitalize">{which} .docx</label>
+            <input type="file" accept=".docx" className="w-full mb-2"
+                   onChange={e=>loadFile(e,which)}/>
+            <textarea placeholder={`quick text for ${which}`} className="w-full h-24 border p-2 text-sm"
+                      onBlur={e=>quickText(e.target.value,which)} />
           </div>
         ))}
       </div>
 
       <div className="flex gap-4 mb-8">
-        <button onClick={loadSamples} className="px-4 py-2 bg-gray-600 text-white rounded">Load samples</button>
-        <button disabled={busy} onClick={generate}
+        <button onClick={loadSamples}
+                className="px-4 py-2 bg-slate-600 text-white rounded">Load samples</button>
+        <button onClick={generate} disabled={busy}
                 className="px-6 py-2 bg-blue-600 text-white rounded disabled:opacity-50">
           {busy?'Processing…':'Generate diff'}
         </button>
-        <button disabled={!diffBuf} onClick={saveDocx}
+        <button onClick={downloadDocx} disabled={!docxBuf}
                 className="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50">
           Download diff.docx
         </button>
@@ -297,7 +397,7 @@ function App(){
         </div>
       )}
 
-      {/* preview */}
+      {/* Preview */}
       {html&&(
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-2">Visual diff preview</h2>
@@ -306,7 +406,7 @@ function App(){
         </div>
       )}
 
-      {/* logs */}
+      {/* Logs */}
       <details open>
         <summary className="cursor-pointer text-indigo-600 mb-2">Process log</summary>
         <div className="bg-gray-900 text-gray-100 p-3 h-40 overflow-y-auto text-xs rounded">
