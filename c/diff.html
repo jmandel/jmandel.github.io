@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Structure‑Aware Diff Playground</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;margin:0;padding:20px;color:#333}
+ h1{text-align:center;margin:0 0 25px;color:#2c3e50}
+ textarea{width:100%;min-height:200px;font-family:monospace;font-size:14px;padding:10px;border:1px solid #ccc;border-radius:4px;resize:vertical}
+ .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:25px}
+ button{cursor:pointer;border:none;border-radius:4px;padding:10px 25px;font-size:15px;background:#3498db;color:#fff}
+ button:hover{background:#2980b9}
+ .output{background:#fff;border-radius:6px;padding:20px;box-shadow:0 2px 4px rgba(0,0,0,.1)}
+ /* diff highlight */
+ .word-keep{color:#333}
+ .word-delete{background:#ffd4d4;color:#c0392b;text-decoration:line-through;padding:2px 4px;border-radius:3px}
+ .word-insert{background:#d4f4dd;color:#2e7d32;padding:2px 4px;border-radius:3px}
+ .table-change{margin:12px 0;padding:10px;border-left:4px solid #2196f3;background:#e3f2fd;border-radius:4px;font-size:14px}
+ .table-delete{background:#ffebee;border-color:#e53935}
+ .table-insert{background:#e8f5e9;border-color:#43a047}
+ .table-modify{background:#fff8e1;border-color:#fb8c00}
+ /* legend */
+ .legend{display:flex;flex-wrap:wrap;gap:18px;background:#fafafa;border-radius:6px;padding:15px;margin-bottom:20px}
+ .legend span{display:inline-block;padding:2px 8px;border-radius:3px;margin-right:6px}
+ .legend .del{background:#ffd4d4}
+ .legend .ins{background:#d4f4dd}
+ .legend .keep{background:#eee}
+ .legend .tbl{background:#e3f2fd}
+ /* test UI */
+ #tests{margin-top:40px}
+ .case{background:#fff;border-radius:6px;padding:15px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+ .case h3{margin:0 0 8px;color:#555}
+ .status{float:right;padding:4px 10px;border-radius:12px;font-size:13px}
+ .pass{background:#d4f4dd;color:#27ae60}
+ .fail{background:#ffd4d4;color:#c0392b}
+ pre{background:#f7f7f7;padding:10px;border-radius:4px;overflow-x:auto;font-size:12px}
+</style>
+</head>
+<body>
+<h1>Word‑Level &amp; Table‑Aware Diff Playground</h1>
+
+<div class="legend">
+ <div><span class="del"></span>Deleted word</div>
+ <div><span class="ins"></span>Inserted word</div>
+ <div><span class="tbl"></span>Table change (insert / delete / modify)</div>
+</div>
+
+<div class="grid">
+ <div>
+  <h3>Original Document</h3>
+  <textarea id="doc1"></textarea>
+ </div>
+ <div>
+  <h3>Modified Document</h3>
+  <textarea id="doc2"></textarea>
+ </div>
+</div>
+
+<button onclick="performDiff()">Calculate Diff</button>
+
+<div id="result" class="output" style="margin-top:25px">
+ <em>Diff output appears here…</em>
+</div>
+
+<!-- TEST SUITE -->
+<div id="tests">
+ <h2>Built‑in Test Suite</h2>
+ <button onclick="runAllTests()">Run All Tests</button>
+ <div id="testResults" style="margin-top:20px"></div>
+</div>
+
+<script>
+// ---------------- TABLE DIFF --------------------------------------------------
+class TableDiff{
+  constructor(){this.ops=[]}
+  diff(html1,html2){
+    this.ops=[];
+    const d1=this._toArray(html1), d2=this._toArray(html2);
+    const colMap=this._mapCols(d1,d2), rowMap=this._mapRows(d1,d2,colMap);
+    this._colOps(d1,d2,colMap); this._rowOps(d1,d2,rowMap); this._cellOps(d1,d2,rowMap,colMap);
+    return this.ops;
+  }
+  _toArray(html){
+    const parser=new DOMParser().parseFromString(html,'text/html');
+    const rows=[...parser.querySelectorAll('table tr')];
+    return rows.map(r=>[...r.children].map(c=>({content:c.textContent.trim(),type:c.tagName.toLowerCase()})));
+  }
+  _mapCols(d1,d2){
+    if(!d1.length||!d2.length) return{};
+    const h1=d1[0],h2=d2[0],map={};
+    h2.forEach((c2,j2)=>{const j1=h1.findIndex(c1=>c1.content===c2.content); if(j1!==-1) map[j1]=j2});
+    if(!Object.keys(map).length&&h1.length===h2.length) h1.forEach((_,i)=>map[i]=i);
+    return map;
+  }
+  _mapRows(d1,d2,colMap){
+    const map={};
+    for(let i2=1;i2<d2.length;i2++){
+      let best=-1,score=0;
+      for(let i1=1;i1<d1.length;i1++) if(!(i1 in map)){
+        const s=this._rowSim(d1[i1],d2[i2],colMap);
+        if(s>score&&s>=.3){score=s;best=i1}
+      }
+      if(best!==-1) map[best]=i2;
+    }
+    return map;
+  }
+  _rowSim(r1,r2,colMap){
+    let m=0,t=0;
+    if(Object.keys(colMap).length){
+      for(const [j1,j2] of Object.entries(colMap)){
+        if(r1[j1]&&r2[j2]){t++; if(r1[j1].content===r2[j2].content) m++;}
+      }
+    }else{
+      for(let j=0;j<Math.min(r1.length,r2.length);j++){
+        t++; if(r1[j].content===r2[j].content) m++;
+      }
+    }
+    return t?m/t:0;
+  }
+  _colOps(d1,d2,colMap){
+    const h1=d1[0]||[],h2=d2[0]||[];
+    h2.forEach((c2,j2)=>{if(!Object.values(colMap).includes(j2)) this.ops.push({type:'column-add',index:j2,header:c2.content})});
+    h1.forEach((c1,j1)=>{if(!(j1 in colMap)) this.ops.push({type:'column-remove',index:j1,header:c1.content})});
+    for(const [j1,j2] of Object.entries(colMap)) if(+j1!==+j2) this.ops.push({type:'column-move',from:+j1,to:+j2,header:h1[j1].content});
+  }
+  _rowOps(d1,d2,rowMap){
+    for(let i2=1;i2<d2.length;i2++) if(!Object.values(rowMap).includes(i2)) this.ops.push({type:'row-add',index:i2,data:d2[i2].map(c=>c.content)});
+    for(let i1=1;i1<d1.length;i1++) if(!(i1 in rowMap)) this.ops.push({type:'row-remove',index:i1,data:d1[i1].map(c=>c.content)});
+    for(const [i1,i2] of Object.entries(rowMap)) if(+i1!==+i2) this.ops.push({type:'row-move',from:+i1,to:+i2,data:d1[i1].map(c=>c.content)});
+  }
+  _cellOps(d1,d2,rowMap,colMap){
+    for(const [i1,i2] of Object.entries(rowMap)){
+      const r1=d1[i1],r2=d2[i2];
+      if(Object.keys(colMap).length){
+        for(const [j1,j2] of Object.entries(colMap)){
+          if(r1[j1]&&r2[j2]&&r1[j1].content!==r2[j2].content)
+            this.ops.push({type:'cell-modify',row:+i2,col:+j2,oldValue:r1[j1].content,newValue:r2[j2].content});
+        }
+      }else{
+        for(let j=0;j<Math.min(r1.length,r2.length);j++)
+          if(r1[j].content!==r2[j].content) this.ops.push({type:'cell-modify',row:+i2,col:j,oldValue:r1[j].content,newValue:r2[j].content});
+      }
+    }
+  }
+}
+
+// ---------------- WORD‑LEVEL STRUCTURE DIFF -----------------------------------
+class WordLevelStructureDiff{
+  static WORD=/(\S+)(\s*)/g;
+  diff(h1,h2){
+    const t1=this._tokens(h1), t2=this._tokens(h2);
+    const raw=this._lcs(t1,t2);
+    return this._enhance(raw);
+  }
+  _tokens(html){
+    const tokens=[], parts=html.split(/(<table[\s\S]*?<\/table>)/i);
+    let tid=0;
+    parts.forEach(p=>{
+      if(!p.trim()) return;
+      if(/^<table/i.test(p)){tokens.push({type:'table',html:p,tid:tid++});}
+      else{
+        const text=p.replace(/<[^>]+>/g,'');
+        let m; while((m=WordLevelStructureDiff.WORD.exec(text))!==null){
+          tokens.push({type:'word',text:m[1]});
+        }
+      }
+    });
+    return tokens;
+  }
+  _eq(a,b){return (a.type==='word'&&b.type==='word'&&a.text===b.text)||(a.type==='table'&&b.type==='table');}
+  _lcs(a,b){
+    const n=a.length,m=b.length,dp=Array.from({length:n+1},()=>Array(m+1).fill(0));
+    for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)dp[i][j]=this._eq(a[i],b[j])?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+    const ops=[];let i=0,j=0;
+    while(i<n&&j<m){
+      if(this._eq(a[i],b[j])){ops.push({type:'keep',a:a[i],b:b[j]});i++;j++}
+      else if(dp[i+1][j]>=dp[i][j+1]){ops.push({type:'delete',token:a[i]});i++}
+      else{ops.push({type:'insert',token:b[j]});j++}
+    }
+    while(i<n) ops.push({type:'delete',token:a[i++]});
+    while(j<m) ops.push({type:'insert',token:b[j++]});
+    return ops;
+  }
+  _enhance(ops){
+    const out=[];
+    ops.forEach(o=>{
+      if(o.type==='keep'&&o.a.type==='table'){
+        const diff=new TableDiff().diff(o.a.html,o.b.html);
+        out.push(diff.length?{type:'table-modify',diff}:{type:'keep-table'});
+      }else out.push(o);
+    });
+    return out;
+  }
+}
+
+// ---------------- RENDERING ---------------------------------------------------
+function renderDiffHTML(ops){
+  const parts=[];
+  ops.forEach(o=>{
+    if(o.type==='keep'&&o.a?.type==='word') parts.push(`<span class="word-keep">${o.a.text}</span>`);
+    if(o.type==='delete'&&o.token.type==='word') parts.push(`<span class="word-delete">${o.token.text}</span>`);
+    if(o.type==='insert'&&o.token.type==='word') parts.push(`<span class="word-insert">${o.token.text}</span>`);
+    if(o.type==='insert'&&o.token.type==='table') parts.push(`<div class="table-change table-insert">[Table inserted]</div>`);
+    if(o.type==='delete'&&o.token.type==='table') parts.push(`<div class="table-change table-delete">[Table deleted]</div>`);
+    if(o.type==='table-modify') parts.push(`<div class="table-change table-modify">[Table modified]</div>`); // could embed finer diff
+  });
+  return parts.join(' ');
+}
+
+// ---------------- UI ----------------------------------------------------------
+function performDiff(){
+  const h1=document.getElementById('doc1').value;
+  const h2=document.getElementById('doc2').value;
+  if(!h1||!h2){alert('Enter both documents');return;}
+  const ops=new WordLevelStructureDiff().diff(h1,h2);
+  document.getElementById('result').innerHTML=renderDiffHTML(ops);
+}
+
+// ---------------- TEST SUITE --------------------------------------------------
+const tableTests=[ /* Three earlier tests */ {
+  name:"Cell change",
+  t1:"<table><tr><th>Name</th><th>Age</th></tr><tr><td>J</td><td>30</td></tr></table>",
+  t2:"<table><tr><th>Name</th><th>Age</th></tr><tr><td>J</td><td>31</td></tr></table>",
+  expect:[{type:"cell-modify",row:1,col:1,oldValue:"30",newValue:"31"}]
+},{
+  name:"Add row",
+  t1:"<table><tr><th>P</th><th>$</th></tr><tr><td>L</td><td>1</td></tr></table>",
+  t2:"<table><tr><th>P</th><th>$</th></tr><tr><td>L</td><td>1</td></tr><tr><td>M</td><td>2</td></tr></table>",
+  expect:[{type:"row-add",index:2,data:["M","2"]}]
+},{
+  name:"Remove column",
+  t1:"<table><tr><th>A</th><th>B</th></tr><tr><td>x</td><td>y</td></tr></table>",
+  t2:"<table><tr><th>A</th></tr><tr><td>x</td></tr></table>",
+  expect:[{type:"column-remove",index:1,header:"B"}]
+}];
+
+const complexH1=`<p>First paragraph stays same.</p>
+<p>Second paragraph original content.</p>
+<table><tr><th>Name</th><th>Age</th></tr><tr><td>Alice</td><td>30</td></tr><tr><td>Bob</td><td>25</td></tr></table>
+<p>Final paragraph unchanged.</p>`;
+
+const complexH2=`<p>First paragraph stays same.</p>
+<p>Second paragraph updated content.</p>
+<table><tr><th>Name</th><th>Age</th></tr><tr><td>Alice</td><td>30</td></tr><tr><td>Bob</td><td>26</td></tr><tr><td>Charlie</td><td>40</td></tr></table>
+<p>Final paragraph unchanged.</p>`;
+
+const wordTests=[{
+  name:"Word replace",
+  h1:"<p>Hello world</p>",
+  h2:"<p>Hello there</p>",
+  del:["world"],ins:["there"]
+},{
+  name:"Paragraph + table modifications",
+  h1:complexH1,
+  h2:complexH2,
+  del:["original"],ins:["updated"],
+  tableOps:[{type:"cell-modify",row:2,col:1,oldValue:"25",newValue:"26"},
+            {type:"row-add",index:3,data:["Charlie","40"]}]
+}];
+
+function compareOps(actual,expected){return expected.every(e=>actual.some(a=>JSON.stringify(a)===JSON.stringify(e)));}
+
+function runAllTests(){
+  const out=document.getElementById('testResults'); out.innerHTML='';
+  let pass=0,fail=0;
+
+  // table tests
+  tableTests.forEach(tc=>{
+     const ops=new TableDiff().diff(tc.t1,tc.t2);
+     const ok=compareOps(ops,tc.expect);
+     injectCase(tc.name,ok,{actual:ops,expected:tc.expect});
+     ok?pass++:fail++;
+  });
+
+  // word tests + rendering
+  wordTests.forEach(tc=>{
+     const engine=new WordLevelStructureDiff();
+     const ops=engine.diff(tc.h1,tc.h2);
+     const dels=ops.filter(o=>o.type==='delete'&&o.token?.type==='word').map(o=>o.token.text);
+     const ins =ops.filter(o=>o.type==='insert'&&o.token?.type==='word').map(o=>o.token.text);
+     let ok=tc.del.every(w=>dels.includes(w))&&tc.ins.every(w=>ins.includes(w));
+     if(tc.tableOps) ok&=ops.some(o=>o.type==='table-modify'&&compareOps(o.diff,tc.tableOps));
+     const html=renderDiffHTML(ops);
+     ok?pass++:fail++;
+     injectCase(tc.name,ok,{diffOps:ops.slice(0,20),html});
+  });
+
+  // summary
+  out.insertAdjacentHTML('afterbegin',`<div style="margin-bottom:15px;font-size:18px">
+     Passed: <strong style="color:#27ae60">${pass}</strong> &nbsp;|&nbsp; Failed: <strong style="color:#c0392b">${fail}</strong>
+   </div>`);
+}
+
+function injectCase(title,ok,details){
+  const wrap=document.createElement('div'); wrap.className='case';
+  wrap.innerHTML=`<h3>${title}<span class="status ${ok?'pass':'fail'}">${ok?'PASS':'FAIL'}</span></h3>
+  <pre>${JSON.stringify(details,null,2)}</pre>`;
+  document.getElementById('testResults').appendChild(wrap);
+}
+
+// preload complex example so the playground shows something
+document.getElementById('doc1').value=complexH1.trim();
+document.getElementById('doc2').value=complexH2.trim();
+</script>
+</body>
+</html>
