@@ -2,22 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>DOCX Visual‑Diff Prototype (Structured HTML Renderer)</title>
+  <title>DOCX Visual‑Diff (React UI Demo)</title>
 
-  <!-- Tailwind (Play CDN) -->
+  <!-- Tailwind (utility classes) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- React & ReactDOM (v18 UMD) + Babel for in‑browser JSX -->
+  <!-- React 18 & React‑DOM UMD + Babel for in‑browser JSX -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+  <!-- JSZip for reading .docx -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
   <style>
-    /*  🔆  Diff highlight utilities  */
-    .diff-add   { background:#c6ffd1; color:#065f46; font-weight:600; }
-    .diff-del   { background:#ffd6d5; color:#8b0000; text-decoration:line-through; }
-    table.diff  { border-collapse:collapse; }
-    table.diff td { border:1px solid #d1d5db; padding:2px 6px; }
+    .diff-add { background:#c6ffd1; color:#065f46; font-weight:600; }
+    .diff-del { background:#ffd6d5; color:#8b0000; text-decoration:line-through; }
+    table.diff   { border-collapse:collapse; }
+    table.diff td{ border:1px solid #d1d5db; padding:2px 6px; }
   </style>
 </head>
 
@@ -25,124 +27,262 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    /******************************************************************
-     * 1.  Sample diffParts  – normally produced by Myers diff engine *
-     ******************************************************************/
-    const sampleDiff = [
-      { value:'«p»' },
-      { value:'The',  old:{blockId:'p1',runIdx:0}, new:{blockId:'p1',runIdx:0} },
-      { value:' ',    old:{}, new:{} },
-      { value:'quick',old:{blockId:'p1',runIdx:1}, new:{blockId:'p1',runIdx:1} },
-      { value:' ',    old:{}, new:{} },
-      { value:'brown',old:{blockId:'p1',runIdx:2}, removed:true },
-      { value:'red',                   new:{blockId:'p1',runIdx:2}, added:true },
-      { value:' ', old:{}, new:{} },
-      { value:'fox',  old:{blockId:'p1',runIdx:3}, new:{blockId:'p1',runIdx:3} },
-      { value:'«/p»' },
+/* ------------------------------------------------------------- *
+ *  1.  Small helpers                                            *
+ * ------------------------------------------------------------- */
+const twipToPx = tw => Math.round((tw || 2400) * 0.05);
+const sampleOld = `<?xml version="1.0"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+ <w:body>
+  <w:p><w:r><w:t>The</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>quick</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>brown</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>fox</w:t></w:r></w:p>
+  <w:tbl>
+    <w:tr>
+      <w:tc><w:p><w:r><w:t>Old</w:t></w:r></w:p></w:tc>
+      <w:tc><w:p><w:r><w:t>Table</w:t></w:r></w:p></w:tc>
+    </w:tr>
+  </w:tbl>
+ </w:body>
+</w:document>`;
+const sampleNew = `<?xml version="1.0"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+ <w:body>
+  <w:p><w:r><w:t>The</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>quick</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>red</w:t></w:r><w:r><w:t> </w:t></w:r><w:r><w:t>fox</w:t></w:r></w:p>
+  <w:tbl>
+    <w:tr>
+      <w:tc><w:p><w:r><w:t>New</w:t></w:r></w:p></w:tc>
+      <w:tc><w:p><w:r><w:t>Table</w:t></w:r></w:p></w:tc>
+      <w:tc><w:p><w:r><w:t>Column</w:t></w:r></w:p></w:tc>
+    </w:tr>
+  </w:tbl>
+ </w:body>
+</w:document>`;
 
-      { value:'«table»' },
-      { value:'«tr»' },
-      { value:'«tc»' },
-      { value:'Cell', old:{}, new:{} },
-      { value:' ',    old:{}, new:{} },
-      { value:'1',    old:{}, new:{} },
-      { value:'«/tc»' },
+/* ------------------------------------------------------------- *
+ *  2.  Myers diff (token level)                                 *
+ * ------------------------------------------------------------- */
+function eqTok(a,b){return a.type==='whitespace'&&b.type==='whitespace'||a.text===b.text;}
 
-      { value:'«tc»' },
-      { value:'Modified', added:true, new:{blockId:'tbl0.tr0.tc1',runIdx:0} },
-      { value:' ',       added:true, new:{blockId:'tbl0.tr0.tc1',runIdx:1} },
-      { value:'Cell',    old:{blockId:'tbl0.tr0.tc1',runIdx:0}, new:{blockId:'tbl0.tr0.tc1',runIdx:2} },
-      { value:'«/tc»' },
-
-      { value:'«tc»' },
-      { value:'Extra', added:true, new:{blockId:'tbl0.tr0.tc2',runIdx:0} },
-      { value:'«/tc»' },
-      { value:'«/tr»' },
-      { value:'«/table»' }
-    ];
-
-    /******************************************************************
-     * 2.  Minimal stub metaMap – just widths for table columns        *
-     ******************************************************************/
-    const metaMap = {
-      'tbl0.tr0.tc0': { width: 2500 },
-      'tbl0.tr0.tc1': { width: 2500 },
-      'tbl0.tr0.tc2': { width: 2500 },
-    };
-
-    const twipToPx = twip => Math.round((twip || 2400) * 0.05); // 1 twip ≈ 0.05 px
-
-    /******************************************************************
-     * 3.  Structured renderer → HTML string                           *
-     ******************************************************************/
-    function diffPartsToHtml(diff, meta) {
-      const root = document.createElement('div');
-      const stack = [];
-
-      const open = (tag, attrs = {}) => {
-        const el = document.createElement(tag);
-        Object.entries(attrs).forEach(([k, v]) => (el[k] = v));
-        (stack[stack.length - 1] || root).appendChild(el);
-        stack.push(el);
-      };
-      const close = () => stack.pop();
-
-      for (const part of diff) {
-        const { value, added, removed } = part;
-
-        // --- markers -------------------------------------------------
-        if (value.startsWith('«') && value.endsWith('»')) {
-          switch (true) {
-            case value === '«p»':     open('p');                break;
-            case value === '«/p»':    close();                 break;
-
-            case value === '«table»': open('table', { className:'diff' }); break;
-            case value === '«/table»':close();                 break;
-
-            case value === '«tr»':    open('tr');               break;
-            case value === '«/tr»':   close();                 break;
-
-            case value === '«tc»': {
-              const blockId = part.new?.blockId || part.old?.blockId;
-              const width   = twipToPx(meta[blockId]?.width);
-              open('td', { style:`width:${width}px` });
-              break;
-            }
-            case value === '«/tc»':   close();                 break;
-
-            // list markers etc. could be handled here
-          }
-          continue;
-        }
-
-        // --- word / whitespace ---------------------------------------
-        const span = document.createElement('span');
-        span.textContent = value;
-        if (added)   span.className = 'diff-add';
-        if (removed) span.className = 'diff-del';
-        (stack[stack.length - 1] || root).appendChild(span);
-      }
-      return root.innerHTML;
+function myers(oldT,newT){
+  const n=oldT.length,m=newT.length,max=n+m,v={};v[1]=0;const trace=[];
+  for(let d=0;d<=max;d++){
+    trace.push({...v});
+    for(let k=-d;k<=d;k+=2){
+      let x;
+      if(k===-d||(k!==d&&v[k-1]<v[k+1])) x=v[k+1]; else x=v[k-1]+1;
+      let y=x-k;
+      while(x<n&&y<m&&eqTok(oldT[x],newT[y])){x++;y++;}
+      v[k]=x; if(x>=n&&y>=m) return back(trace,oldT,newT,x,y,d);
     }
+  } return [];
+}
+function back(trace,oldT,newT,x,y,d){
+  const diff=[];
+  for(let d2=d;d2>=0&&(x>0||y>0);d2--){
+    const v=trace[d2],k=x-y;
+    const prevK=(k===-d2||(k!==d2&&v[k-1]<v[k+1]))?k+1:k-1;
+    const prevX=v[prevK],prevY=prevX-prevK;
+    while(x>prevX&&y>prevY){
+      diff.unshift({value:oldT[x-1].text,old:oldT[x-1].runKey,new:newT[y-1].runKey});
+      x--;y--;
+    }
+    if(d2>0){
+      if(x>prevX){diff.unshift({value:oldT[x-1].text,old:oldT[x-1].runKey,removed:true});x--;}
+      else{diff.unshift({value:newT[y-1].text,new:newT[y-1].runKey,added:true});y--;}
+    }
+  } return diff;
+}
 
-    /******************************************************************
-     * 4.  React demo component                                        *
-     ******************************************************************/
-    function App() {
-      const html = diffPartsToHtml(sampleDiff, metaMap);
+/* ------------------------------------------------------------- *
+ *  3.  Canonicalise DOCX → token stream (paragraph + table)     *
+ * ------------------------------------------------------------- */
+class Canon{
+  constructor(){this.p=0;this.t=0;this.meta={};}
+  async parseBuffer(buf){
+    const zip=await JSZip.loadAsync(buf);
+    const xml=await zip.file('word/document.xml').async('string');
+    return this.parseXml(xml);
+  }
+  parseXml(xml){
+    const doc=new DOMParser().parseFromString(xml,'application/xml');
+    const tokens=[]; this.walk(doc.querySelector('w\\:body,body'),tokens);
+    return {tokens,meta:this.meta};
+  }
+  walk(node,tokens){
+    node.childNodes.forEach(n=>{
+      if(n.nodeType!==1) return;
+      if(n.tagName.match(/p$/i)) this.pPara(n,tokens);
+      else if(n.tagName.match(/tbl$/i)) this.pTable(n,tokens);
+    });
+  }
+  pPara(p,tokens){
+    const id='p'+this.p++; tokens.push(mk('«p»',id));
+    let idx=0;
+    p.querySelectorAll('w\\:t,t').forEach(t=>{
+      (t.textContent.match(/\S+|\s+/g)||[]).forEach(ch=>{
+        tokens.push({type:/\s/.test(ch)?'whitespace':'word',text:/\s/.test(ch)?' ':ch,runKey:{blockId:id,runIdx:idx++}});
+      });
+    });
+    tokens.push(mk('«/p»',id));
+  }
+  pTable(tbl,tokens){
+    const tid='tbl'+this.t++; tokens.push(mk('«table»',tid));
+    tbl.querySelectorAll('w\\:tr,tr').forEach((tr,i)=>{
+      const rid=`${tid}.tr${i}`; tokens.push(mk('«tr»',rid));
+      tr.querySelectorAll('w\\:tc,tc').forEach((tc,j)=>{
+        const cid=`${rid}.tc${j}`; this.meta[cid]={width:this.getWidth(tc)};
+        tokens.push(mk('«tc»',cid));
+        tc.querySelectorAll('w\\:p,p').forEach(p=>this.pPara(p,tokens));
+        tokens.push(mk('«/tc»',cid));
+      });
+      tokens.push(mk('«/tr»',rid));
+    });
+    tokens.push(mk('«/table»',tid));
+  }
+  getWidth(tc){
+    const w=tc.querySelector('w\\:tcw'); return w?parseInt(w.getAttribute('w:w')):null;
+  }
+}
+const mk=(txt,bid)=>({type:'marker',text:txt,runKey:{blockId:bid,runIdx:-1}});
 
-      return (
-        <div className="max-w-3xl mx-auto bg-white shadow rounded p-8">
-          <h1 className="text-2xl font-bold mb-4">Structured HTML preview</h1>
-          <div
-            className="border border-gray-300 p-4 prose max-w-none"
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
+/* ------------------------------------------------------------- *
+ *  4.  Render diff ► structured HTML                            *
+ * ------------------------------------------------------------- */
+function diffHtml(diff,meta){
+  const root=document.createElement('div'),stack=[];
+  const open=(tag,attr={})=>{const el=document.createElement(tag);Object.entries(attr).forEach(([k,v])=>el.setAttribute(k,v));(stack[stack.length-1]||root).appendChild(el);stack.push(el);};
+  const close=()=>stack.pop();
+
+  diff.forEach(p=>{
+    if(p.value.startsWith('«')){
+      switch(p.value){
+        case '«p»':open('p');break; case '«/p»':close();break;
+        case '«table»':open('table',{class:'diff'});break; case '«/table»':close();break;
+        case '«tr»':open('tr');break; case '«/tr»':close();break;
+        case '«tc»':{
+          const id=p.new?.blockId||p.old?.blockId; const w=twipToPx(meta[id]?.width);
+          open('td',{style:`width:${w}px`});break;}
+        case '«/tc»':close();break;
+      } return;
+    }
+    const span=document.createElement('span');
+    span.textContent=p.value;
+    if(p.added) span.className='diff-add'; if(p.removed) span.className='diff-del';
+    (stack[stack.length-1]||root).appendChild(span);
+  });
+  return root.innerHTML;
+}
+
+/* ------------------------------------------------------------- *
+ *  5.  React UI                                                 *
+ * ------------------------------------------------------------- */
+function App(){
+  const [oldBuf,setOld]=React.useState(null);
+  const [newBuf,setNew]=React.useState(null);
+  const [logs,setLogs]=React.useState([]);
+  const [html,setHtml]=React.useState('');
+  const [stats,setStats]=React.useState(null);
+  const [raw,setRaw]=React.useState(null);
+  const [busy,setBusy]=React.useState(false);
+
+  const log=msg=>setLogs(l=>[...l,`${new Date().toLocaleTimeString()}  ${msg}`]);
+
+  const handleFile=(e,type)=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader(); r.onload=()=>{ type==='old'?setOld(r.result):setNew(r.result); log(`${f.name} loaded`); };
+    r.readAsArrayBuffer(f);
+  };
+
+  const handleText=(txt,type)=>{
+    const xml=`<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p>${txt.split(' ').map(w=>`<w:r><w:t>${w}</w:t></w:r><w:r><w:t> </w:t></w:r>`).join('')}</w:p></w:body></w:document>`;
+    const buf=new TextEncoder().encode(xml).buffer; type==='old'?setOld(buf):setNew(buf); log(`Manual ${type} text captured`);
+  };
+
+  const loadSamples=()=>{
+    setOld(new TextEncoder().encode(sampleOld).buffer);
+    setNew(new TextEncoder().encode(sampleNew).buffer);
+    log('Loaded built‑in samples');
+  };
+
+  const generate=async()=>{
+    if(!oldBuf||!newBuf) return alert('Upload or input both docs');
+    setBusy(true); log('Starting canonicalisation…');
+    try{
+      const oldC=new Canon(),newC=new Canon();
+      const [o,n]=await Promise.all([oldC.parseBuffer(oldBuf),newC.parseBuffer(newBuf)]);
+      log(`Tokenised: old=${o.tokens.length}, new=${n.tokens.length}`);
+      const diff=myers(o.tokens,n.tokens);
+      setStats({total:diff.length,added:diff.filter(d=>d.added).length,removed:diff.filter(d=>d.removed).length,unchanged:diff.filter(d=>!d.added&&!d.removed).length});
+      setHtml(diffHtml(diff,n.meta));
+      setRaw(diff);
+      log('Diff done ✓');
+    }catch(e){console.error(e);alert(e.message);}
+    finally{setBusy(false);}
+  };
+
+  return(
+    <div className="max-w-6xl mx-auto bg-white shadow rounded p-8">
+      <h1 className="text-3xl font-bold mb-6">DOCX Visual‑Diff Demo</h1>
+
+      {/* INPUT AREA */}
+      <div className="grid grid-cols-2 gap-6 mb-6">
+        <div>
+          <label className="block font-medium mb-1">Old .docx</label>
+          <input type="file" accept=".docx" className="w-full text-sm mb-2" onChange={e=>handleFile(e,'old')} />
+          <textarea placeholder="Or type quick text…" className="w-full h-24 border p-2 text-sm" onBlur={e=>handleText(e.target.value,'old')}></textarea>
         </div>
-      );
-    }
+        <div>
+          <label className="block font-medium mb-1">New .docx</label>
+          <input type="file" accept=".docx" className="w-full text-sm mb-2" onChange={e=>handleFile(e,'new')} />
+          <textarea placeholder="Or type quick text…" className="w-full h-24 border p-2 text-sm" onBlur={e=>handleText(e.target.value,'new')}></textarea>
+        </div>
+      </div>
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+      <div className="flex gap-4 mb-8">
+        <button onClick={loadSamples} className="px-4 py-2 bg-gray-600 text-white rounded">Load samples</button>
+        <button disabled={busy} onClick={generate} className="px-6 py-2 bg-blue-600 text-white rounded disabled:opacity-50">{busy?'Processing…':'Generate diff'}</button>
+      </div>
+
+      {/* STATS */}
+      {stats&&(
+        <div className="grid grid-cols-4 gap-4 text-center mb-8">
+          <div className="bg-gray-50 p-4 rounded"><p>Total</p><p className="text-2xl">{stats.total}</p></div>
+          <div className="bg-green-50 p-4 rounded"><p>Added</p><p className="text-2xl text-green-700">{stats.added}</p></div>
+          <div className="bg-red-50 p-4 rounded"><p>Removed</p><p className="text-2xl text-red-700">{stats.removed}</p></div>
+          <div className="bg-blue-50 p-4 rounded"><p>Unchanged</p><p className="text-2xl text-blue-700">{stats.unchanged}</p></div>
+        </div>
+      )}
+
+      {/* VISUAL OUTPUT */}
+      {html&&(
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-2">Visual diff preview</h2>
+          <div className="prose max-w-none border border-gray-300 rounded p-4 overflow-x-auto" dangerouslySetInnerHTML={{__html:html}}/>
+        </div>
+      )}
+
+      {/* RAW DATA TOGGLE */}
+      {raw&&(
+        <details className="mb-8">
+          <summary className="cursor-pointer text-indigo-600 mb-2">Show raw DiffPart[] (first 100)</summary>
+          <pre className="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto text-xs">
+{JSON.stringify(raw.slice(0,100),null,2)}
+{raw.length>100&&`\n… ${raw.length-100} more items`}
+          </pre>
+        </details>
+      )}
+
+      {/* PROCESS LOG */}
+      <details open>
+        <summary className="cursor-pointer text-indigo-600 mb-2">Process log</summary>
+        <div className="bg-gray-900 text-gray-100 p-3 h-40 overflow-y-auto text-xs rounded">
+          {logs.map((l,i)=><div key={i}>{l}</div>)}
+        </div>
+      </details>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   </script>
 </body>
 </html>
