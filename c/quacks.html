@@ -37,10 +37,10 @@
         /* Desktop layout */
         @media (min-width: 1200px) {
             .game-container {
-                grid-template-columns: 350px 1fr 300px;
+                grid-template-columns: 300px 350px 1fr;
                 grid-template-areas: 
-                    "sidebar main rules"
-                    "sidebar main rules";
+                    "rules sidebar main"
+                    "rules sidebar main";
                 gap: 20px;
             }
             
@@ -181,6 +181,21 @@
         
         .tray .chip {
             cursor: move;
+        }
+        
+        .flask {
+            width: 32px;
+            height: 32px;
+            font-size: 24px;
+            cursor: pointer;
+            user-select: none;
+            margin-left: 10px;
+            opacity: 0.3;
+            transition: opacity 0.2s ease;
+        }
+        
+        .flask.active {
+            opacity: 1;
         }
         
         .board {
@@ -354,14 +369,26 @@
         }
         
         .manual-controls {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: 8px;
+            display: flex;
             align-items: center;
+            gap: 12px;
             padding: 12px;
             background: #f8f9fa;
             border-radius: 8px;
             margin-bottom: 8px;
+        }
+        
+        .manual-controls > span {
+            min-width: 60px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .manual-controls .control-inputs {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex: 1;
         }
         
         .icon-button {
@@ -559,8 +586,8 @@
             }
         };
 
-        // Game state
-        let gameState = {
+        // Default game state
+        const defaultGameState = {
             playerName: '',
             selectedBooks: {
                 yellow: 1,
@@ -586,20 +613,46 @@
             score: 0,
             rubies: 0,
             droplet: 0,
-            money: 0 // Track available money
+            spentMoney: 0,
+            round: 1,
+            flaskActive: true,
+            bookSelectionOpen: true
         };
+
+        // Load game state from localStorage or use default
+        function loadGameState() {
+            try {
+                const saved = localStorage.getItem('quacksGameState');
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+            } catch (e) {
+                console.warn('Failed to load game state from localStorage:', e);
+            }
+            return { ...defaultGameState };
+        }
+
+        // Save game state to localStorage
+        function saveGameState() {
+            try {
+                localStorage.setItem('quacksGameState', JSON.stringify(gameState));
+            } catch (e) {
+                console.warn('Failed to save game state to localStorage:', e);
+            }
+        }
+
+        // Initialize game state
+        let gameState = loadGameState();
 
         // Board space data
         const spaceData = {
-            currency: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,15,16,16,17,17,18,18,19,19,20,20,21,21,22,22,23,23],
+            currency: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32],
             vp: [0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,7,7,7,8,8],
             rubies: [6,10,14,17,21,25,29,31] // Space indices (1-based) that have rubies
         };
 
         // Rat tail positions on scoring track
         const ratTailPositions = [1,4,7,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48];
-
-        // No local storage available in this environment
 
         // Draw a random chip from bag to tray
         function drawChip() {
@@ -619,6 +672,7 @@
                 if (random < gameState.bag[color].length) {
                     const value = gameState.bag[color].splice(random, 1)[0];
                     gameState.tray.push({ color, value });
+                    saveGameState();
                     render();
                     return;
                 }
@@ -630,6 +684,7 @@
         function returnChipToBag(index) {
             const chip = gameState.tray.splice(index, 1)[0];
             gameState.bag[chip.color].push(chip.value);
+            saveGameState();
             render();
         }
 
@@ -638,6 +693,7 @@
             if (gameState.board[boardSpace]) return;
             const chip = gameState.tray.splice(trayIndex, 1)[0];
             gameState.board[boardSpace] = chip;
+            saveGameState();
             render();
         }
 
@@ -647,6 +703,7 @@
             if (!chip) return;
             gameState.board[boardSpace] = null;
             gameState.tray.push(chip);
+            saveGameState();
             render();
         }
 
@@ -677,18 +734,22 @@
         // Add chip to bag (for shopping)
         function addChipToBag(color, value, price) {
             if (price) {
-                // Deduct money from next available space value
+                // Calculate remaining budget after spent money
                 const nextSpace = getNextAvailableSpace();
-                const currentMoney = nextSpace < spaceData.currency.length ? spaceData.currency[nextSpace] : 0;
-                if (currentMoney >= price) {
+                const totalMoney = nextSpace < spaceData.currency.length ? spaceData.currency[nextSpace] : 0;
+                const remainingMoney = totalMoney - gameState.spentMoney;
+                
+                if (remainingMoney >= price) {
                     gameState.bag[color].push(value);
-                    // Track money spent (could implement a money tracking system later)
+                    gameState.spentMoney += price;
+                    saveGameState();
                     render();
                 } else {
                     alert('Not enough money!');
                 }
             } else {
                 gameState.bag[color].push(value);
+                saveGameState();
                 render();
             }
         }
@@ -699,8 +760,23 @@
             const index = chips.indexOf(value);
             if (index > -1) {
                 chips.splice(index, 1);
+                saveGameState();
                 render();
             }
+        }
+
+        // Toggle flask active/inactive
+        function toggleFlask() {
+            gameState.flaskActive = !gameState.flaskActive;
+            saveGameState();
+            render();
+        }
+
+        // Toggle book selection panel
+        function toggleBookSelection() {
+            gameState.bookSelectionOpen = !gameState.bookSelectionOpen;
+            saveGameState();
+            render();
         }
 
         // Handle board click
@@ -709,6 +785,30 @@
                 returnChipToTray(space);
             } else if (gameState.tray.length > 0) {
                 placeChipOnBoard(0, space);
+            } else {
+                // If tray is empty, draw a chip from bag and place it directly on board
+                const availableColors = Object.keys(gameState.bag).filter(color => 
+                    gameState.bag[color].length > 0
+                );
+                
+                if (availableColors.length === 0) return;
+                
+                const totalChips = availableColors.reduce((sum, color) => 
+                    sum + gameState.bag[color].length, 0
+                );
+                
+                let random = Math.floor(Math.random() * totalChips);
+                
+                for (const color of availableColors) {
+                    if (random < gameState.bag[color].length) {
+                        const value = gameState.bag[color].splice(random, 1)[0];
+                        gameState.board[space] = { color, value };
+                        saveGameState();
+                        render();
+                        return;
+                    }
+                    random -= gameState.bag[color].length;
+                }
             }
         }
 
@@ -724,6 +824,7 @@
                 gameState.bag[chip.color].push(chip.value);
             });
             gameState.tray = [];
+            saveGameState();
             render();
         }
 
@@ -747,26 +848,37 @@
                 board: new Array(33).fill(null),
                 score: 0,
                 rubies: 0,
-                droplet: 0
+                droplet: 0,
+                spentMoney: 0,
+                round: 1,
+                flaskActive: true,
+                bookSelectionOpen: gameState.bookSelectionOpen
             };
+            saveGameState();
             render();
         }
 
         // Update player name
         function updatePlayerName(name) {
             gameState.playerName = name;
+            saveGameState();
         }
 
         // Update selected book
         function updateBook(color, bookNumber) {
             gameState.selectedBooks[color] = parseInt(bookNumber);
+            saveGameState();
             render();
         }
 
-        // Get available chips for purchase based on money
+        // Get available chips for purchase based on money and round restrictions
         function getAvailableChips(money) {
             const available = [];
             Object.keys(books).forEach(color => {
+                // Round restrictions
+                if (color === 'yellow' && gameState.round < 2) return;
+                if (color === 'purple' && gameState.round < 3) return;
+                
                 const book = books[color][gameState.selectedBooks[color]];
                 if (book && book.prices) {
                     Object.entries(book.prices).forEach(([value, price]) => {
@@ -796,14 +908,8 @@
             return detailed.sort((a, b) => a.color.localeCompare(b.color) || a.value - b.value);
         }
 
-        // End of turn processing
-        function endTurn() {
-            const returnChips = confirm('Return all chips to bag? (No = keep chips on board for next turn)');
-            if (returnChips) {
-                clearBoard();
-            }
-            
-            // Award victory points based on current position
+        // Take VP based on current position
+        function takeVP() {
             const lastFilledSpace = getLastFilledSpace();
             if (lastFilledSpace >= 0) {
                 const vpGained = spaceData.vp[lastFilledSpace];
@@ -813,10 +919,27 @@
                 if (spaceData.rubies.includes(lastFilledSpace + 1)) {
                     gameState.rubies++;
                 }
+                
+                // Reset spent money for next turn
+                gameState.spentMoney = 0;
+                
+                saveGameState();
+                render();
+            }
+        }
+        
+        // Return all chips to bag
+        function returnChipsToBag() {
+            clearBoard();
+            gameState.round++;
+            
+            // At start of round 6, automatically add a white 1 to the bag
+            if (gameState.round === 6) {
+                gameState.bag.white.push(1);
             }
             
+            saveGameState();
             render();
-            alert(`Turn complete! Gained ${spaceData.vp[lastFilledSpace] || 0} VP${spaceData.rubies.includes(lastFilledSpace + 1) ? ' and 1 Ruby' : ''}`);
         }
 
         // Render the game
@@ -825,15 +948,66 @@
             const whiteTotal = getWhiteTotal();
             const nextSpace = getNextAvailableSpace();
             const nextSpaceValue = nextSpace < spaceData.currency.length ? spaceData.currency[nextSpace] : 0;
+            const remainingMoney = nextSpaceValue - gameState.spentMoney;
             const nextVP = nextSpace < spaceData.vp.length ? spaceData.vp[nextSpace] : 0;
-            const availableChips = getAvailableChips(nextSpaceValue);
+            const availableChips = getAvailableChips(remainingMoney);
             
             app.innerHTML = `
                 <div class="game-container">
-                    <!-- Left Sidebar: Bag contents, tray, and quick actions -->
+                    <!-- Left Panel: Book selection and rules -->
+                    <div class="rules-panel">
+                        <div class="section">
+                            <div onclick="toggleBookSelection()" style="cursor: pointer; font-size: 18px; font-weight: bold; color: #333; margin-bottom: 10px; padding: 5px; border-radius: 4px; background: #f8f9fa;">
+                                Book Selection ${gameState.bookSelectionOpen ? '▼' : '▶'}
+                            </div>
+                            ${gameState.bookSelectionOpen ? `
+                                <div class="books-config">
+                                    ${Object.keys(books).map(color => `
+                                        <div class="book-selector">
+                                            <span class="chip ${color}"></span>
+                                            <select onchange="updateBook('${color}', this.value)">
+                                                ${Object.keys(books[color]).map(num => `
+                                                    <option value="${num}" ${gameState.selectedBooks[color] == num ? 'selected' : ''}>
+                                                        Book ${num}
+                                                    </option>
+                                                `).join('')}
+                                            </select>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="section">
+                            <h2>Active Book Rules</h2>
+                            ${Object.keys(books).map(color => {
+                                const book = books[color][gameState.selectedBooks[color]];
+                                return book ? `
+                                    <div style="margin-bottom: 15px;">
+                                        <div style="display: flex; align-items: center; gap: 5px;">
+                                            <span class="chip ${color}"></span>
+                                            <strong>${color.charAt(0).toUpperCase() + color.slice(1)} Book ${gameState.selectedBooks[color]}:</strong>
+                                        </div>
+                                        <div class="rule-text">${book.rule}</div>
+                                        ${book.prices ? `
+                                            <div style="display: flex; gap: 8px; margin-top: 8px; font-size: 11px;">
+                                                ${Object.entries(book.prices).map(([value, price]) => `
+                                                    <span style="background: #e3f2fd; color: #1976d2; padding: 2px 6px; border-radius: 4px; font-weight: 500;">
+                                                        ${value}: $${price}
+                                                    </span>
+                                                `).join('')}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                ` : '';
+                            }).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Middle: Bag contents, tray, and quick actions -->
                     <div class="sidebar">
                         <div class="section">
-                            <h2>Bag Contents</h2>
+                            <h2>Bag Contents <span style="background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: normal; margin-left: 10px;">Round ${gameState.round}</span></h2>
                             <div class="bag-contents">
                                 ${getBagContentsDetailed().map(({ color, value, count }) => `
                                     <div class="chip-count">
@@ -842,14 +1016,13 @@
                                     </div>
                                 `).join('')}
                             </div>
-                            <div class="action-row">
-                                <button onclick="drawChip()" class="icon-button icon-draw">Draw Chip</button>
-                                <button onclick="endTurn()" class="btn-info icon-button icon-end-turn">End Turn</button>
-                            </div>
                         </div>
 
                         <div class="section">
-                            <h2>Tray</h2>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                                <h2 style="margin: 0; border: none; padding: 0;">Tray</h2>
+                                <button onclick="drawChip()" class="icon-button icon-draw" style="padding: 6px 12px; font-size: 12px;">Draw</button>
+                            </div>
                             <div class="tray">
                                 ${gameState.tray.length === 0 ? '<span style="color: #999;">Empty - Draw chips from bag</span>' : ''}
                                 ${gameState.tray.map((chip, i) => `
@@ -857,78 +1030,80 @@
                                           onclick="returnChipToBag(${i})"
                                           title="Click to return to bag">${chip.value}</span>
                                 `).join('')}
+                                <div class="flask ${gameState.flaskActive ? 'active' : ''}" 
+                                     onclick="toggleFlask()" 
+                                     title="Click to toggle flask">🧪</div>
                             </div>
                             ${gameState.tray.length > 0 ? '<p style="margin-top: 5px; font-size: 12px; color: #666;">Click chip to return to bag, or place on board below</p>' : ''}
                         </div>
 
                         <div class="section">
                             <h2>Quick Actions</h2>
+                            <div class="action-row">
+                                <button onclick="takeVP()" class="btn-info icon-button icon-end-turn" style="grid-column: 1 / -1;">Take VP</button>
+                            </div>
+                            <div class="action-row">
+                                <button onclick="returnChipsToBag()" class="icon-button icon-clear" style="grid-column: 1 / -1;">Return all chips to bag</button>
+                            </div>
                             <div class="action-grid">
-                                <button onclick="gameState.score = Math.max(0, gameState.score - 1); render()" class="icon-button icon-vp-minus">-1 VP</button>
-                                <button onclick="gameState.score++; render()" class="icon-button icon-vp-plus">+1 VP</button>
-                                <button onclick="gameState.rubies = Math.max(0, gameState.rubies - 1); render()" class="icon-button icon-ruby-minus">-1 Ruby</button>
-                                <button onclick="gameState.rubies++; render()" class="icon-button icon-ruby-plus">+1 Ruby</button>
+                                <button onclick="gameState.score = Math.max(0, gameState.score - 1); saveGameState(); render()" class="icon-button icon-vp-minus">-1 VP</button>
+                                <button onclick="gameState.score++; saveGameState(); render()" class="icon-button icon-vp-plus">+1 VP</button>
+                                <button onclick="gameState.rubies = Math.max(0, gameState.rubies - 1); saveGameState(); render()" class="icon-button icon-ruby-minus">-1 Ruby</button>
+                                <button onclick="gameState.rubies++; saveGameState(); render()" class="icon-button icon-ruby-plus">+1 Ruby</button>
                             </div>
                             
                             <div class="action-row">
-                                <button onclick="gameState.droplet = Math.max(0, gameState.droplet - 1); render()" class="icon-button icon-droplet-left">← Move Droplet</button>
-                                <button onclick="gameState.droplet = Math.min(32, gameState.droplet + 1); render()" class="icon-button icon-droplet-right">Move Droplet →</button>
-                            </div>
-                            
-                            <div class="action-row">
-                                <button onclick="clearBoard()" class="icon-button icon-clear">Clear Board</button>
-                                <button onclick="resetGame()" class="icon-button icon-reset">Reset Game</button>
+                                <button onclick="gameState.droplet = Math.max(0, gameState.droplet - 1); saveGameState(); render()" class="icon-button icon-droplet-left">← Move Droplet</button>
+                                <button onclick="gameState.droplet = Math.min(32, gameState.droplet + 1); saveGameState(); render()" class="icon-button icon-droplet-right">Move Droplet →</button>
                             </div>
                             
                             <div style="border-top: 1px solid #ecf0f1; padding-top: 15px; margin-top: 15px;">
                                 <div class="manual-controls">
-                                    <span style="font-weight: 600; color: #2c3e50;">Add:</span>
-                                    <div style="display: flex; gap: 8px; align-items: center;">
-                                        <select id="addColor">
-                                            <option value="white">White</option>
-                                            <option value="orange">Orange</option>
-                                            <option value="green">Green</option>
-                                            <option value="blue">Blue</option>
-                                            <option value="red">Red</option>
-                                            <option value="yellow">Yellow</option>
-                                            <option value="purple">Purple</option>
-                                            <option value="black">Black</option>
-                                        </select>
-                                        <select id="addValue">
-                                            <option value="1">1</option>
-                                            <option value="2">2</option>
-                                            <option value="4">4</option>
-                                        </select>
-                                    </div>
-                                    <button onclick="addChipToBag(document.getElementById('addColor').value, parseInt(document.getElementById('addValue').value))" class="icon-button icon-add">Add</button>
+                                    <select id="addColor">
+                                        <option value="white">White</option>
+                                        <option value="orange">Orange</option>
+                                        <option value="green">Green</option>
+                                        <option value="blue">Blue</option>
+                                        <option value="red">Red</option>
+                                        <option value="yellow">Yellow</option>
+                                        <option value="purple">Purple</option>
+                                        <option value="black">Black</option>
+                                    </select>
+                                    <select id="addValue">
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="4">4</option>
+                                    </select>
+                                    <button onclick="addChipToBag(document.getElementById('addColor').value, parseInt(document.getElementById('addValue').value))" class="icon-button icon-add" style="flex-grow: 1;">Add</button>
                                 </div>
                                 
                                 <div class="manual-controls">
-                                    <span style="font-weight: 600; color: #2c3e50;">Remove:</span>
-                                    <div style="display: flex; gap: 8px; align-items: center;">
-                                        <select id="removeColor">
-                                            <option value="white">White</option>
-                                            <option value="orange">Orange</option>
-                                            <option value="green">Green</option>
-                                            <option value="blue">Blue</option>
-                                            <option value="red">Red</option>
-                                            <option value="yellow">Yellow</option>
-                                            <option value="purple">Purple</option>
-                                            <option value="black">Black</option>
-                                        </select>
-                                        <select id="removeValue">
-                                            <option value="1">1</option>
-                                            <option value="2">2</option>
-                                            <option value="4">4</option>
-                                        </select>
-                                    </div>
-                                    <button onclick="removeChipFromBag(document.getElementById('removeColor').value, parseInt(document.getElementById('removeValue').value))" class="btn-danger icon-button icon-remove">Remove</button>
+                                    <select id="removeColor">
+                                        <option value="white">White</option>
+                                        <option value="orange">Orange</option>
+                                        <option value="green">Green</option>
+                                        <option value="blue">Blue</option>
+                                        <option value="red">Red</option>
+                                        <option value="yellow">Yellow</option>
+                                        <option value="purple">Purple</option>
+                                        <option value="black">Black</option>
+                                    </select>
+                                    <select id="removeValue">
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="4">4</option>
+                                    </select>
+                                    <button onclick="removeChipFromBag(document.getElementById('removeColor').value, parseInt(document.getElementById('removeValue').value))" class="btn-danger icon-button icon-remove" style="flex-grow: 1;">Remove</button>
                                 </div>
+                            </div>
+                            
+                            <div class="action-row" style="margin-top: 20px;">
+                                <button onclick="resetGame()" class="icon-button icon-reset btn-danger" style="grid-column: 1 / -1;">Reset Game</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Main area: Board, shopping, and scoring -->
+                    <!-- Right area: Board, shopping, and scoring -->
                     <div class="main-area">
                         <div class="section">
                             <h2>Board ${whiteTotal > 7 ? '<span class="warning">EXPLOSION!</span>' : ''}</h2>
@@ -968,7 +1143,7 @@
                         </div>
 
                         <div class="section">
-                            <h2>Available Chips ($${nextSpaceValue} budget)</h2>
+                            <h2>Available Chips ($${remainingMoney} remaining)</h2>
                             ${availableChips.length === 0 ? '<p style="color: #999;">No chips available with current budget</p>' : ''}
                             ${availableChips.map(({ color, value, price }) => `
                                 <div class="chip-price">
@@ -988,59 +1163,23 @@
                                     </div>
                                 `).join('')}
                             </div>
-                            <div class="stats" style="margin-top: 10px;">
-                                <div class="stat">
-                                    <div class="stat-value">${gameState.score}</div>
-                                    <div class="stat-label">Victory Points</div>
+                            <div style="display: flex; justify-content: center; gap: 30px; margin-top: 15px; font-size: 18px; font-weight: bold;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 24px;">🏆</span>
+                                    <span style="color: #2c3e50;">${gameState.score}</span>
                                 </div>
-                                <div class="stat">
-                                    <div class="stat-value">${gameState.rubies}</div>
-                                    <div class="stat-label">Rubies</div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 24px;">💎</span>
+                                    <span style="color: #2c3e50;">${gameState.rubies}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Right panel: Configuration and reference -->
-                    <div class="rules-panel">
-                        <div class="section">
-                            <details>
-                                <summary style="cursor: pointer; font-size: 18px; font-weight: bold; color: #333; margin-bottom: 10px;">Book Selection</summary>
-                                <div class="books-config">
-                                    ${Object.keys(books).map(color => `
-                                        <div class="book-selector">
-                                            <span class="chip ${color}"></span>
-                                            <select onchange="updateBook('${color}', this.value)">
-                                                ${Object.keys(books[color]).map(num => `
-                                                    <option value="${num}" ${gameState.selectedBooks[color] == num ? 'selected' : ''}>
-                                                        Book ${num}
-                                                    </option>
-                                                `).join('')}
-                                            </select>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </details>
-                        </div>
-
-                        <div class="section">
-                            <h2>Active Book Rules</h2>
-                            ${Object.keys(books).map(color => {
-                                const book = books[color][gameState.selectedBooks[color]];
-                                return book ? `
-                                    <div style="margin-bottom: 10px;">
-                                        <div style="display: flex; align-items: center; gap: 5px;">
-                                            <span class="chip ${color}"></span>
-                                            <strong>${color.charAt(0).toUpperCase() + color.slice(1)} Book ${gameState.selectedBooks[color]}:</strong>
-                                        </div>
-                                        <div class="rule-text">${book.rule}</div>
-                                    </div>
-                                ` : '';
-                            }).join('')}
-                        </div>
-                    </div>
                 </div>
             `;
+            
+            // Save state after rendering
+            saveGameState();
         }
 
         // Initial render
