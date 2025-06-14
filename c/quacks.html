@@ -910,13 +910,13 @@
 
         // Take VP based on current position
         function takeVP() {
-            const lastFilledSpace = getLastFilledSpace();
-            if (lastFilledSpace >= 0) {
-                const vpGained = spaceData.vp[lastFilledSpace];
+            const nextSpace = getNextAvailableSpace();
+            if (nextSpace < spaceData.vp.length) {
+                const vpGained = spaceData.vp[nextSpace];
                 gameState.score += vpGained;
                 
-                // Award rubies if on ruby spaces
-                if (spaceData.rubies.includes(lastFilledSpace + 1)) {
+                // Award rubies if on ruby spaces (using 1-based indexing)
+                if (spaceData.rubies.includes(nextSpace + 1)) {
                     gameState.rubies++;
                 }
                 
@@ -1155,23 +1155,25 @@
                         </div>
 
                         <div class="section">
-                            <h2>Scoring Track</h2>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h2 style="margin: 0; border: none; padding: 0;">Scoring Track</h2>
+                                <div style="display: flex; gap: 20px; font-size: 18px; font-weight: bold;">
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <span style="font-size: 20px;">🏆</span>
+                                        <span style="color: #2c3e50;">${gameState.score}</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <span style="font-size: 20px;">💎</span>
+                                        <span style="color: #2c3e50;">${gameState.rubies}</span>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="scoring-track">
                                 ${Array.from({length: 50}, (_, i) => `
                                     <div class="score-space ${i === gameState.score ? 'current' : ''} ${ratTailPositions.includes(i) ? 'has-rat-tail' : ''}">
                                         ${i}
                                     </div>
                                 `).join('')}
-                            </div>
-                            <div style="display: flex; justify-content: center; gap: 30px; margin-top: 15px; font-size: 18px; font-weight: bold;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span style="font-size: 24px;">🏆</span>
-                                    <span style="color: #2c3e50;">${gameState.score}</span>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span style="font-size: 24px;">💎</span>
-                                    <span style="color: #2c3e50;">${gameState.rubies}</span>
-                                </div>
                             </div>
                         </div>
                     </div>
