@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quacks of Quedlinburg</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+        
+        .game-container {
+            display: grid;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* Mobile/tablet layout */
+        @media (max-width: 1199px) {
+            .game-container {
+                grid-template-columns: 1fr;
+                max-width: 900px;
+            }
+        }
+        
+        /* Desktop layout */
+        @media (min-width: 1200px) {
+            .game-container {
+                grid-template-columns: 350px 1fr 300px;
+                grid-template-areas: 
+                    "sidebar main rules"
+                    "sidebar main rules";
+                gap: 20px;
+            }
+            
+            .sidebar {
+                grid-area: sidebar;
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .main-area {
+                grid-area: main;
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .rules-panel {
+                grid-area: rules;
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                position: sticky;
+                top: 10px;
+                height: fit-content;
+                max-height: calc(100vh - 20px);
+                overflow-y: auto;
+            }
+        }
+        
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        /* Mobile/tablet sections keep margin */
+        @media (max-width: 1199px) {
+            .section {
+                margin-bottom: 20px;
+            }
+        }
+        
+        h2 {
+            font-size: 20px;
+            margin-bottom: 16px;
+            color: #2c3e50;
+            font-weight: 600;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px;
+        }
+        
+        .bag-contents {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .chip-count {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 8px;
+            font-size: 14px;
+            border: 1px solid #dee2e6;
+            font-weight: 500;
+        }
+        
+        .chip {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .chip.white { 
+            background: #f0f0f0; 
+            color: #333; 
+            text-shadow: none; 
+            border: 2px solid #999;
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,.1) 2px, rgba(0,0,0,.1) 4px);
+        }
+        .chip.orange { 
+            background: #ff8c00; 
+            background-image: repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(255,255,255,.3) 3px, rgba(255,255,255,.3) 6px);
+        }
+        .chip.green { 
+            background: #4a7c59; 
+            background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,.2) 2px, rgba(255,255,255,.2) 4px);
+        }
+        .chip.blue { 
+            background: #2e5d8a; 
+            background-image: repeating-linear-gradient(135deg, transparent, transparent 3px, rgba(255,255,255,.2) 3px, rgba(255,255,255,.2) 6px);
+        }
+        .chip.red { 
+            background: #b71c1c; 
+            background-image: radial-gradient(circle at 30% 30%, rgba(255,255,255,.3), transparent 50%);
+        }
+        .chip.yellow { 
+            background: #ffeb3b; 
+            color: #333; 
+            text-shadow: none; 
+            background-image: repeating-linear-gradient(45deg, rgba(0,0,0,.1), rgba(0,0,0,.1) 2px, transparent 2px, transparent 4px);
+        }
+        .chip.purple { 
+            background: #6a1b9a; 
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,.2) 4px, rgba(255,255,255,.2) 8px);
+        }
+        .chip.black { 
+            background: #212121; 
+            background-image: repeating-linear-gradient(90deg, transparent, transparent 1px, rgba(255,255,255,.1) 1px, rgba(255,255,255,.1) 2px);
+        }
+        
+        .tray {
+            min-height: 60px;
+            background: #f9f9f9;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .tray .chip {
+            cursor: move;
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(11, 1fr);
+            gap: 3px;
+            margin-top: 10px;
+            position: relative;
+        }
+        
+        .space {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            position: relative;
+            background: #fafafa;
+            padding: 2px;
+            cursor: pointer;
+            min-width: 60px;
+            min-height: 60px;
+            flex-shrink: 0;
+        }
+        
+        .space.filled {
+            background: #e8f5e9;
+        }
+        
+        .space.has-ruby {
+            border-color: #e91e63;
+            background: #fce4ec;
+        }
+        
+        .space.has-droplet {
+            border-color: #2196f3;
+            border-width: 3px;
+        }
+        
+        .space-info {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .space-vp {
+            color: #2196f3;
+            font-weight: bold;
+            font-size: 16px;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+        
+        .space-coins {
+            color: #ff9800;
+            font-weight: bold;
+            font-size: 16px;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+        
+        .space-ruby {
+            color: #e91e63;
+            font-size: 20px;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+        
+        .space-number {
+            position: absolute;
+            bottom: 1px;
+            right: 2px;
+            font-size: 7px;
+            color: #999;
+            z-index: 1;
+        }
+        
+        .space .chip {
+            position: relative;
+            z-index: 2;
+            margin: 0;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        }
+        
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+        }
+        
+        .btn-info:hover {
+            background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .stat {
+            text-align: center;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .action-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .manual-controls {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 8px;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .icon-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .icon-button::before {
+            font-size: 16px;
+        }
+        
+        /* Icon definitions */
+        .icon-vp-plus::before { content: "🏆"; }
+        .icon-vp-minus::before { content: "🏆"; }
+        .icon-ruby-plus::before { content: "💎"; }
+        .icon-ruby-minus::before { content: "💎"; }
+        .icon-droplet-right::before { content: "💧"; }
+        .icon-droplet-left::before { content: "💧"; }
+        .icon-clear::before { content: "🗑️"; }
+        .icon-reset::before { content: "🔄"; }
+        .icon-add::before { content: "➕"; }
+        .icon-remove::before { content: "➖"; }
+        .icon-draw::before { content: "🎒"; }
+        .icon-end-turn::before { content: "✅"; }
+        
+        .warning {
+            color: #d32f2f;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        select {
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .scoring-track {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 2px;
+            margin-top: 10px;
+        }
+        
+        .score-space {
+            border: 1px solid #ddd;
+            padding: 5px;
+            text-align: center;
+            font-size: 12px;
+            border-radius: 4px;
+            position: relative;
+        }
+        
+        .score-space.current {
+            background: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .score-space.has-rat-tail::after {
+            content: '🐀';
+            position: absolute;
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+        }
+        
+        .player-info {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        input[type="text"] {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .books-config {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .book-selector {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .chip-price {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            font-size: 12px;
+            margin: 2px 0;
+        }
+        
+        .rule-text {
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+            margin-top: 5px;
+            padding: 5px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        
+        .droplet-indicator {
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 16px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        // Book definitions
+        const books = {
+            yellow: {
+                1: {
+                    prices: { 1: 8, 2: 12, 4: 18 },
+                    rule: "If the previously played chip was white, put the white chip back into the bag."
+                },
+                2: {
+                    prices: { 1: 8, 2: 12, 4: 18 },
+                    rule: "Explosion threshold increases: 1 yellow chip → need >8, 3+ yellow chips → need >9"
+                }
+            },
+            green: {
+                1: {
+                    prices: { 1: 4, 2: 8, 4: 14 },
+                    rule: "For each green chip on the last or next-to-last space, receive 1 ruby."
+                },
+                2: {
+                    prices: { 1: 6, 2: 11, 4: 21 },
+                    rule: "If white chips = exactly 7, double the value of each green chip for the rest of the turn."
+                }
+            },
+            red: {
+                1: {
+                    prices: { 1: 6, 2: 10, 4: 16 },
+                    rule: "Move red chip forward by 1 if 1-2 orange chips in pot, by 2 if 3+ orange chips."
+                },
+                2: {
+                    prices: { 1: 5, 2: 9, 4: 15 },
+                    rule: "If previous chip was white, add its value to red chip and move that many spaces."
+                }
+            },
+            blue: {
+                1: {
+                    prices: { 1: 5, 2: 10, 4: 19 },
+                    rule: "Draw 1, 2, or 4 chips from bag (based on chip value). You may place one of them."
+                },
+                2: {
+                    prices: { 1: 4, 2: 8, 4: 14 },
+                    rule: "If this chip is on a ruby space, immediately receive 1 ruby."
+                }
+            },
+            purple: {
+                1: {
+                    prices: { 1: 9 },
+                    rule: "1 purple = 1 VP, 2 purple = 1 VP + 1 ruby, 3+ purple = 2 VP + move droplet forward"
+                },
+                2: {
+                    prices: { 1: 10 },
+                    rule: "VP based on space: ≤9 = 0 VP, ≥10 = 1 VP, ≥20 = 2 VP, ≥30 = 3 VP"
+                }
+            },
+            black: {
+                1: {
+                    prices: { 1: 10 },
+                    rule: "If you draw more black than a neighbor, move droplet forward. More than both = +1 ruby too."
+                }
+            },
+            orange: {
+                1: {
+                    prices: { 1: 3 },
+                    rule: "No special rules."
+                }
+            }
+        };
+
+        // Game state
+        let gameState = {
+            playerName: '',
+            selectedBooks: {
+                yellow: 1,
+                green: 1,
+                red: 1,
+                blue: 1,
+                purple: 1,
+                black: 1,
+                orange: 1
+            },
+            bag: {
+                white: [1,1,1,1,2,2,3],
+                orange: [1],
+                green: [1],
+                blue: [],
+                red: [],
+                yellow: [],
+                purple: [],
+                black: []
+            },
+            tray: [],
+            board: new Array(33).fill(null),
+            score: 0,
+            rubies: 0,
+            droplet: 0,
+            money: 0 // Track available money
+        };
+
+        // Board space data
+        const spaceData = {
+            currency: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,15,16,16,17,17,18,18,19,19,20,20,21,21,22,22,23,23],
+            vp: [0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,7,7,7,8,8],
+            rubies: [6,10,14,17,21,25,29,31] // Space indices (1-based) that have rubies
+        };
+
+        // Rat tail positions on scoring track
+        const ratTailPositions = [1,4,7,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48];
+
+        // No local storage available in this environment
+
+        // Draw a random chip from bag to tray
+        function drawChip() {
+            const availableColors = Object.keys(gameState.bag).filter(color => 
+                gameState.bag[color].length > 0
+            );
+            
+            if (availableColors.length === 0) return;
+            
+            const totalChips = availableColors.reduce((sum, color) => 
+                sum + gameState.bag[color].length, 0
+            );
+            
+            let random = Math.floor(Math.random() * totalChips);
+            
+            for (const color of availableColors) {
+                if (random < gameState.bag[color].length) {
+                    const value = gameState.bag[color].splice(random, 1)[0];
+                    gameState.tray.push({ color, value });
+                    render();
+                    return;
+                }
+                random -= gameState.bag[color].length;
+            }
+        }
+
+        // Return chip from tray to bag
+        function returnChipToBag(index) {
+            const chip = gameState.tray.splice(index, 1)[0];
+            gameState.bag[chip.color].push(chip.value);
+            render();
+        }
+
+        // Place chip from tray to board
+        function placeChipOnBoard(trayIndex, boardSpace) {
+            if (gameState.board[boardSpace]) return;
+            const chip = gameState.tray.splice(trayIndex, 1)[0];
+            gameState.board[boardSpace] = chip;
+            render();
+        }
+
+        // Return chip from board to tray
+        function returnChipToTray(boardSpace) {
+            const chip = gameState.board[boardSpace];
+            if (!chip) return;
+            gameState.board[boardSpace] = null;
+            gameState.tray.push(chip);
+            render();
+        }
+
+        // Calculate white chip total on board
+        function getWhiteTotal() {
+            return gameState.board.reduce((sum, chip) => {
+                if (chip && chip.color === 'white') {
+                    return sum + chip.value;
+                }
+                return sum;
+            }, 0);
+        }
+
+        // Get the last filled space
+        function getLastFilledSpace() {
+            for (let i = gameState.board.length - 1; i >= 0; i--) {
+                if (gameState.board[i]) return i;
+            }
+            return -1;
+        }
+
+        // Get the next available space for scoring
+        function getNextAvailableSpace() {
+            const lastFilledSpace = getLastFilledSpace();
+            return lastFilledSpace + 1;
+        }
+
+        // Add chip to bag (for shopping)
+        function addChipToBag(color, value, price) {
+            if (price) {
+                // Deduct money from next available space value
+                const nextSpace = getNextAvailableSpace();
+                const currentMoney = nextSpace < spaceData.currency.length ? spaceData.currency[nextSpace] : 0;
+                if (currentMoney >= price) {
+                    gameState.bag[color].push(value);
+                    // Track money spent (could implement a money tracking system later)
+                    render();
+                } else {
+                    alert('Not enough money!');
+                }
+            } else {
+                gameState.bag[color].push(value);
+                render();
+            }
+        }
+
+        // Manually remove chip from bag permanently
+        function removeChipFromBag(color, value) {
+            const chips = gameState.bag[color];
+            const index = chips.indexOf(value);
+            if (index > -1) {
+                chips.splice(index, 1);
+                render();
+            }
+        }
+
+        // Handle board click
+        function handleBoardClick(space) {
+            if (gameState.board[space]) {
+                returnChipToTray(space);
+            } else if (gameState.tray.length > 0) {
+                placeChipOnBoard(0, space);
+            }
+        }
+
+        // Clear board
+        function clearBoard() {
+            gameState.board.forEach((chip, i) => {
+                if (chip) {
+                    gameState.bag[chip.color].push(chip.value);
+                    gameState.board[i] = null;
+                }
+            });
+            gameState.tray.forEach(chip => {
+                gameState.bag[chip.color].push(chip.value);
+            });
+            gameState.tray = [];
+            render();
+        }
+
+        // Reset game
+        function resetGame() {
+            if (!confirm('Are you sure you want to reset the game?')) return;
+            gameState = {
+                playerName: gameState.playerName,
+                selectedBooks: gameState.selectedBooks,
+                bag: {
+                    white: [1,1,1,1,2,2,3],
+                    orange: [1],
+                    green: [1],
+                    blue: [],
+                    red: [],
+                    yellow: [],
+                    purple: [],
+                    black: []
+                },
+                tray: [],
+                board: new Array(33).fill(null),
+                score: 0,
+                rubies: 0,
+                droplet: 0
+            };
+            render();
+        }
+
+        // Update player name
+        function updatePlayerName(name) {
+            gameState.playerName = name;
+        }
+
+        // Update selected book
+        function updateBook(color, bookNumber) {
+            gameState.selectedBooks[color] = parseInt(bookNumber);
+            render();
+        }
+
+        // Get available chips for purchase based on money
+        function getAvailableChips(money) {
+            const available = [];
+            Object.keys(books).forEach(color => {
+                const book = books[color][gameState.selectedBooks[color]];
+                if (book && book.prices) {
+                    Object.entries(book.prices).forEach(([value, price]) => {
+                        if (price <= money) {
+                            available.push({ color, value: parseInt(value), price });
+                        }
+                    });
+                }
+            });
+            return available.sort((a, b) => a.price - b.price);
+        }
+
+        // Get detailed bag contents (color+value combinations)
+        function getBagContentsDetailed() {
+            const detailed = [];
+            Object.entries(gameState.bag).forEach(([color, chips]) => {
+                const valueCounts = {};
+                chips.forEach(value => {
+                    valueCounts[value] = (valueCounts[value] || 0) + 1;
+                });
+                Object.entries(valueCounts).forEach(([value, count]) => {
+                    if (count > 0) {
+                        detailed.push({ color, value: parseInt(value), count });
+                    }
+                });
+            });
+            return detailed.sort((a, b) => a.color.localeCompare(b.color) || a.value - b.value);
+        }
+
+        // End of turn processing
+        function endTurn() {
+            const returnChips = confirm('Return all chips to bag? (No = keep chips on board for next turn)');
+            if (returnChips) {
+                clearBoard();
+            }
+            
+            // Award victory points based on current position
+            const lastFilledSpace = getLastFilledSpace();
+            if (lastFilledSpace >= 0) {
+                const vpGained = spaceData.vp[lastFilledSpace];
+                gameState.score += vpGained;
+                
+                // Award rubies if on ruby spaces
+                if (spaceData.rubies.includes(lastFilledSpace + 1)) {
+                    gameState.rubies++;
+                }
+            }
+            
+            render();
+            alert(`Turn complete! Gained ${spaceData.vp[lastFilledSpace] || 0} VP${spaceData.rubies.includes(lastFilledSpace + 1) ? ' and 1 Ruby' : ''}`);
+        }
+
+        // Render the game
+        function render() {
+            const app = document.getElementById('app');
+            const whiteTotal = getWhiteTotal();
+            const nextSpace = getNextAvailableSpace();
+            const nextSpaceValue = nextSpace < spaceData.currency.length ? spaceData.currency[nextSpace] : 0;
+            const nextVP = nextSpace < spaceData.vp.length ? spaceData.vp[nextSpace] : 0;
+            const availableChips = getAvailableChips(nextSpaceValue);
+            
+            app.innerHTML = `
+                <div class="game-container">
+                    <!-- Left Sidebar: Bag contents, tray, and quick actions -->
+                    <div class="sidebar">
+                        <div class="section">
+                            <h2>Bag Contents</h2>
+                            <div class="bag-contents">
+                                ${getBagContentsDetailed().map(({ color, value, count }) => `
+                                    <div class="chip-count">
+                                        <span class="chip ${color}">${value}</span>
+                                        <span>×${count}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="action-row">
+                                <button onclick="drawChip()" class="icon-button icon-draw">Draw Chip</button>
+                                <button onclick="endTurn()" class="btn-info icon-button icon-end-turn">End Turn</button>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <h2>Tray</h2>
+                            <div class="tray">
+                                ${gameState.tray.length === 0 ? '<span style="color: #999;">Empty - Draw chips from bag</span>' : ''}
+                                ${gameState.tray.map((chip, i) => `
+                                    <span class="chip ${chip.color}" 
+                                          onclick="returnChipToBag(${i})"
+                                          title="Click to return to bag">${chip.value}</span>
+                                `).join('')}
+                            </div>
+                            ${gameState.tray.length > 0 ? '<p style="margin-top: 5px; font-size: 12px; color: #666;">Click chip to return to bag, or place on board below</p>' : ''}
+                        </div>
+
+                        <div class="section">
+                            <h2>Quick Actions</h2>
+                            <div class="action-grid">
+                                <button onclick="gameState.score = Math.max(0, gameState.score - 1); render()" class="icon-button icon-vp-minus">-1 VP</button>
+                                <button onclick="gameState.score++; render()" class="icon-button icon-vp-plus">+1 VP</button>
+                                <button onclick="gameState.rubies = Math.max(0, gameState.rubies - 1); render()" class="icon-button icon-ruby-minus">-1 Ruby</button>
+                                <button onclick="gameState.rubies++; render()" class="icon-button icon-ruby-plus">+1 Ruby</button>
+                            </div>
+                            
+                            <div class="action-row">
+                                <button onclick="gameState.droplet = Math.max(0, gameState.droplet - 1); render()" class="icon-button icon-droplet-left">← Move Droplet</button>
+                                <button onclick="gameState.droplet = Math.min(32, gameState.droplet + 1); render()" class="icon-button icon-droplet-right">Move Droplet →</button>
+                            </div>
+                            
+                            <div class="action-row">
+                                <button onclick="clearBoard()" class="icon-button icon-clear">Clear Board</button>
+                                <button onclick="resetGame()" class="icon-button icon-reset">Reset Game</button>
+                            </div>
+                            
+                            <div style="border-top: 1px solid #ecf0f1; padding-top: 15px; margin-top: 15px;">
+                                <div class="manual-controls">
+                                    <span style="font-weight: 600; color: #2c3e50;">Add:</span>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <select id="addColor">
+                                            <option value="white">White</option>
+                                            <option value="orange">Orange</option>
+                                            <option value="green">Green</option>
+                                            <option value="blue">Blue</option>
+                                            <option value="red">Red</option>
+                                            <option value="yellow">Yellow</option>
+                                            <option value="purple">Purple</option>
+                                            <option value="black">Black</option>
+                                        </select>
+                                        <select id="addValue">
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                            <option value="4">4</option>
+                                        </select>
+                                    </div>
+                                    <button onclick="addChipToBag(document.getElementById('addColor').value, parseInt(document.getElementById('addValue').value))" class="icon-button icon-add">Add</button>
+                                </div>
+                                
+                                <div class="manual-controls">
+                                    <span style="font-weight: 600; color: #2c3e50;">Remove:</span>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <select id="removeColor">
+                                            <option value="white">White</option>
+                                            <option value="orange">Orange</option>
+                                            <option value="green">Green</option>
+                                            <option value="blue">Blue</option>
+                                            <option value="red">Red</option>
+                                            <option value="yellow">Yellow</option>
+                                            <option value="purple">Purple</option>
+                                            <option value="black">Black</option>
+                                        </select>
+                                        <select id="removeValue">
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                            <option value="4">4</option>
+                                        </select>
+                                    </div>
+                                    <button onclick="removeChipFromBag(document.getElementById('removeColor').value, parseInt(document.getElementById('removeValue').value))" class="btn-danger icon-button icon-remove">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main area: Board, shopping, and scoring -->
+                    <div class="main-area">
+                        <div class="section">
+                            <h2>Board ${whiteTotal > 7 ? '<span class="warning">EXPLOSION!</span>' : ''}</h2>
+                            <div class="board">
+                                ${gameState.board.map((chip, i) => `
+                                    <div class="space ${chip ? 'filled' : ''} ${spaceData.rubies.includes(i + 1) ? 'has-ruby' : ''} ${i === gameState.droplet ? 'has-droplet' : ''}" 
+                                         onclick="handleBoardClick(${i})">
+                                        ${i === gameState.droplet ? '<div class="droplet-indicator">💧</div>' : ''}
+                                        <div class="space-info">
+                                            <div class="space-vp">VP: ${spaceData.vp[i]}</div>
+                                            <div class="space-coins">$${spaceData.currency[i]}</div>
+                                            ${spaceData.rubies.includes(i + 1) ? '<div class="space-ruby">◆</div>' : ''}
+                                        </div>
+                                        ${chip ? `<span class="chip ${chip.color}">${chip.value}</span>` : ''}
+                                        <span class="space-number">${i + 1}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="stats">
+                                <div class="stat">
+                                    <div class="stat-value">${whiteTotal}</div>
+                                    <div class="stat-label">White Total</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-value">${nextSpaceValue}</div>
+                                    <div class="stat-label">Next Space $</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-value">${nextVP}</div>
+                                    <div class="stat-label">Next Space VP</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-value">${gameState.droplet + 1}</div>
+                                    <div class="stat-label">Droplet Position</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <h2>Available Chips ($${nextSpaceValue} budget)</h2>
+                            ${availableChips.length === 0 ? '<p style="color: #999;">No chips available with current budget</p>' : ''}
+                            ${availableChips.map(({ color, value, price }) => `
+                                <div class="chip-price">
+                                    <span class="chip ${color}">${value}</span>
+                                    <span>$${price}</span>
+                                    <button onclick="addChipToBag('${color}', ${value}, ${price})">Add to Bag</button>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div class="section">
+                            <h2>Scoring Track</h2>
+                            <div class="scoring-track">
+                                ${Array.from({length: 50}, (_, i) => `
+                                    <div class="score-space ${i === gameState.score ? 'current' : ''} ${ratTailPositions.includes(i) ? 'has-rat-tail' : ''}">
+                                        ${i}
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="stats" style="margin-top: 10px;">
+                                <div class="stat">
+                                    <div class="stat-value">${gameState.score}</div>
+                                    <div class="stat-label">Victory Points</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-value">${gameState.rubies}</div>
+                                    <div class="stat-label">Rubies</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right panel: Configuration and reference -->
+                    <div class="rules-panel">
+                        <div class="section">
+                            <details>
+                                <summary style="cursor: pointer; font-size: 18px; font-weight: bold; color: #333; margin-bottom: 10px;">Book Selection</summary>
+                                <div class="books-config">
+                                    ${Object.keys(books).map(color => `
+                                        <div class="book-selector">
+                                            <span class="chip ${color}"></span>
+                                            <select onchange="updateBook('${color}', this.value)">
+                                                ${Object.keys(books[color]).map(num => `
+                                                    <option value="${num}" ${gameState.selectedBooks[color] == num ? 'selected' : ''}>
+                                                        Book ${num}
+                                                    </option>
+                                                `).join('')}
+                                            </select>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </details>
+                        </div>
+
+                        <div class="section">
+                            <h2>Active Book Rules</h2>
+                            ${Object.keys(books).map(color => {
+                                const book = books[color][gameState.selectedBooks[color]];
+                                return book ? `
+                                    <div style="margin-bottom: 10px;">
+                                        <div style="display: flex; align-items: center; gap: 5px;">
+                                            <span class="chip ${color}"></span>
+                                            <strong>${color.charAt(0).toUpperCase() + color.slice(1)} Book ${gameState.selectedBooks[color]}:</strong>
+                                        </div>
+                                        <div class="rule-text">${book.rule}</div>
+                                    </div>
+                                ` : '';
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>
