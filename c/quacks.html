@@ -204,6 +204,9 @@
             gap: 3px;
             margin-top: 10px;
             position: relative;
+            width: 100%;
+            min-height: 320px;
+            height: auto;
         }
         
         .space {
@@ -256,20 +259,20 @@
         .space-vp {
             color: #2196f3;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 12px;
             text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
         }
         
         .space-coins {
             color: #ff9800;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 12px;
             text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
         }
         
         .space-ruby {
             color: #e91e63;
-            font-size: 20px;
+            font-size: 16px;
             text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
         }
         
@@ -514,6 +517,41 @@
             font-size: 16px;
             z-index: 10;
         }
+        
+        .game-log {
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 11px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 8px;
+        }
+        
+        .log-entry {
+            margin-bottom: 4px;
+            padding: 2px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .log-timestamp {
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .log-action {
+            color: #495057;
+            font-weight: 600;
+        }
+        
+        .log-details {
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -609,22 +647,48 @@
                 black: []
             },
             tray: [],
-            board: new Array(33).fill(null),
+            board: new Array(54).fill(null),
             score: 0,
             rubies: 0,
             droplet: 0,
             spentMoney: 0,
             round: 1,
             flaskActive: true,
-            bookSelectionOpen: true
+            bookSelectionOpen: true,
+            gameLog: [],
+            vpTakenThisRound: false
         };
+
+        // Log game actions
+        function logAction(action, details) {
+            const timestamp = new Date().toLocaleTimeString();
+            gameState.gameLog.push({
+                timestamp,
+                round: gameState.round,
+                action,
+                details
+            });
+            // Keep only last 50 log entries to prevent memory issues
+            if (gameState.gameLog.length > 50) {
+                gameState.gameLog = gameState.gameLog.slice(-50);
+            }
+        }
 
         // Load game state from localStorage or use default
         function loadGameState() {
             try {
                 const saved = localStorage.getItem('quacksGameState');
                 if (saved) {
-                    return JSON.parse(saved);
+                    const loaded = JSON.parse(saved);
+                    // Ensure gameLog exists for older saves
+                    if (!loaded.gameLog) {
+                        loaded.gameLog = [];
+                    }
+                    // Ensure vpTakenThisRound exists for older saves
+                    if (loaded.vpTakenThisRound === undefined) {
+                        loaded.vpTakenThisRound = false;
+                    }
+                    return loaded;
                 }
             } catch (e) {
                 console.warn('Failed to load game state from localStorage:', e);
@@ -646,9 +710,9 @@
 
         // Board space data
         const spaceData = {
-            currency: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32],
-            vp: [0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,7,7,7,8,8],
-            rubies: [6,10,14,17,21,25,29,31] // Space indices (1-based) that have rubies
+            currency: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,15,16,16,17,17,18,18,19,19,20,20,21,21,22,22,23,23,24,24,25,25,26,26,27,27,28,28,29,29,30,30,31,31,32,32,33,33,35],
+            vp: [0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,7,7,7,8,8,8,9,9,9,10,10,10,11,11,11,12,12,12,12,13,13,13,14,14,15,15],
+            rubies: [6,10,14,17,21,25,29,31,35,37,41,43,47,51,53] // Space indices (1-based): currency 5,9,13,2nd 15,2nd 17,2nd 19,2nd 21,2nd 22,2nd 24,2nd 25,2nd 27,2nd 28,2nd 30,2nd 32,2nd 33
         };
 
         // Rat tail positions on scoring track
@@ -672,6 +736,7 @@
                 if (random < gameState.bag[color].length) {
                     const value = gameState.bag[color].splice(random, 1)[0];
                     gameState.tray.push({ color, value });
+                    logAction('Draw Chip', `Drew ${color} ${value} to tray`);
                     saveGameState();
                     render();
                     return;
@@ -684,6 +749,7 @@
         function returnChipToBag(index) {
             const chip = gameState.tray.splice(index, 1)[0];
             gameState.bag[chip.color].push(chip.value);
+            logAction('Return Chip', `Returned ${chip.color} ${chip.value} from tray to bag`);
             saveGameState();
             render();
         }
@@ -693,6 +759,7 @@
             if (gameState.board[boardSpace]) return;
             const chip = gameState.tray.splice(trayIndex, 1)[0];
             gameState.board[boardSpace] = chip;
+            logAction('Place Chip', `Placed ${chip.color} ${chip.value} on space ${boardSpace + 1}`);
             saveGameState();
             render();
         }
@@ -703,6 +770,7 @@
             if (!chip) return;
             gameState.board[boardSpace] = null;
             gameState.tray.push(chip);
+            logAction('Move Chip', `Moved ${chip.color} ${chip.value} from space ${boardSpace + 1} to tray`);
             saveGameState();
             render();
         }
@@ -742,6 +810,7 @@
                 if (remainingMoney >= price) {
                     gameState.bag[color].push(value);
                     gameState.spentMoney += price;
+                    logAction('Purchase Chip', `Bought ${color} ${value} for $${price} (${remainingMoney - price} remaining)`);
                     saveGameState();
                     render();
                 } else {
@@ -749,6 +818,7 @@
                 }
             } else {
                 gameState.bag[color].push(value);
+                logAction('Add Chip', `Manually added ${color} ${value} to bag`);
                 saveGameState();
                 render();
             }
@@ -760,6 +830,7 @@
             const index = chips.indexOf(value);
             if (index > -1) {
                 chips.splice(index, 1);
+                logAction('Remove Chip', `Manually removed ${color} ${value} from bag`);
                 saveGameState();
                 render();
             }
@@ -768,6 +839,7 @@
         // Toggle flask active/inactive
         function toggleFlask() {
             gameState.flaskActive = !gameState.flaskActive;
+            logAction('Toggle Flask', `Flask ${gameState.flaskActive ? 'activated' : 'deactivated'}`);
             saveGameState();
             render();
         }
@@ -803,6 +875,7 @@
                     if (random < gameState.bag[color].length) {
                         const value = gameState.bag[color].splice(random, 1)[0];
                         gameState.board[space] = { color, value };
+                        logAction('Direct Place', `Drew and placed ${color} ${value} directly on space ${space + 1}`);
                         saveGameState();
                         render();
                         return;
@@ -814,16 +887,22 @@
 
         // Clear board
         function clearBoard() {
+            const clearedChips = [];
             gameState.board.forEach((chip, i) => {
                 if (chip) {
                     gameState.bag[chip.color].push(chip.value);
+                    clearedChips.push(`${chip.color} ${chip.value}`);
                     gameState.board[i] = null;
                 }
             });
             gameState.tray.forEach(chip => {
                 gameState.bag[chip.color].push(chip.value);
+                clearedChips.push(`${chip.color} ${chip.value}`);
             });
             gameState.tray = [];
+            if (clearedChips.length > 0) {
+                logAction('Clear Board', `Returned chips to bag: ${clearedChips.join(', ')}`);
+            }
             saveGameState();
             render();
         }
@@ -831,6 +910,7 @@
         // Reset game
         function resetGame() {
             if (!confirm('Are you sure you want to reset the game?')) return;
+            logAction('Reset Game', 'Game reset to initial state');
             gameState = {
                 playerName: gameState.playerName,
                 selectedBooks: gameState.selectedBooks,
@@ -845,14 +925,16 @@
                     black: []
                 },
                 tray: [],
-                board: new Array(33).fill(null),
+                board: new Array(54).fill(null),
                 score: 0,
                 rubies: 0,
                 droplet: 0,
                 spentMoney: 0,
                 round: 1,
                 flaskActive: true,
-                bookSelectionOpen: gameState.bookSelectionOpen
+                bookSelectionOpen: gameState.bookSelectionOpen,
+                gameLog: [],
+                vpTakenThisRound: false
             };
             saveGameState();
             render();
@@ -867,6 +949,7 @@
         // Update selected book
         function updateBook(color, bookNumber) {
             gameState.selectedBooks[color] = parseInt(bookNumber);
+            logAction('Book Change', `Changed ${color} to Book ${bookNumber}`);
             saveGameState();
             render();
         }
@@ -910,19 +993,21 @@
 
         // Take VP based on current position
         function takeVP() {
+            if (gameState.vpTakenThisRound) return;
+            
             const nextSpace = getNextAvailableSpace();
             if (nextSpace < spaceData.vp.length) {
                 const vpGained = spaceData.vp[nextSpace];
-                gameState.score += vpGained;
+                const rubyGained = spaceData.rubies.includes(nextSpace + 1);
                 
-                // Award rubies if on ruby spaces (using 1-based indexing)
-                if (spaceData.rubies.includes(nextSpace + 1)) {
+                gameState.score += vpGained;
+                if (rubyGained) {
                     gameState.rubies++;
                 }
                 
-                // Reset spent money for next turn
-                gameState.spentMoney = 0;
+                gameState.vpTakenThisRound = true;
                 
+                logAction('Take VP', `Gained ${vpGained} VP${rubyGained ? ' + 1 ruby' : ''} from space ${nextSpace + 1}`);
                 saveGameState();
                 render();
             }
@@ -932,10 +1017,15 @@
         function returnChipsToBag() {
             clearBoard();
             gameState.round++;
+            gameState.spentMoney = 0;
+            gameState.vpTakenThisRound = false;
             
             // At start of round 6, automatically add a white 1 to the bag
             if (gameState.round === 6) {
                 gameState.bag.white.push(1);
+                logAction('Round Advance', `Advanced to round ${gameState.round}, added white 1 to bag, reset money and VP status`);
+            } else {
+                logAction('Round Advance', `Advanced to round ${gameState.round}, reset money and VP status`);
             }
             
             saveGameState();
@@ -948,7 +1038,8 @@
             const whiteTotal = getWhiteTotal();
             const nextSpace = getNextAvailableSpace();
             const nextSpaceValue = nextSpace < spaceData.currency.length ? spaceData.currency[nextSpace] : 0;
-            const remainingMoney = nextSpaceValue - gameState.spentMoney;
+            const totalMoney = nextSpaceValue; // Total money available this turn
+            const remainingMoney = totalMoney - gameState.spentMoney;
             const nextVP = nextSpace < spaceData.vp.length ? spaceData.vp[nextSpace] : 0;
             const availableChips = getAvailableChips(remainingMoney);
             
@@ -1002,6 +1093,20 @@
                                 ` : '';
                             }).join('')}
                         </div>
+
+                        <div class="section">
+                            <h2>Game Log</h2>
+                            <div class="game-log">
+                                ${gameState.gameLog.length === 0 ? '<div style="color: #999; text-align: center; padding: 20px;">No actions yet</div>' : ''}
+                                ${gameState.gameLog.slice().reverse().map(entry => `
+                                    <div class="log-entry">
+                                        <span class="log-timestamp">[${entry.timestamp}]</span>
+                                        <span class="log-action">${entry.action}:</span>
+                                        <span class="log-details">${entry.details}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Middle: Bag contents, tray, and quick actions -->
@@ -1040,21 +1145,26 @@
                         <div class="section">
                             <h2>Quick Actions</h2>
                             <div class="action-row">
-                                <button onclick="takeVP()" class="btn-info icon-button icon-end-turn" style="grid-column: 1 / -1;">Take VP</button>
+                                <button onclick="takeVP()" 
+                                        class="btn-info icon-button icon-end-turn" 
+                                        style="grid-column: 1 / -1; ${gameState.vpTakenThisRound ? 'opacity: 0.5; cursor: not-allowed;' : ''}" 
+                                        ${gameState.vpTakenThisRound ? 'disabled' : ''}>
+                                    ${gameState.vpTakenThisRound ? 'Scoring Done' : `Take ${nextVP} VP${spaceData.rubies.includes(nextSpace + 1) ? ' and Ruby' : ''}`}
+                                </button>
                             </div>
                             <div class="action-row">
                                 <button onclick="returnChipsToBag()" class="icon-button icon-clear" style="grid-column: 1 / -1;">Return all chips to bag</button>
                             </div>
                             <div class="action-grid">
-                                <button onclick="gameState.score = Math.max(0, gameState.score - 1); saveGameState(); render()" class="icon-button icon-vp-minus">-1 VP</button>
-                                <button onclick="gameState.score++; saveGameState(); render()" class="icon-button icon-vp-plus">+1 VP</button>
-                                <button onclick="gameState.rubies = Math.max(0, gameState.rubies - 1); saveGameState(); render()" class="icon-button icon-ruby-minus">-1 Ruby</button>
-                                <button onclick="gameState.rubies++; saveGameState(); render()" class="icon-button icon-ruby-plus">+1 Ruby</button>
+                                <button onclick="gameState.score = Math.max(0, gameState.score - 1); logAction('Manual Adjust', 'VP -1'); saveGameState(); render()" class="icon-button icon-vp-minus">-1 VP</button>
+                                <button onclick="gameState.score++; logAction('Manual Adjust', 'VP +1'); saveGameState(); render()" class="icon-button icon-vp-plus">+1 VP</button>
+                                <button onclick="gameState.rubies = Math.max(0, gameState.rubies - 1); logAction('Manual Adjust', 'Ruby -1'); saveGameState(); render()" class="icon-button icon-ruby-minus">-1 Ruby</button>
+                                <button onclick="gameState.rubies++; logAction('Manual Adjust', 'Ruby +1'); saveGameState(); render()" class="icon-button icon-ruby-plus">+1 Ruby</button>
                             </div>
                             
                             <div class="action-row">
-                                <button onclick="gameState.droplet = Math.max(0, gameState.droplet - 1); saveGameState(); render()" class="icon-button icon-droplet-left">← Move Droplet</button>
-                                <button onclick="gameState.droplet = Math.min(32, gameState.droplet + 1); saveGameState(); render()" class="icon-button icon-droplet-right">Move Droplet →</button>
+                                <button onclick="gameState.droplet = Math.max(0, gameState.droplet - 1); logAction('Manual Adjust', 'Droplet moved left'); saveGameState(); render()" class="icon-button icon-droplet-left">← Move Droplet</button>
+                                <button onclick="gameState.droplet = Math.min(53, gameState.droplet + 1); logAction('Manual Adjust', 'Droplet moved right'); saveGameState(); render()" class="icon-button icon-droplet-right">Move Droplet →</button>
                             </div>
                             
                             <div style="border-top: 1px solid #ecf0f1; padding-top: 15px; margin-top: 15px;">
@@ -1113,8 +1223,8 @@
                                          onclick="handleBoardClick(${i})">
                                         ${i === gameState.droplet ? '<div class="droplet-indicator">💧</div>' : ''}
                                         <div class="space-info">
-                                            <div class="space-vp">VP: ${spaceData.vp[i]}</div>
-                                            <div class="space-coins">$${spaceData.currency[i]}</div>
+                                            <div class="space-vp">VP: ${spaceData.vp[i] || 0}</div>
+                                            <div class="space-coins">$${spaceData.currency[i] || 0}</div>
                                             ${spaceData.rubies.includes(i + 1) ? '<div class="space-ruby">◆</div>' : ''}
                                         </div>
                                         ${chip ? `<span class="chip ${chip.color}">${chip.value}</span>` : ''}
@@ -1128,8 +1238,8 @@
                                     <div class="stat-label">White Total</div>
                                 </div>
                                 <div class="stat">
-                                    <div class="stat-value">${nextSpaceValue}</div>
-                                    <div class="stat-label">Next Space $</div>
+                                    <div class="stat-value">${remainingMoney}</div>
+                                    <div class="stat-label">${gameState.spentMoney > 0 ? '$ Remaining' : 'Next Space $'}</div>
                                 </div>
                                 <div class="stat">
                                     <div class="stat-value">${nextVP}</div>
