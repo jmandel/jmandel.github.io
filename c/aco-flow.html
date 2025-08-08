@@ -1,0 +1,374 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ACO Networked FHIR Flow — Mermaid Inline (Sanitized Labels)</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #0b1220;
+      --ink: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #60a5fa;
+      --border: #1f2937;
+    }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    header {
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: blur(6px);
+      background: rgba(2,6,23,0.75);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex; gap: 10px; align-items: center;
+    }
+    header h1 { font-size: 16px; margin: 0 8px 0 0; }
+    header .btn {
+      background: var(--panel);
+      color: var(--ink);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    main { padding: 16px; display: grid; grid-template-columns: 1fr; gap: 16px; }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    section header {
+      position: relative;
+      background: rgba(255,255,255,0.02);
+      border: none;
+      padding: 10px 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    section header h2 { margin: 0; font-size: 15px; }
+    section header .tools { margin-left: auto; display: flex; gap: 8px; }
+    .btn.sm { font-size: 12px; padding: 6px 8px; }
+    .mermaid-wrap { padding: 8px 8px 12px 8px; overflow: auto; }
+    .hint { color: var(--muted); font-size: 12px; margin-left: 6px; }
+    @media (min-width: 1100px) {
+      main { grid-template-columns: 1fr 1fr; }
+      section#context-card { grid-column: 1 / -1; }
+    }
+    code.kbd {
+      background: #111827; border: 1px solid #374151; border-bottom-width: 2px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      padding: 0 6px; border-radius: 5px; font-size: 12px;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ACO Networked FHIR Flow — Mermaid Inline</h1>
+    <button class="btn" id="themeBtn" title="Toggle Mermaid theme">Toggle Theme</button>
+    <span class="hint">Sanitized labels: no parentheses, slashes, plus, braces, or dollar signs in node or message text.</span>
+  </header>
+
+  <main>
+    <section id="context-card">
+      <header>
+        <h2>System Context and Dataflow</h2>
+        <div class="tools">
+          <button class="btn sm" data-export="context" data-type="svg">Export SVG</button>
+          <button class="btn sm" data-export="context" data-type="png">Export PNG</button>
+          <button class="btn sm" data-copy="context">Copy Mermaid</button>
+        </div>
+      </header>
+      <div class="mermaid-wrap">
+        <div class="mermaid" id="context">
+flowchart LR
+  %% External Ecosystem
+  subgraph Ext[External Ecosystem]
+    direction TB
+    Payer[(Payer)]
+    Dir[(Provider Directory and QHIN and HIE)]
+    INP[(In Network Provider EHRs G10 and Bulk FHIR)]
+    OUTP[(Out of Network Provider EHRs G10 and Bulk FHIR)]
+  end
+
+  %% ACO Platform
+  subgraph ACO[ACO Platform]
+    direction TB
+    subgraph CP[Control Plane]
+      direction TB
+      Catalog[Endpoint Catalog and Directory Cache]
+      IDT[Identity and Trust SMART Backend JWT UDAP mTLS JWKS]
+      Roster[Roster Service Da Vinci ATR]
+      Targeting[Targeting Claims guided Provider NPI ranking]
+      Consent[Consent and Policy Service MSSP Exclusions State Law 42 CFR Part 2]
+      Orchestrator[Job Orchestrator Batch Retry since parameter]
+    end
+    subgraph DP[Data Plane]
+      direction TB
+      Bulk[Bulk FHIR Client Group export]
+      Landing[(Landing Zone NDJSON Object Store)]
+      Validate[Validation and Harmonization US Core Mapping]
+      EMPI[Identity Resolution EMPI]
+      Quality[Quality Engine CQL and DEQM ready]
+      Report[Reporting DEQM later]
+      Obs[Observability and Metrics]
+      Audit[(Audit and Lineage FHIR AuditEvent and Provenance)]
+    end
+  end
+
+  %% Discovery and Inputs
+  Dir <--> Catalog
+  Payer --> Roster
+  Payer --> Targeting
+  Catalog --> Roster
+  Targeting --> Roster
+
+  %% Trust and Identity
+  IDT --> INP
+  IDT --> OUTP
+
+  %% Roster negotiation
+  Roster --> INP
+  INP --> Roster
+  Roster --> OUTP
+  OUTP --> Roster
+
+  %% Consent and Policy gates
+  Roster -. policy check .-> Consent
+  Orchestrator -. policy check .-> Consent
+
+  %% Export orchestration
+  Roster --> Orchestrator
+  Orchestrator --> Bulk
+
+  %% Bulk export and retrieval
+  Bulk --> INP
+  Bulk --> OUTP
+  INP --> Bulk
+  OUTP --> Bulk
+
+  %% Ingest to compute
+  Bulk --> Landing
+  Landing --> Validate
+  Validate --> EMPI
+  EMPI --> Quality
+  Quality --> Report
+
+  %% Telemetry and Audit
+  Orchestrator --> Obs
+  Bulk --> Obs
+  Quality --> Obs
+
+  INP --> Audit
+  OUTP --> Audit
+  Bulk --> Audit
+  Validate --> Audit
+  EMPI --> Audit
+  Quality --> Audit
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <header>
+        <h2>In Network Sequence Happy Path</h2>
+        <div class="tools">
+          <button class="btn sm" data-export="inNet" data-type="svg">Export SVG</button>
+          <button class="btn sm" data-export="inNet" data-type="png">Export PNG</button>
+          <button class="btn sm" data-copy="inNet">Copy Mermaid</button>
+        </div>
+      </header>
+      <div class="mermaid-wrap">
+        <div class="mermaid" id="inNet">
+sequenceDiagram
+  autonumber
+  participant Payer
+  participant Directory as Provider Directory and QHIN
+  participant ACO as ACO Orchestrator
+  participant ATR as Roster Service Da Vinci ATR
+  participant Consent as Consent and Policy
+  participant Auth as Identity and Trust
+  participant EHR as Provider EHR In Network
+  participant Bulk as Bulk FHIR Client
+  participant Data as Data Platform
+
+  Payer->>ATR: Send attribution roster
+  ACO->>Directory: Discover endpoint and capabilities
+  Directory-->>ACO: Provide endpoint info
+  ACO->>Auth: Register client and manage keys
+  ACO->>ATR: Propose roster slice for this EHR
+  ATR->>Consent: Check exclusions and policy
+  Consent-->>ATR: Approved member list
+  ATR->>EHR: Create or update FHIR Group
+  EHR-->>ATR: Return group id
+
+  ACO->>Bulk: Schedule group export job
+  Bulk->>Auth: Get backend token
+  Bulk->>EHR: Request group export
+  EHR-->>Bulk: Accepted with content location
+
+  loop Poll until complete
+    Bulk->>EHR: Poll export status
+    EHR-->>Bulk: Return file links
+  end
+
+  Bulk->>EHR: Download ndjson files
+  Bulk->>Data: Store in landing zone
+  Data->>Data: Validate harmonize and EMPI
+  Data->>Data: Compute measures and gaps
+  Data->>ACO: Share measure reports and gaps
+  Bulk->>Data: Record audit and provenance
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <header>
+        <h2>Out of Network Sequence Claims guided and Consent aware</h2>
+        <div class="tools">
+          <button class="btn sm" data-export="outNet" data-type="svg">Export SVG</button>
+          <button class="btn sm" data-export="outNet" data-type="png">Export PNG</button>
+          <button class="btn sm" data-copy="outNet">Copy Mermaid</button>
+        </div>
+      </header>
+      <div class="mermaid-wrap">
+        <div class="mermaid" id="outNet">
+sequenceDiagram
+  autonumber
+  participant Payer
+  participant ACO as ACO Orchestrator
+  participant ATR as Roster Service ATR semantics
+  participant Consent as Consent and Policy MSSP State 42 CFR Part 2
+  participant Auth as Identity and Trust
+  participant EHR as Provider EHR Out of Network
+  participant Bulk as Bulk FHIR Client
+  participant Data as Data Platform
+
+  Payer->>ACO: Provide claims with NPI counts
+  ACO->>ATR: Build targeted rosters
+  ATR->>Consent: Attach consent and remove exclusions
+  Consent-->>ATR: Consent bundle and rules
+
+  ACO->>EHR: Propose roster with consent evidence
+  Note over EHR: Optional manual review and approval
+  EHR-->>ACO: Approved with group id
+
+  ACO->>Auth: Obtain token
+  ACO->>Bulk: Schedule group export
+  Bulk->>EHR: Request group export
+  EHR-->>Bulk: Accepted with content location
+
+  loop Poll and download
+    Bulk->>EHR: Poll export status
+    EHR-->>Bulk: Return file links
+    Bulk->>EHR: Download file
+  end
+
+  Bulk->>Data: Store then validate then EMPI then quality
+  Data->>Consent: Apply segmentation if required
+  Data->>ACO: Share quality outputs
+  Bulk->>Data: Record audit and provenance
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    // Import Mermaid as an ES module (unpkg primary, esm.sh fallback)
+    async function importMermaid() {
+      try {
+        const mod = await import('https://unpkg.com/mermaid@10/dist/mermaid.esm.min.mjs');
+        return mod.default ?? mod;
+      } catch (e) {
+        console.warn('unpkg failed, falling back to esm.sh', e);
+        const mod = await import('https://esm.sh/mermaid@10');
+        return mod.default ?? mod;
+      }
+    }
+    const mermaid = await importMermaid();
+
+    // Theme toggle
+    const THEME_KEY = 'mermaid_theme_pref_sanitized';
+    let theme = localStorage.getItem(THEME_KEY) || 'dark';
+    function applyTheme() {
+      mermaid.initialize({ startOnLoad: true, theme, securityLevel: 'loose', fontFamily: 'system-ui' });
+      mermaid.init();
+    }
+    applyTheme();
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      theme = theme === 'dark' ? 'default' : 'dark';
+      localStorage.setItem(THEME_KEY, theme);
+      applyTheme();
+    });
+
+    // Export helpers
+    function getRenderedSvg(containerId) {
+      const node = document.getElementById(containerId);
+      if (!node) return null;
+      const svg = node.querySelector('svg');
+      return svg || null;
+    }
+    function download(filename, href) {
+      const a = document.createElement('a');
+      a.href = href; a.download = filename; a.click();
+    }
+    function svgToDataUrl(svgEl) {
+      const s = new XMLSerializer().serializeToString(svgEl);
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
+    }
+    function svgToPng(svgEl, scale=2) {
+      const s = new XMLSerializer().serializeToString(svgEl);
+      const svg64 = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.src = svg64;
+      });
+    }
+
+    // Wire export buttons
+    document.querySelectorAll('[data-export]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-export');
+        const type = btn.getAttribute('data-type');
+        const svg = getRenderedSvg(id);
+        if (!svg) { alert('SVG not ready yet.'); return; }
+        if (type === 'svg') {
+          download(id + '.svg', svgToDataUrl(svg));
+        } else {
+          const png = await svgToPng(svg, 2);
+          download(id + '.png', png);
+        }
+      });
+    });
+
+    // Wire copy buttons
+    document.querySelectorAll('[data-copy]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-copy');
+        const div = document.getElementById(id);
+        if (!div.dataset.src) {
+          const src = div.textContent.trim();
+          div.dataset.src = src;
+        }
+        try {
+          await navigator.clipboard.writeText(div.dataset.src);
+          alert('Mermaid source copied.');
+        } catch {
+          alert('Copy failed; select and copy manually.');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
