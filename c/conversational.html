@@ -1,738 +1,423 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Conversational Interoperability - Premera AI Community</title>
+  <title>Conversational Interoperability — Getting healthcare’s jobs done through dialogue</title>
   <style>
     :root{
       --bg:#ffffff;
-      --fg:#111111;
+      --fg:#0b0f17;
       --muted:#5f6368;
       --panel:#f8f9fb;
       --border:#e5e7eb;
       --accent:#5aa7ff;      /* light blue */
       --accent-2:#a7e8d4;     /* light mint */
       --accent-3:#ffd8a8;     /* light apricot */
-      --lav:#efe7ff;          /* very light lavender */
-      --blue:#eaf3ff;         /* very light blue */
-      --orange:#fff7ea;       /* very light orange */
       --radius:16px;
-      --shadow:0 6px 24px rgba(17,17,17,0.06);
+      --shadow:0 6px 24px rgba(17,17,17,.06);
     }
-
-    *{ box-sizing:border-box; margin:0; padding:0; }
-    html,body{ height:100%; scroll-behavior:smooth; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;scroll-behavior:smooth}
     body{
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background:var(--bg);
-      color:var(--fg);
-      line-height:1.6;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg); color:var(--fg); line-height:1.6;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
     }
-
-    /* Slides */
     .slide{
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:64px 32px;
-      position:relative;
-      overflow:hidden;
-      background:
-        linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0)) no-repeat,
-        var(--bg);
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      padding:64px 32px; position:relative; overflow:hidden;
+      background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,0)) no-repeat,var(--bg);
     }
-    .content{
-      width:min(1100px,100%);
-      margin:0 auto;
-      position:relative;
-    }
-
-    /* Type */
-    h1{
-      font-size:3.2rem;
-      font-weight:800;
-      letter-spacing:-0.02em;
-      margin-bottom:18px;
-      color:#000;
-    }
-    h2{
-      font-size:2.2rem;
-      font-weight:750;
-      letter-spacing:-0.01em;
-      margin-bottom:18px;
-      color:#0f172a;
-    }
-    h3{
-      font-size:1.35rem;
-      font-weight:700;
-      margin-bottom:8px;
-      color:#111827;
-    }
-    p,li{ font-size:1.05rem; color:var(--fg); }
-
-    /* Light, toned components */
-    .demo-box{
-      background:var(--panel);
-      border:1px solid var(--border);
-      border-radius:var(--radius);
-      padding:40px;
-      text-align:center;
-      box-shadow:var(--shadow);
+    .content{width:min(1100px,100%);margin:0 auto;position:relative}
+    h1{font-size:3.1rem;font-weight:800;letter-spacing:-.02em;margin-bottom:10px}
+    h2{font-size:2.15rem;font-weight:750;letter-spacing:-.01em;margin-bottom:10px}
+    h3{font-size:1.35rem;font-weight:700;margin-bottom:8px}
+    p,li{font-size:1.07rem}
+    .muted{color:var(--muted)}
+    .demo-box,.card{
+      background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+      padding:28px; box-shadow:var(--shadow);
     }
     .highlight{
-      background:#fafafa;
-      border:1px solid var(--border);
-      border-left:4px solid var(--accent);
-      border-radius:12px;
-      padding:18px 18px 18px 22px;
-      margin:18px 0;
+      background:#fff; border:1px solid var(--border); border-left:4px solid var(--accent);
+      border-radius:12px; padding:16px 18px; margin:14px 0;
     }
-    .protocol-card{
-      background:#fbfbfe;
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:24px;
-    }
-    .tech-stack{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
-      gap:16px;
-      margin-top:20px;
-    }
-    .tech-item{
-      background:var(--panel);
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:18px;
-      text-align:center;
-      transition:transform .2s ease;
-    }
-    .tech-item:hover{ transform:translateY(-2px); }
-
-    .diagram{
-      display:flex; flex-wrap:wrap; gap:18px; justify-content:center; align-items:center; margin:22px 0;
-    }
+    ul{list-style:none; padding-left:0}
+    li{margin:6px 0}
+    li::before{content:"▸ "; color:#9aa0a6; font-weight:700; margin-right:8px}
+    .cols{display:grid; grid-template-columns:1fr; gap:18px; margin-top:12px}
+    @media(min-width:900px){.cols{grid-template-columns:1fr 1fr}}
+    .diagram{display:flex; flex-wrap:wrap; gap:16px; justify-content:center; align-items:center; margin:14px 0}
     .box{
-      min-width:220px; padding:22px;
-      border:1px solid var(--border); border-radius:12px; background:#fff; text-align:center;
-      box-shadow:var(--shadow);
+      min-width:230px; padding:18px; border:1px solid var(--border); border-radius:12px; background:#fff; text-align:center;
+      box-shadow:var(--shadow)
     }
-    .box.soft-blue{ background:var(--blue); border-color:#d6e6ff; }
-    .box.soft-mint{ background:var(--accent-2); border-color:#cdeee2; }
-    .box.soft-apricot{ background:var(--orange); border-color:#ffe7c4; }
-
-    .code-snippet{
-      background:#f6f8fa;
-      border:1px solid var(--border);
-      border-radius:10px;
-      padding:14px 16px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      font-size:.95rem;
-      white-space:pre-wrap;
-      color:#0f172a;
-      margin:14px 0;
-      overflow:auto;
-    }
-
+    .soft-blue{background:#eaf3ff; border-color:#d6e6ff}
+    .soft-mint{background:#e9fbf4; border-color:#d5f2e7}
+    .soft-apricot{background:#fff7ea; border-color:#ffe0b8}
+    .code{background:#f6f8fa;border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.95rem;white-space:pre-wrap}
     .cta{
-      display:inline-block;
-      margin-top:22px;
-      padding:14px 24px;
-      font-weight:700;
-      text-decoration:none;
-      color:#0f172a;
-      background:#ffffff;
-      border:2px solid var(--accent);
-      border-radius:999px;
-      box-shadow:var(--shadow);
+      display:inline-block;margin-top:20px;padding:12px 22px;font-weight:700;text-decoration:none;color:#0f172a;
+      background:#fff;border:2px solid var(--accent);border-radius:999px;box-shadow:var(--shadow)
     }
-    .cta:hover{ transform:translateY(-1px); }
-
-    .slide-number{
-      position:absolute; bottom:16px; right:24px;
-      color:#9aa0a6; font-size:.9rem;
-    }
-
-    ul{ list-style:none; padding-left:0; }
-    li{ margin:6px 0; }
-    li::before{
-      content:"▸ ";
-      color:#9aa0a6;
-      font-weight:700;
-      margin-right:8px;
-    }
-
-    .flow-diagram{ display:flex; flex-direction:column; gap:12px; align-items:center; margin:22px 0; }
-    .flow-step{
-      font-weight:700;
-      background:#fff; border:1px solid var(--border);
-      padding:14px 24px; border-radius:999px; box-shadow:var(--shadow);
-    }
-    .flow-step::after{
-      content:"↓";
-      display:block; text-align:center; color:#9aa0a6; margin-top:8px;
-    }
-    .flow-step:last-child::after{ display:none; }
-
-    /* SVG wrapper ensures responsiveness */
-    .svg-wrap{
-      width:100%;
-      border:1px solid var(--border);
-      border-radius:12px;
-      background:#fff;
-      box-shadow:var(--shadow);
-      padding:10px;
-    }
-    .caption{
-      color:var(--muted);
-      font-size:.95rem;
-      text-align:center;
-      margin-top:10px;
-    }
-
-    /* Subtle two-column callouts */
-    .cols{ display:grid; grid-template-columns:1fr; gap:22px; margin-top:18px; }
-    @media (min-width:900px){
-      .cols{ grid-template-columns:1fr 1fr; }
-    }
-
-    /* Seesaw SVG container */
-    .center{ display:flex; justify-content:center; align-items:center; }
+    .slide-number{position:absolute;bottom:16px;right:24px;color:#9aa0a6;font-size:.9rem}
+    .svg-wrap{width:100%;border:1px solid var(--border);border-radius:12px;background:#fff;box-shadow:var(--shadow);padding:10px;margin-top:8px}
+    .caption{color:var(--muted);font-size:1rem;text-align:center;margin-top:8px}
+    .center{display:flex;justify-content:center;align-items:center}
   </style>
 </head>
 <body>
 
-  <!-- Slide 1: Title -->
+  <!-- 1. Title -->
   <section class="slide">
     <div class="content">
       <h1>Conversational Interoperability</h1>
-      <h2 style="color:#1f2937; font-size:1.6rem; font-weight:600;">LLMs, MCP, and A2A for collaborative healthcare workflows</h2>
-      <p style="margin-top:18px; font-size:1.15rem;">Josh Mandel, MD</p>
-      <p style="color:var(--muted)">Chief Architect at Microsoft Healthcare</p>
+      <h2 class="muted" style="font-weight:600;">Getting healthcare’s jobs done through dialogue</h2>
+      <p style="margin-top:14px;font-size:1.15rem">Josh Mandel, MD</p>
+      <p class="muted">Chief Architect, Microsoft Healthcare</p>
     </div>
     <div class="slide-number">1</div>
   </section>
 
-  <!-- Slide 2: Demo -->
+  <!-- 2. Opening Examples (UPDATED BIDIRECTIONAL SVG) -->
   <section class="slide">
     <div class="content">
-      <div class="demo-box">
-        <h1 style="font-size:3rem;">Live Demo</h1>
-        <p style="font-size:1.2rem; color:var(--muted); margin-top:8px;">See the conversation, not just the transactions.</p>
+      <h2>Four jobs with the same shape</h2>
+      <div class="cols">
+        <div class="card">
+          <ul>
+            <li><strong>Prior Authorization</strong> — eligibility for a therapy</li>
+            <li><strong>Clinical Trial Matching</strong> — eligibility to enroll</li>
+            <li><strong>Insurance Enrollment</strong> — eligibility for benefits</li>
+            <li><strong>Specialist Referral</strong> — eligibility for a visit</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>What they have in common</h3>
+          <ul>
+            <li><strong>Two sides:</strong> policy/requirements ↔ patient data</li>
+            <li><strong>No one has the whole picture</strong> at the start</li>
+            <li><strong>Conversation</strong> brings policy and data together in context</li>
+          </ul>
+        </div>
       </div>
+      <div class="svg-wrap">
+        <!-- UPDATED: Bidirectional connectors, smaller arrows, larger labels -->
+        <svg viewBox="0 0 960 200" width="100%" height="auto" role="img" aria-label="Conversation connects policy requirements and patient data bidirectionally">
+          <defs>
+            <!-- smaller, unobtrusive arrowheads -->
+            <marker id="arrowThin" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" fill="#111"></path>
+            </marker>
+          </defs>
+
+          <!-- Policy -->
+          <rect x="24" y="44" width="300" height="112" rx="12" fill="#eaf3ff" stroke="#d6e6ff"/>
+          <text x="174" y="84" text-anchor="middle" font-size="20" font-weight="800">Policy & Requirements</text>
+          <text x="174" y="112" text-anchor="middle" font-size="14" fill="#5f6368">
+            coverage rules · eligibility · documentation
+          </text>
+
+          <!-- Conversation -->
+          <rect x="330" y="56" width="300" height="88" rx="12" fill="#fff7ea" stroke="#ffe0b8"/>
+          <text x="480" y="108" text-anchor="middle" font-size="19" font-weight="800">Conversation</text>
+
+          <!-- Patient -->
+          <rect x="636" y="44" width="300" height="112" rx="12" fill="#e9fbf4" stroke="#d5f2e7"/>
+          <text x="786" y="84" text-anchor="middle" font-size="20" font-weight="800">Patient Data & Context</text>
+          <text x="786" y="112" text-anchor="middle" font-size="14" fill="#5f6368">
+            diagnosis · history · labs · preferences
+          </text>
+
+          <!-- Bidirectional connectors -->
+          <line x1="324" y1="100" x2="330" y2="100" stroke="#111" stroke-width="2.2" marker-start="url(#arrowThin)" marker-end="url(#arrowThin)"/>
+          <line x1="630" y1="100" x2="636" y2="100" stroke="#111" stroke-width="2.2" marker-start="url(#arrowThin)" marker-end="url(#arrowThin)"/>
+        </svg>
+      </div>
+      <p class="caption">Across diverse jobs, dialogue reconciles policy needs and patient context.</p>
     </div>
     <div class="slide-number">2</div>
   </section>
 
-  <!-- Slide 3: Overview -->
+  <!-- 3. Nudge vs Sludge (policy lens) -->
   <section class="slide">
     <div class="content">
-      <h2>What We'll Explore Today</h2>
-      <div class="flow-diagram">
-        <div class="flow-step">Policy & Data Transparency</div>
-        <div class="flow-step">Nudge vs. Sludge</div>
-        <div class="flow-step">Protocols: FHIR, MCP, A2A</div>
-        <div class="flow-step">Liaison Pattern & UX</div>
-        <div class="flow-step">Doing It in the Open</div>
-      </div>
-    </div>
-    <div class="slide-number">3</div>
-  </section>
-
-  <!-- Slide 4: Policy Transparency -->
-  <section class="slide">
-    <div class="content">
-      <h2>1) Make Policies & Evidence Accessible</h2>
-      <div class="highlight">
-        <p><strong>Today:</strong> Criteria buried in PDFs, portals, and “tribal knowledge”.</p>
-        <p><strong>Better:</strong> Publish the same logic reviewers rely on—human-readable and machine-tractable.</p>
-      </div>
-
-      <div class="code-snippet">
-// Ideal: share the actual decision logic
-{
-  "policy": "adalimumab_ra",
-  "criteria": {
-    "diagnosis": "rheumatoid_arthritis",
-    "prior_therapy": {
-      "drug": "methotrexate",
-      "duration": ">= 3 months",
-      "outcome": "failure_or_intolerance"
-    },
-    "safety_screening": ["TB_test"]
-  }
-}
-      </div>
-
-      <p style="margin-top:10px; color:var(--muted); font-style:italic;">
-        If it's good enough for internal decision-making, it's the most useful external representation.
-      </p>
-    </div>
-    <div class="slide-number">4</div>
-  </section>
-
-  <!-- Slide 5: Unified View -->
-  <section class="slide">
-    <div class="content">
-      <h2>2) One Source of Truth</h2>
-      <div class="diagram">
-        <div class="box soft-blue">
-          <h3>Medical Necessity</h3>
-          <p>Evidence & clinical criteria</p>
-        </div>
-        <div class="box" style="background:#fff;">+</div>
-        <div class="box soft-apricot">
-          <h3>Process Requirements</h3>
-          <p>Attachments, attestations, forms</p>
-        </div>
-        <div class="box" style="background:#fff;">=</div>
-        <div class="box soft-mint">
-          <h3>Unified Guidance</h3>
-          <p>What to submit, why it matters</p>
-        </div>
-      </div>
-      <p style="text-align:center; margin-top:10px;">Use the same training materials externally that you trust internally.</p>
-    </div>
-    <div class="slide-number">5</div>
-  </section>
-
-  <!-- Slide 6: Nudge vs Sludge -->
-  <section class="slide">
-    <div class="content">
-      <h2>3) Nudge vs. Sludge</h2>
-
-      <div class="center" style="margin:28px 0;">
-        <svg width="560" height="220" viewBox="0 0 560 220" role="img" aria-label="Nudge vs Sludge seesaw">
-          <!-- Fulcrum -->
+      <h2>Nudge vs. Sludge</h2>
+      <div class="center" style="margin:20px 0;">
+        <svg width="560" height="220" viewBox="0 0 560 220" role="img" aria-label="Seesaw: nudge vs sludge">
           <polygon points="280,160 260,200 300,200" fill="#cbd5e1"/>
-          <!-- Beam -->
-          <rect x="100" y="150" width="360" height="10" fill="#111" transform="rotate(-4 280 155)" opacity="0.85"/>
-          <!-- Left (Nudge) -->
+          <rect x="100" y="150" width="360" height="10" fill="#111" transform="rotate(-4 280 155)" opacity=".85"/>
           <rect x="120" y="100" width="120" height="60" rx="10" fill="#eaf3ff" stroke="#bcd7ff" transform="rotate(-4 280 155)"/>
           <text x="180" y="135" text-anchor="middle" fill="#111" font-weight="700" transform="rotate(-4 180 135)">NUDGE</text>
-          <!-- Right (Sludge) -->
           <rect x="360" y="120" width="120" height="60" rx="10" fill="#ffe8e8" stroke="#ffd1d1" transform="rotate(-4 280 155)"/>
           <text x="420" y="155" text-anchor="middle" fill="#111" font-weight="700" transform="rotate(-4 420 155)">SLUDGE</text>
         </svg>
       </div>
-
       <div class="cols">
         <div class="highlight" style="border-left-color:#8bc4ff;">
-          <h3>✅ Nudge (Good Friction)</h3>
+          <h3>✅ Keep the nudges</h3>
           <ul>
-            <li>Try generic before brand</li>
-            <li>Conservative care first</li>
-            <li>Evidence-based pathways</li>
+            <li>Evidence-aligned steps (e.g., conservative care first)</li>
+            <li>Clear paths to “yes”</li>
           </ul>
         </div>
         <div class="highlight" style="border-left-color:#ffbfbf;">
-          <h3>⛔ Sludge (Bad Friction)</h3>
+          <h3>⛔ Reduce the sludge</h3>
           <ul>
-            <li>Hidden requirements</li>
-            <li>Redundant forms</li>
-            <li>Arbitrary delays</li>
+            <li>Hidden requirements, redundant forms</li>
+            <li>Late-stage surprises and delays</li>
           </ul>
         </div>
       </div>
+      <p class="muted" style="margin-top:10px;">Transparency + conversation help keep constructive friction while minimizing arbitrary barriers.</p>
+    </div>
+    <div class="slide-number">3</div>
+  </section>
 
-      <p style="text-align:center; margin-top:16px;"><strong>Goal:</strong> Maximize nudges, eliminate sludge.</p>
+  <!-- 4. Live Demo signpost -->
+  <section class="slide">
+    <div class="content">
+      <div class="demo-box" style="text-align:center">
+        <h1 style="font-size:3rem;">Live Demo</h1>
+        <p class="muted" style="font-size:1.2rem;margin-top:8px">Mock EHR ↔ payer agent via A2A — conversational prior auth</p>
+      </div>
+    </div>
+    <div class="slide-number">4</div>
+  </section>
+
+  <!-- 5. Prior Authorization deep dive -->
+  <section class="slide">
+    <div class="content">
+      <h2>Prior Authorization: zoom in on the pattern</h2>
+      <div class="diagram">
+        <div class="box soft-apricot">
+          <h3>Layer 1</h3>
+          <p>Public, high-level policy documents</p>
+          <p class="muted">Helpful but incomplete/ambiguous</p>
+        </div>
+        <div class="box">↕️</div>
+        <div class="box soft-blue">
+          <h3>Layer 2</h3>
+          <p>Internal, granular adjudication criteria</p>
+          <p class="muted">Detailed thresholds & timeframes</p>
+        </div>
+      </div>
+      <div class="highlight">
+        <p><strong>Where denials happen:</strong> the gap between the public summary and the specific criteria actually used.</p>
+        <p class="muted" style="margin-top:6px"><em>Optional example in talk:</em> “conservative therapy” — vague labels vs. specific drug, dose, duration requirements.</p>
+      </div>
+      <p class="muted">Transparency helps, but <strong>conversation</strong> is the bigger leap: reconcile policy + patient data in real time.</p>
+    </div>
+    <div class="slide-number">5</div>
+  </section>
+
+  <!-- 6. Why APIs alone aren’t enough -->
+  <section class="slide">
+    <div class="content">
+      <h2>Why APIs alone aren’t enough</h2>
+      <div class="cols">
+        <div class="card">
+          <h3>What APIs do well</h3>
+          <ul>
+            <li>Structured, repeatable data exchange</li>
+            <li>Great when formats & workflows are pre-negotiated</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Where APIs fall short</h3>
+          <ul>
+            <li>Real jobs vary — details aren’t all knowable upfront</li>
+            <li>Clinicians need <strong>earlier, upstream guidance</strong></li>
+          </ul>
+        </div>
+      </div>
+      <div class="highlight" style="margin-top:14px;">
+        <p><strong>Da Vinci Burden Reduction (CRD/DTR/PAS):</strong> Centered around clipboard-style API that structures questions for providers to answer.</p>
+        <p class="muted" style="margin-top:4px">Useful infrastructure — but it frames the problem as “complete this form,” rather than enabling flexible conversations that align clinical decisions with policy <em>before</em> form-filling is even necessary.</p>
+      </div>
     </div>
     <div class="slide-number">6</div>
   </section>
 
-  <!-- Slide 7: Conversational APIs -->
+  <!-- 7. Conversational Interoperability (UPDATED BIDIRECTIONAL A2A SVG) -->
   <section class="slide">
     <div class="content">
-      <h2>4) Build Conversational APIs</h2>
-      <div class="highlight">
-        <p>Move beyond rigid endpoints to agents that answer questions, evaluate submissions, give feedback, and guide next steps.</p>
+      <h2>Conversational interoperability</h2>
+      <div class="cols">
+        <div class="card">
+          <h3>What it is</h3>
+          <ul>
+            <li>Agents negotiate what info is needed, in what form</li>
+            <li>Works even when rules and data start out incomplete</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Two enablers</h3>
+          <ul>
+            <li><strong>A2A</strong>: agent-to-agent dialogue</li>
+            <li><strong>MCP</strong>: access to internal tools</li>
+          </ul>
+        </div>
       </div>
-      <div class="diagram" style="gap:10px;">
-        <div class="flow-step" style="margin:6px;">Answer questions</div>
-        <div class="flow-step" style="margin:6px;">Evaluate submissions</div>
-        <div class="flow-step" style="margin:6px;">Provide feedback</div>
-        <div class="flow-step" style="margin:6px;">Guide next steps</div>
+
+      <div class="svg-wrap">
+        <!-- UPDATED: Bidirectional conversation lines, thinner strokes, larger labels -->
+        <svg viewBox="0 0 1120 420" width="100%" height="auto" role="img" aria-label="Provider agent and payer agent converse over A2A; each uses internal tools via MCP">
+          <defs>
+            <marker id="arrowThinDark" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" fill="#111"></path>
+            </marker>
+            <marker id="arrowThinBlue" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" fill="#5aa7ff"></path>
+            </marker>
+            <marker id="arrowThinGray" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"></path>
+            </marker>
+          </defs>
+
+          <!-- Provider group -->
+          <g>
+            <rect x="24" y="36" width="330" height="328" rx="12" fill="#fafafa" stroke="#dfe3ea"/>
+            <text x="189" y="60" text-anchor="middle" font-size="16" font-weight="800" fill="#5f6368">PROVIDER SIDE</text>
+
+            <rect x="52" y="90" width="274" height="100" rx="12" fill="#eaf3ff" stroke="#bcd7ff"/>
+            <text x="189" y="135" text-anchor="middle" font-size="18" font-weight="800">Provider Agent</text>
+            <text x="189" y="155" text-anchor="middle" font-size="12.5" fill="#5f6368">uses MCP tools</text>
+
+            <rect x="52" y="220" width="274" height="100" rx="12" fill="#efe7ff" stroke="#dacfff"/>
+            <text x="189" y="260" text-anchor="middle" font-size="17" font-weight="700">EHR & Data Tools</text>
+
+            <!-- MCP link (keep directional style but smaller arrows) -->
+            <line x1="210" y1="190" x2="210" y2="220" stroke="#5aa7ff" stroke-width="2" stroke-dasharray="6 6" marker-end="url(#arrowThinBlue)"/>
+            <text x="224" y="206" font-size="12.5" fill="#5f6368">MCP</text>
+
+            <line x1="168" y1="220" x2="168" y2="190" stroke="#9aa0a6" stroke-width="2" stroke-dasharray="6 6" marker-end="url(#arrowThinGray)"/>
+            <text x="148" y="206" font-size="12.5" fill="#5f6368">results</text>
+          </g>
+
+          <!-- A2A comms -->
+          <g>
+            <rect x="394" y="36" width="330" height="328" rx="12" fill="#fff" stroke="#dfe3ea"/>
+            <text x="559" y="60" text-anchor="middle" font-size="16" font-weight="800" fill="#5f6368">A2A COMMUNICATION</text>
+            <rect x="422" y="110" width="274" height="180" rx="12" fill="#fff7ea" stroke="#ffe0b8"/>
+            <text x="559" y="176" text-anchor="middle" font-size="18" font-weight="800">Text + Attachments</text>
+          </g>
+
+          <!-- Payer group -->
+          <g>
+            <rect x="764" y="36" width="330" height="328" rx="12" fill="#fafafa" stroke="#dfe3ea"/>
+            <text x="929" y="60" text-anchor="middle" font-size="16" font-weight="800" fill="#5f6368">PAYER SIDE</text>
+
+            <rect x="792" y="90" width="274" height="100" rx="12" fill="#eaf3ff" stroke="#bcd7ff"/>
+            <text x="929" y="135" text-anchor="middle" font-size="18" font-weight="800">Payer Agent</text>
+            <text x="929" y="155" text-anchor="middle" font-size="12.5" fill="#5f6368">uses MCP tools</text>
+
+            <rect x="792" y="220" width="274" height="100" rx="12" fill="#efe7ff" stroke="#dacfff"/>
+            <text x="929" y="260" text-anchor="middle" font-size="17" font-weight="700">Policy / Rules DB</text>
+
+            <!-- MCP link (directional but subtle) -->
+            <line x1="952" y1="190" x2="952" y2="220" stroke="#5aa7ff" stroke-width="2" stroke-dasharray="6 6" marker-end="url(#arrowThinBlue)"/>
+            <text x="964" y="206" font-size="12.5" fill="#5f6368">MCP</text>
+
+            <line x1="910" y1="220" x2="910" y2="190" stroke="#9aa0a6" stroke-width="2" stroke-dasharray="6 6" marker-end="url(#arrowThinGray)"/>
+            <text x="892" y="206" font-size="12.5" fill="#5f6368">rules</text>
+          </g>
+
+          <!-- Cross-lane conversation lines: NOW BIDIRECTIONAL -->
+          <line x1="324" y1="140" x2="394" y2="140" stroke="#111" stroke-width="2.4"
+                marker-start="url(#arrowThinDark)" marker-end="url(#arrowThinDark)"/>
+          <text x="359" y="124" text-anchor="middle" font-size="13.5" font-weight="600" fill="#3b3b3b">messages</text>
+
+          <line x1="724" y1="140" x2="794" y2="140" stroke="#111" stroke-width="2.4"
+                marker-start="url(#arrowThinDark)" marker-end="url(#arrowThinDark)"/>
+          <text x="759" y="124" text-anchor="middle" font-size="13.5" font-weight="600" fill="#3b3b3b">messages</text>
+        </svg>
       </div>
-      <div class="code-snippet">
-// Example conversation (PA remains a great use case)
-EHR: "Does adalimumab for RA need PA?"
-Payer: "Yes. Include Dx, MTX ≥3mo, activity score."
-EHR: "Uploading evidence package..."
-Payer: "Missing TB screening. Please provide."
-      </div>
+      <p class="caption">Agents converse over A2A (two-way), while each side safely uses internal tools via MCP.</p>
     </div>
     <div class="slide-number">7</div>
   </section>
 
-  <!-- Slide 8: Empower Both Sides -->
+  <!-- 8. The road ahead (specific) -->
   <section class="slide">
     <div class="content">
-      <h2>5) Empower Both Sides</h2>
-      <div class="diagram">
-        <div class="box soft-blue" style="flex:1;">
-          <h3>🏥 Provider Side</h3>
-          <p>Your tools, your agents, your UX</p>
+      <h2>The road ahead: specific directions</h2>
+      <div class="cols">
+        <div class="card">
+          <h3>Focus on jobs, not forms</h3>
+          <ul>
+            <li>Pilot agent-based interactions for prior auth and beyond</li>
+            <li>Surface policies & guidance earlier in workflows</li>
+          </ul>
         </div>
-        <div class="box" style="background:#fff;">↔️</div>
-        <div class="box soft-apricot" style="flex:1;">
-          <h3>💼 Payer Side</h3>
-          <p>Open data, helpful agents, clear requirements</p>
+        <div class="card">
+          <h3>Make it possible</h3>
+          <ul>
+            <li>Publish detailed policy criteria (Layer 2)</li>
+            <li>Adopt open protocols: A2A for dialogue, MCP for tools</li>
+            <li>Avoid over-specifying interop conversational steps; let agents adapt to variation</li>
+          </ul>
         </div>
       </div>
-      <p style="text-align:center;">Don't build their experience—enable it.</p>
+      <div class="highlight" style="margin-top:12px;">
+        <p><strong>Outcome to aim for:</strong> right care, right patient, right time — with fewer late-stage surprises because guidance arrived upstream.</p>
+      </div>
     </div>
     <div class="slide-number">8</div>
   </section>
 
-  <!-- Slide 9: Getting to Yes -->
+  <!-- 9. HL7 Connectathon -->
   <section class="slide">
     <div class="content">
-      <h2>6) Focus on Getting to “Yes”</h2>
+      <h2>HL7 Connectathon: Conversational Interoperability</h2>
       <div class="cols">
-        <div class="protocol-card">
-          <h3 style="color:#b91c1c;">🚫 Not Ready For</h3>
-          <p><strong>Automated denials.</strong> Keep human judgment for “No”.</p>
+        <div class="card">
+          <h3>What & Where</h3>
+          <ul>
+            <li>HL7 Working Group Meeting — Pittsburgh (mid-September)</li>
+            <li>Track: <strong>Conversational Interoperability for Eligibility</strong></li>
+          </ul>
+          <h3 style="margin-top:10px;">We’ll explore</h3>
+          <ul>
+            <li>A2A conversations between agents</li>
+            <li>MCP tools over EHR/policy data</li>
+            <li>Scenarios: PA, referrals, trial matching, enrollment</li>
+          </ul>
         </div>
-        <div class="protocol-card">
-          <h3 style="color:#065f46;">✅ Perfect For</h3>
-          <p><strong>Faster approvals.</strong> Streamline the path to “Yes”.</p>
+        <div class="card">
+          <h3>Who & How</h3>
+          <ul>
+            <li>Leads: Mark Kramer & Josh Mandel</li>
+            <li>Contact: <span class="muted">mkramer@mitre.org</span>, <span class="muted">jmandel@gmail.com</span></li>
+            <li>Ideal participants: teams with implementations ready to test (space limited)</li>
+          </ul>
+          <a class="cta" target="_blank" href="https://confluence.hl7.org/spaces/FHIR/pages/358260686/2025+-+09+Language+First+Interoperability">Learn about this track</a>
         </div>
-      </div>
-      <div class="highlight" style="margin-top:14px;">
-        <p><strong>Status quo:</strong> Submit → Wait → Denial → Appeal → Wait...</p>
-        <p><strong>AI-assisted:</strong> Check → Fix → Submit → Approval ✨</p>
       </div>
     </div>
     <div class="slide-number">9</div>
   </section>
 
-  <!-- Slide 10: Protocols Stack -->
+  <!-- 10. Closing -->
   <section class="slide">
     <div class="content">
-      <h2>7) Protocols for Conversational Interop</h2>
-      <div class="tech-stack">
-        <div class="tech-item">
-          <h3>FHIR</h3>
-          <p>Standardized clinical data access</p>
-          <p style="color:var(--muted);">The source of truth</p>
-        </div>
-        <div class="tech-item">
-          <h3>MCP</h3>
-          <p>Model Context Protocol</p>
-          <p style="color:var(--muted);">Tools > giant JSON dumps</p>
-        </div>
-        <div class="tech-item">
-          <h3>A2A</h3>
-          <p>Agent-to-Agent conversations</p>
-          <p style="color:var(--muted);">Multi-turn with artifacts</p>
-        </div>
+      <h2>Closing</h2>
+      <div class="highlight">
+        <p><strong>Getting healthcare’s jobs done</strong> requires conversation — not just transactions.</p>
+        <p>Transparency + open protocols + dialogue can align clinical decisions with coverage and evidence earlier, with less friction.</p>
+      </div>
+      <p style="margin-top:12px;">Let’s collaborate in the open and test these patterns together.</p>
+      <div class="demo-box" style="margin-top:16px;">
+        <p>Josh Mandel, MD · <span class="muted">jmandel@gmail.com</span></p>
+        <p class="muted">Microsoft Healthcare</p>
       </div>
     </div>
     <div class="slide-number">10</div>
   </section>
 
-  <!-- Slide 11: MCP Deep Dive -->
-  <section class="slide">
-    <div class="content">
-      <h2>MCP: Make EHR Data LLM-Friendly</h2>
-      <div class="protocol-card">
-        <p><strong>Problem:</strong> LLMs drown in massive FHIR bundles.</p>
-        <p><strong>Solution:</strong> Give general-purpose tools (search, evaluate) instead.</p>
-      </div>
-      <div class="code-snippet">
-// Don't stream 10MB of JSON. Provide tools:
-tools: [
-  { name: "grep", description: "Search all patient data",
-    parameters: { pattern: "string", context_lines: "number" } },
-  { name: "eval_js", description: "Run JavaScript on patient data",
-    parameters: { code: "string" } }
-]
-
-// Usage examples:
-grep("methotrexate") // finds mentions in notes, med list, etc.
-
-eval_js(`
-  observations
-    .filter(o => o.code === 'blood_pressure')
-    .map(o => o.value)
-    .reduce((sum, v) => sum + v) / observations.length
-`)
-      </div>
-    </div>
-    <div class="slide-number">11</div>
-  </section>
-
-  <!-- Slide 12: A2A Architecture -->
-  <section class="slide">
-    <div class="content">
-      <h2>A2A: Beyond Request/Response</h2>
-      <div class="flow-diagram">
-        <div class="flow-step">📨 Task Created</div>
-        <div class="flow-step">💬 Multi-turn Dialogue</div>
-        <div class="flow-step">📎 Artifacts Attached</div>
-        <div class="flow-step">✅ Task Completed</div>
-      </div>
-      <div class="highlight">
-        <p>Think of it like a structured email thread with state tracking, attachments, and clear completion criteria.</p>
-      </div>
-    </div>
-    <div class="slide-number">12</div>
-  </section>
-
-  <!-- Slide 13: Protocols Diagram (SVG, horizontal) -->
-  <section class="slide">
-    <div class="content">
-      <h2>How It Clicks Together (Horizontal Layout)</h2>
-      <div class="svg-wrap">
-        <svg viewBox="0 0 1120 420" width="100%" height="auto" role="img" aria-label="Provider–A2A–Payer conversational architecture">
-          <defs>
-            <marker id="arrow-dark" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-              <path d="M0,0 L12,6 L0,12 Z" fill="#111"></path>
-            </marker>
-            <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-              <path d="M0,0 L12,6 L0,12 Z" fill="#5aa7ff"></path>
-            </marker>
-            <marker id="arrow-gray" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-              <path d="M0,0 L12,6 L0,12 Z" fill="#9aa0a6"></path>
-            </marker>
-          </defs>
-
-          <!-- Provider group -->
-          <g id="provider">
-            <rect x="24" y="36" width="330" height="328" rx="12" fill="#fafafa" stroke="#dfe3ea"/>
-            <text x="189" y="60" text-anchor="middle" font-size="14" font-weight="700" fill="#5f6368">PROVIDER SIDE</text>
-
-            <!-- Provider Agent -->
-            <rect x="52" y="90" width="274" height="100" rx="12" fill="#eaf3ff" stroke="#bcd7ff" />
-            <text x="189" y="135" text-anchor="middle" font-size="16" font-weight="700" fill="#0f172a">Provider Agent</text>
-
-            <!-- EHR -->
-            <rect x="52" y="220" width="274" height="100" rx="12" fill="#efe7ff" stroke="#dacfff" />
-            <text x="189" y="265" text-anchor="middle" font-size="16" font-weight="700" fill="#0f172a">EHR</text>
-
-            <!-- A1 -> EHR (search) -->
-            <line x1="210" y1="190" x2="210" y2="220" stroke="#5aa7ff" stroke-width="2.5" stroke-dasharray="6 6" marker-end="url(#arrow-blue)"/>
-            <text x="222" y="206" font-size="12" fill="#5f6368">search</text>
-
-            <!-- EHR -> A1 (notes) -->
-            <line x1="168" y1="220" x2="168" y2="190" stroke="#9aa0a6" stroke-width="2.5" stroke-dasharray="6 6" marker-end="url(#arrow-gray)"/>
-            <text x="129" y="206" font-size="12" fill="#5f6368">notes</text>
-          </g>
-
-          <!-- A2A COMM group -->
-          <g id="comm">
-            <rect x="394" y="36" width="330" height="328" rx="12" fill="#fff" stroke="#dfe3ea"/>
-            <text x="559" y="60" text-anchor="middle" font-size="14" font-weight="700" fill="#5f6368">A2A COMMUNICATION</text>
-
-            <!-- Text + Attachments -->
-            <rect x="422" y="110" width="274" height="180" rx="12" fill="#fff7ea" stroke="#ffe0b8" />
-            <text x="559" y="176" text-anchor="middle" font-size="16" font-weight="700" fill="#0f172a">Text + Attachments</text>
-          </g>
-
-          <!-- Payer group -->
-          <g id="payer">
-            <rect x="764" y="36" width="330" height="328" rx="12" fill="#fafafa" stroke="#dfe3ea"/>
-            <text x="929" y="60" text-anchor="middle" font-size="14" font-weight="700" fill="#5f6368">PAYER SIDE</text>
-
-            <!-- Payer Agent -->
-            <rect x="792" y="90" width="274" height="100" rx="12" fill="#eaf3ff" stroke="#bcd7ff" />
-            <text x="929" y="135" text-anchor="middle" font-size="16" font-weight="700" fill="#0f172a">Payer Agent</text>
-
-            <!-- Policy DB -->
-            <rect x="792" y="220" width="274" height="100" rx="12" fill="#efe7ff" stroke="#dacfff" />
-            <text x="929" y="265" text-anchor="middle" font-size="16" font-weight="700" fill="#0f172a">Policy DB</text>
-
-            <!-- A2 -> POL (lookup) -->
-            <line x1="952" y1="190" x2="952" y2="220" stroke="#5aa7ff" stroke-width="2.5" stroke-dasharray="6 6" marker-end="url(#arrow-blue)"/>
-            <text x="964" y="206" font-size="12" fill="#5f6368">lookup</text>
-
-            <!-- POL -> A2 (rules) -->
-            <line x1="910" y1="220" x2="910" y2="190" stroke="#9aa0a6" stroke-width="2.5" stroke-dasharray="6 6" marker-end="url(#arrow-gray)"/>
-            <text x="878" y="206" font-size="12" fill="#5f6368">rules</text>
-          </g>
-
-          <!-- Cross-lane message lines -->
-          <line x1="326" y1="140" x2="422" y2="140" stroke="#111" stroke-width="4" marker-end="url(#arrow-dark)"/>
-          <text x="374" y="124" text-anchor="middle" font-size="12" fill="#5f6368">messages</text>
-
-          <line x1="696" y1="140" x2="792" y2="140" stroke="#111" stroke-width="4" marker-end="url(#arrow-dark)"/>
-          <text x="744" y="124" text-anchor="middle" font-size="12" fill="#5f6368">messages</text>
-        </svg>
-      </div>
-      <div class="caption">Provider and Payer agents converse via A2A, while each side securely consults its own systems.</div>
-    </div>
-    <div class="slide-number">13</div>
-  </section>
-
-  <!-- Slide 14: Liaison Pattern -->
-  <section class="slide">
-    <div class="content">
-      <h2>The Liaison Pattern</h2>
-      <div class="diagram" style="gap:28px; align-items:flex-start;">
-        <div class="box" style="flex:1; max-width:420px;">
-          <h3>💬 Agent Dialogue</h3>
-          <div class="code-snippet">
-<strong>EHR:</strong> "Checking PA for adalimumab..."
-<strong>Payer:</strong> "Need MTX trial duration."
-<strong>EHR:</strong> "Searching records..."
-<strong>Payer:</strong> "Still need TB screen."
-          </div>
-        </div>
-        <div class="box soft-mint" style="flex:0 0 200px; text-align:center;">
-          <h3>🤖 Liaison</h3>
-          <p style="color:var(--muted)">Monitors & translates</p>
-          <div style="font-size:2rem; margin-top:6px;">↕️</div>
-        </div>
-        <div class="box" style="flex:1; max-width:360px;">
-          <h3>👤 User UI</h3>
-          <p>✅ PA in progress</p>
-          <p style="margin-top:8px;"><strong>Action needed:</strong> Confirm TB screening date</p>
-        </div>
-      </div>
-
-      <div class="code-snippet">
-// Liaison checks task state
-if (task.state === "input_required") {
-  const decision = await analyzeSituation(conversation); // LLM-assisted
-  if (decision.canAutoRespond) {
-    await respondWithData(decision.proposedResponse);
-  } else {
-    ui.showPrompt(decision.userPrompt);
-  }
-}
-      </div>
-    </div>
-    <div class="slide-number">14</div>
-  </section>
-
-  <!-- Slide 15: Smart Mediation -->
-  <section class="slide">
-    <div class="content">
-      <h2>Liaison: Smart Agent Mediation</h2>
-      <div class="highlight">
-        <p><strong>Pattern:</strong> Decide when to involve the user vs. handling it automatically.</p>
-      </div>
-      <div class="code-snippet">
-// Decision examples
-
-// Case 1: Handle automatically
-{
-  "action": "respond_automatically",
-  "reason": "Can retrieve lab date from EHR via grep tool",
-  "proposed_response": "Found TB test from 2024-03-15"
-}
-
-// Case 2: Ask for focused input
-{
-  "action": "ask_user",
-  "reason": "Multiple medications match 'methotrexate'",
-  "user_prompt": "Which methotrexate formulation did the patient try?",
-  "options": ["Oral tablets", "Injectable", "Both"]
-}
-      </div>
-      <p style="text-align:center; color:var(--muted);">Result: minimal interruption, maximum automation.</p>
-    </div>
-    <div class="slide-number">15</div>
-  </section>
-
-  <!-- Slide 16: Detecting State Changes -->
-  <section class="slide">
-    <div class="content">
-      <h2>Liaison: Detect & Structure State Changes</h2>
-      <div class="highlight">
-        <p><strong>Pattern:</strong> Listen for important state changes in varied formats and normalize them for the app.</p>
-      </div>
-      <div class="code-snippet">
-// Examples the Liaison normalizes
-// BCBS: "AUTH GRANTED #8847221 EXP:05/24/26"
-// Aetna: PDF approval details on page 3
-// United: "Approval Code PA2024-78432 (see attached)"
-
-// Consistent app update:
-app.updateStatus({
-  "type": "approval_received",
-  "approval_number": "PA-2024-78432",
-  "valid_through": "2026-05-24",
-  "drug": "adalimumab",
-  "conditions": ["Use biosimilar if available"],
-  "user_message": "✅ Prior auth approved! Valid for 12 months."
-})
-      </div>
-    </div>
-    <div class="slide-number">16</div>
-  </section>
-
-  <!-- Slide 17: Putting It Together -->
-  <section class="slide">
-    <div class="content">
-      <h2>Putting It All Together</h2>
-      <div class="highlight">
-        <p><strong>Scenario:</strong> Dr. Reed orders adalimumab for David Lee (RA)</p>
-      </div>
-      <div class="protocol-card" style="margin-top:12px;">
-        <p><strong>1.</strong> EHR agent checks requirements via payer’s A2A endpoint</p>
-        <p><strong>2.</strong> Payer agent returns specific criteria</p>
-        <p><strong>3.</strong> EHR agent uses MCP tools to gather evidence from FHIR APIs</p>
-        <p><strong>4.</strong> Iterative dialogue clarifies missing pieces</p>
-        <p><strong>5.</strong> Liaison surfaces only critical decisions to the clinician</p>
-        <p><strong>6.</strong> Approval in minutes—not days</p>
-      </div>
-      <p style="text-align:center; color:var(--muted); margin-top:6px;">Same clinical decision, far less administrative burden.</p>
-    </div>
-    <div class="slide-number">17</div>
-  </section>
-
-  <!-- Slide 18: Path Forward / Q&A -->
-  <section class="slide">
-    <div class="content">
-      <h2>Build in the Open</h2>
-      <div class="highlight">
-        <p style="font-size:1.1rem; text-align:center;">
-          Share protocols & patterns. Compare implementations. Reuse what works.
-        </p>
-      </div>
-      <div class="cols" style="margin-top:22px;">
-        <div class="protocol-card">
-          <h3>Why Open Matters</h3>
-          <ul>
-            <li>Interoperability by design</li>
-            <li>Auditability & trust</li>
-            <li>Fewer one-off integrations</li>
-            <li>Faster iteration together</li>
-          </ul>
-        </div>
-        <div class="protocol-card">
-          <h3>How to Start</h3>
-          <ul>
-            <li>Publish criteria & examples</li>
-            <li>Expose conversational endpoints</li>
-            <li>Adopt MCP-style tools</li>
-            <li>Pilot A2A with real use cases</li>
-          </ul>
-        </div>
-      </div>
-      <div style="text-align:center; margin-top:20px;">
-        <a href="#" class="cta">Start Building Together</a>
-      </div>
-
-      <div class="demo-box" style="margin-top:34px;">
-        <h2 style="margin-bottom:6px;">Discussion</h2>
-        <p>What resonates? What challenges do you see? How can we collaborate?</p>
-        <div style="margin-top:16px; color:var(--muted)">
-          <p>Josh Mandel, MD · <span>jmandel@microsoft.com</span></p>
-          <p>github.com/jmandel/health-record-mcp</p>
-        </div>
-      </div>
-    </div>
-    <div class="slide-number">18</div>
-  </section>
-
   <script>
-    // Simple keyboard navigation (Up/Down arrows)
+    // Arrow key slide navigation
     document.addEventListener('keydown', (e) => {
       const slides = document.querySelectorAll('.slide');
       const idx = Math.floor(window.scrollY / window.innerHeight);
