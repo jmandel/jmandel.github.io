@@ -1,374 +1,315 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ACO Networked FHIR Flow — Mermaid Inline (Sanitized Labels)</title>
+  <title>Networked FHIR for ACO Quality Reporting — Architecture Explainer</title>
+  <meta name="description" content="A single page explainer and diagrams for a networked FHIR architecture enabling ACO quality reporting at population scale." />
   <style>
-    :root {
-      --bg: #0f172a;
-      --panel: #0b1220;
-      --ink: #e5e7eb;
-      --muted: #9ca3af;
-      --accent: #60a5fa;
-      --border: #1f2937;
+    :root{
+      --bg:#0b0c0f;
+      --fg:#e9eef3;
+      --muted:#b7c1cc;
+      --card:#13151a;
+      --accent:#6ee7ff;
+      --accent-2:#a7f3d0;
+      --border:#222634;
+      --shadow: 0 8px 24px rgba(0,0,0,.35);
     }
-    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
-    header {
-      position: sticky; top: 0; z-index: 10;
-      backdrop-filter: blur(6px);
-      background: rgba(2,6,23,0.75);
-      border-bottom: 1px solid var(--border);
-      padding: 10px 16px;
-      display: flex; gap: 10px; align-items: center;
-    }
-    header h1 { font-size: 16px; margin: 0 8px 0 0; }
-    header .btn {
-      background: var(--panel);
-      color: var(--ink);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 10px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    main { padding: 16px; display: grid; grid-template-columns: 1fr; gap: 16px; }
-    section {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    section header {
-      position: relative;
-      background: rgba(255,255,255,0.02);
-      border: none;
-      padding: 10px 12px;
-      display: flex; align-items: center; gap: 8px;
-    }
-    section header h2 { margin: 0; font-size: 15px; }
-    section header .tools { margin-left: auto; display: flex; gap: 8px; }
-    .btn.sm { font-size: 12px; padding: 6px 8px; }
-    .mermaid-wrap { padding: 8px 8px 12px 8px; overflow: auto; }
-    .hint { color: var(--muted); font-size: 12px; margin-left: 6px; }
-    @media (min-width: 1100px) {
-      main { grid-template-columns: 1fr 1fr; }
-      section#context-card { grid-column: 1 / -1; }
-    }
-    code.kbd {
-      background: #111827; border: 1px solid #374151; border-bottom-width: 2px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      padding: 0 6px; border-radius: 5px; font-size: 12px;
-    }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <header>
-    <h1>ACO Networked FHIR Flow — Mermaid Inline</h1>
-    <button class="btn" id="themeBtn" title="Toggle Mermaid theme">Toggle Theme</button>
-    <span class="hint">Sanitized labels: no parentheses, slashes, plus, braces, or dollar signs in node or message text.</span>
-  </header>
-
-  <main>
-    <section id="context-card">
-      <header>
-        <h2>System Context and Dataflow</h2>
-        <div class="tools">
-          <button class="btn sm" data-export="context" data-type="svg">Export SVG</button>
-          <button class="btn sm" data-export="context" data-type="png">Export PNG</button>
-          <button class="btn sm" data-copy="context">Copy Mermaid</button>
-        </div>
-      </header>
-      <div class="mermaid-wrap">
-        <div class="mermaid" id="context">
-flowchart LR
-  %% External Ecosystem
-  subgraph Ext[External Ecosystem]
-    direction TB
-    Payer[(Payer)]
-    Dir[(Provider Directory and QHIN and HIE)]
-    INP[(In Network Provider EHRs G10 and Bulk FHIR)]
-    OUTP[(Out of Network Provider EHRs G10 and Bulk FHIR)]
-  end
-
-  %% ACO Platform
-  subgraph ACO[ACO Platform]
-    direction TB
-    subgraph CP[Control Plane]
-      direction TB
-      Catalog[Endpoint Catalog and Directory Cache]
-      IDT[Identity and Trust SMART Backend JWT UDAP mTLS JWKS]
-      Roster[Roster Service Da Vinci ATR]
-      Targeting[Targeting Claims guided Provider NPI ranking]
-      Consent[Consent and Policy Service MSSP Exclusions State Law 42 CFR Part 2]
-      Orchestrator[Job Orchestrator Batch Retry since parameter]
-    end
-    subgraph DP[Data Plane]
-      direction TB
-      Bulk[Bulk FHIR Client Group export]
-      Landing[(Landing Zone NDJSON Object Store)]
-      Validate[Validation and Harmonization US Core Mapping]
-      EMPI[Identity Resolution EMPI]
-      Quality[Quality Engine CQL and DEQM ready]
-      Report[Reporting DEQM later]
-      Obs[Observability and Metrics]
-      Audit[(Audit and Lineage FHIR AuditEvent and Provenance)]
-    end
-  end
-
-  %% Discovery and Inputs
-  Dir <--> Catalog
-  Payer --> Roster
-  Payer --> Targeting
-  Catalog --> Roster
-  Targeting --> Roster
-
-  %% Trust and Identity
-  IDT --> INP
-  IDT --> OUTP
-
-  %% Roster negotiation
-  Roster --> INP
-  INP --> Roster
-  Roster --> OUTP
-  OUTP --> Roster
-
-  %% Consent and Policy gates
-  Roster -. policy check .-> Consent
-  Orchestrator -. policy check .-> Consent
-
-  %% Export orchestration
-  Roster --> Orchestrator
-  Orchestrator --> Bulk
-
-  %% Bulk export and retrieval
-  Bulk --> INP
-  Bulk --> OUTP
-  INP --> Bulk
-  OUTP --> Bulk
-
-  %% Ingest to compute
-  Bulk --> Landing
-  Landing --> Validate
-  Validate --> EMPI
-  EMPI --> Quality
-  Quality --> Report
-
-  %% Telemetry and Audit
-  Orchestrator --> Obs
-  Bulk --> Obs
-  Quality --> Obs
-
-  INP --> Audit
-  OUTP --> Audit
-  Bulk --> Audit
-  Validate --> Audit
-  EMPI --> Audit
-  Quality --> Audit
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <header>
-        <h2>In Network Sequence Happy Path</h2>
-        <div class="tools">
-          <button class="btn sm" data-export="inNet" data-type="svg">Export SVG</button>
-          <button class="btn sm" data-export="inNet" data-type="png">Export PNG</button>
-          <button class="btn sm" data-copy="inNet">Copy Mermaid</button>
-        </div>
-      </header>
-      <div class="mermaid-wrap">
-        <div class="mermaid" id="inNet">
-sequenceDiagram
-  autonumber
-  participant Payer
-  participant Directory as Provider Directory and QHIN
-  participant ACO as ACO Orchestrator
-  participant ATR as Roster Service Da Vinci ATR
-  participant Consent as Consent and Policy
-  participant Auth as Identity and Trust
-  participant EHR as Provider EHR In Network
-  participant Bulk as Bulk FHIR Client
-  participant Data as Data Platform
-
-  Payer->>ATR: Send attribution roster
-  ACO->>Directory: Discover endpoint and capabilities
-  Directory-->>ACO: Provide endpoint info
-  ACO->>Auth: Register client and manage keys
-  ACO->>ATR: Propose roster slice for this EHR
-  ATR->>Consent: Check exclusions and policy
-  Consent-->>ATR: Approved member list
-  ATR->>EHR: Create or update FHIR Group
-  EHR-->>ATR: Return group id
-
-  ACO->>Bulk: Schedule group export job
-  Bulk->>Auth: Get backend token
-  Bulk->>EHR: Request group export
-  EHR-->>Bulk: Accepted with content location
-
-  loop Poll until complete
-    Bulk->>EHR: Poll export status
-    EHR-->>Bulk: Return file links
-  end
-
-  Bulk->>EHR: Download ndjson files
-  Bulk->>Data: Store in landing zone
-  Data->>Data: Validate harmonize and EMPI
-  Data->>Data: Compute measures and gaps
-  Data->>ACO: Share measure reports and gaps
-  Bulk->>Data: Record audit and provenance
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <header>
-        <h2>Out of Network Sequence Claims guided and Consent aware</h2>
-        <div class="tools">
-          <button class="btn sm" data-export="outNet" data-type="svg">Export SVG</button>
-          <button class="btn sm" data-export="outNet" data-type="png">Export PNG</button>
-          <button class="btn sm" data-copy="outNet">Copy Mermaid</button>
-        </div>
-      </header>
-      <div class="mermaid-wrap">
-        <div class="mermaid" id="outNet">
-sequenceDiagram
-  autonumber
-  participant Payer
-  participant ACO as ACO Orchestrator
-  participant ATR as Roster Service ATR semantics
-  participant Consent as Consent and Policy MSSP State 42 CFR Part 2
-  participant Auth as Identity and Trust
-  participant EHR as Provider EHR Out of Network
-  participant Bulk as Bulk FHIR Client
-  participant Data as Data Platform
-
-  Payer->>ACO: Provide claims with NPI counts
-  ACO->>ATR: Build targeted rosters
-  ATR->>Consent: Attach consent and remove exclusions
-  Consent-->>ATR: Consent bundle and rules
-
-  ACO->>EHR: Propose roster with consent evidence
-  Note over EHR: Optional manual review and approval
-  EHR-->>ACO: Approved with group id
-
-  ACO->>Auth: Obtain token
-  ACO->>Bulk: Schedule group export
-  Bulk->>EHR: Request group export
-  EHR-->>Bulk: Accepted with content location
-
-  loop Poll and download
-    Bulk->>EHR: Poll export status
-    EHR-->>Bulk: Return file links
-    Bulk->>EHR: Download file
-  end
-
-  Bulk->>Data: Store then validate then EMPI then quality
-  Data->>Consent: Apply segmentation if required
-  Data->>ACO: Share quality outputs
-  Bulk->>Data: Record audit and provenance
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <script type="module">
-    // Import Mermaid as an ES module (unpkg primary, esm.sh fallback)
-    async function importMermaid() {
-      try {
-        const mod = await import('https://unpkg.com/mermaid@10/dist/mermaid.esm.min.mjs');
-        return mod.default ?? mod;
-      } catch (e) {
-        console.warn('unpkg failed, falling back to esm.sh', e);
-        const mod = await import('https://esm.sh/mermaid@10');
-        return mod.default ?? mod;
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f7f9fc; --fg:#0e1320; --muted:#4b5563; --card:#ffffff; --accent:#0369ff;
+        --accent-2:#0891b2; --border:#e5e7eb; --shadow: 0 8px 24px rgba(2,6,23,.08);
       }
     }
-    const mermaid = await importMermaid();
-
-    // Theme toggle
-    const THEME_KEY = 'mermaid_theme_pref_sanitized';
-    let theme = localStorage.getItem(THEME_KEY) || 'dark';
-    function applyTheme() {
-      mermaid.initialize({ startOnLoad: true, theme, securityLevel: 'loose', fontFamily: 'system-ui' });
-      mermaid.init();
-    }
-    applyTheme();
-    document.getElementById('themeBtn').addEventListener('click', () => {
-      theme = theme === 'dark' ? 'default' : 'dark';
-      localStorage.setItem(THEME_KEY, theme);
-      applyTheme();
-    });
-
-    // Export helpers
-    function getRenderedSvg(containerId) {
-      const node = document.getElementById(containerId);
-      if (!node) return null;
-      const svg = node.querySelector('svg');
-      return svg || null;
-    }
-    function download(filename, href) {
-      const a = document.createElement('a');
-      a.href = href; a.download = filename; a.click();
-    }
-    function svgToDataUrl(svgEl) {
-      const s = new XMLSerializer().serializeToString(svgEl);
-      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
-    }
-    function svgToPng(svgEl, scale=2) {
-      const s = new XMLSerializer().serializeToString(svgEl);
-      const svg64 = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width * scale;
-          canvas.height = img.height * scale;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/png'));
-        };
-        img.src = svg64;
-      });
-    }
-
-    // Wire export buttons
-    document.querySelectorAll('[data-export]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-export');
-        const type = btn.getAttribute('data-type');
-        const svg = getRenderedSvg(id);
-        if (!svg) { alert('SVG not ready yet.'); return; }
-        if (type === 'svg') {
-          download(id + '.svg', svgToDataUrl(svg));
-        } else {
-          const png = await svgToPng(svg, 2);
-          download(id + '.png', png);
-        }
-      });
-    });
-
-    // Wire copy buttons
-    document.querySelectorAll('[data-copy]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-copy');
-        const div = document.getElementById(id);
-        if (!div.dataset.src) {
-          const src = div.textContent.trim();
-          div.dataset.src = src;
-        }
-        try {
-          await navigator.clipboard.writeText(div.dataset.src);
-          alert('Mermaid source copied.');
-        } catch {
-          alert('Copy failed; select and copy manually.');
-        }
-      });
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"}
+    a{color:var(--accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    header{position:static;top:auto;z-index:1;background:var(--bg);border-bottom:1px solid var(--border);} 
+    .wrap{max-width:1000px;margin:0 auto;padding:16px}
+    .title{display:flex;align-items:center;gap:12px}
+    .badge{font-size:12px;color:var(--fg);background:var(--card);border:1px solid var(--border);padding:4px 8px;border-radius:999px}
+    nav{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+    nav a{font-size:14px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:var(--card)}
+    main{padding:24px 16px}
+    section{background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:16px;padding:20px;margin:0 auto 20px auto;max-width:1000px;scroll-margin-top:64px} 
+    h1,h2,h3{line-height:1.2;margin:0 0 12px 0}
+    h1{font-size:clamp(24px, 4vw, 36px)}
+    h2{font-size:clamp(18px, 3vw, 26px);margin-top:8px}
+    h3{font-size:clamp(16px, 2.4vw, 20px);margin-top:6px}
+    p{margin:0 0 12px 0;color:var(--fg)}
+    .muted{color:var(--muted)}
+    .grid{display:grid;gap:16px}
+    .grid.cols-2{grid-template-columns:1fr}
+    @media(min-width:900px){.grid.cols-2{grid-template-columns:1fr 1fr}}
+    .callout{border-left:4px solid var(--accent);padding:10px 14px;background:var(--card)}
+    .pill{display:inline-block;padding:4px 10px;border:1px solid var(--border);border-radius:999px;margin:0 8px 8px 0;background:var(--card);font-size:13px;color:var(--muted)}
+    .mermaid{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;overflow:auto}
+    footer{padding:24px 16px;color:var(--muted);text-align:center}
+    .toc{font-size:14px}
+    .toc a{margin-right:10px}
+    .hr{height:1px;background:var(--border);margin:12px 0}
+    .small{font-size:13px}
+    .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: .95em; background:var(--bg); border:1px solid var(--border); padding:2px 6px; border-radius:6px}
+  </style>
+  <!-- Mermaid -->
+  <script defer src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.mermaid) {
+        mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
+        mermaid.run({ querySelector: ".mermaid" });
+      }
     });
   </script>
+</head>
+<body>
+  <a class="skip" href="#content" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">Skip to content</a>
+  <header>
+    <div class="wrap">
+      <div class="title">
+        <h1 style="margin:0;">Networked FHIR for ACO Quality Reporting</h1>
+      </div>
+      <nav class="toc">
+        <a href="#problem">Problem</a>
+        <a href="#assumptions">Assumptions</a>
+        <a href="#actors">Actors</a>
+        <a href="#standards">Standards</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#process-in">In network flow</a>
+        <a href="#process-out">Outside network flow</a>
+        <a href="#decisions">Technical decisions</a>
+        <a href="#challenges">Challenges</a>
+        <a href="#security">Security</a>
+        <a href="#roadmap">Roadmap</a>
+        <a href="#glossary">Glossary</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="content" class="wrap">
+
+    <section id="intro">
+      <h2>Overview</h2>
+      <p>This page turns a whiteboard discussion into a concrete <strong>static, single pane</strong> explainer for a <strong>networked FHIR</strong> architecture that lets an ACO collect <strong>population level clinical data</strong> for <strong>quality reporting</strong>. Everything is visible below with no hidden tabs or expandable sections. Diagrams are rendered with Mermaid and labels avoid unusual punctuation for clean display.</p>
+      <div class="callout small">
+        <strong>Scope</strong>: Quality reporting for attributed patients at population scale. Start with in network providers, extend to outside providers within a trust framework.
+      </div>
+    </section>
+
+    <section id="problem">
+      <h2>Problem to solve</h2>
+      <p>ACOs need timely, complete clinical data across many providers to compute measures and close care gaps. Today this often relies on manual chart chase workflows with CSV or PDF and ad hoc agreements. The objective is a repeatable, standards based pipeline that scales to tens of thousands of patients while honoring policy and consent.</p>
+    </section>
+
+    <section id="assumptions">
+      <h2>Operating assumptions</h2>
+      <div class="grid cols-2">
+        <div>
+          <p class="pill">Shared trust fabric with directory and certificates</p>
+          <p class="pill">Certified FHIR endpoints for g10 apis</p>
+          <p class="pill">TPO allows operations with state carve outs</p>
+          <p class="pill">Digital consent signals are portable</p>
+        </div>
+        <div>
+          <p class="pill">Payer provides attribution rosters</p>
+          <p class="pill">Claims identify external providers to target</p>
+          <p class="pill">Group scoped exports for population</p>
+          <p class="pill">Audit and provenance for every exchange</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="actors">
+      <h2>Key actors</h2>
+      <div class="grid cols-2">
+        <div>
+          <h3>Inside the ACO</h3>
+          <p class="pill">ACO orchestration</p>
+          <p class="pill">Attribution and claims service</p>
+          <p class="pill">Consent and policy service</p>
+          <p class="pill">Data lake and normalization</p>
+          <p class="pill">Measure engine and gap closure</p>
+        </div>
+        <div>
+          <h3>External</h3>
+          <p class="pill">Payer</p>
+          <p class="pill">Participating provider</p>
+          <p class="pill">External provider</p>
+          <p class="pill">Trust framework operator</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="standards">
+      <h2>Standards and artifacts</h2>
+      <p><span class="kbd">Da Vinci ATR</span> for rosters and Group formation. <span class="kbd">FHIR Bulk Data export</span> for USCDI data in NDJSON. <span class="kbd">OAuth2</span> and <span class="kbd">mTLS</span> within the trust fabric. <span class="kbd">Provenance</span> and <span class="kbd">AuditEvent</span> for traceability.</p>
+    </section>
+
+    <section id="architecture">
+      <h2>Architecture overview</h2>
+      <p>The ACO runs core services that discover participants, negotiate groups, apply consent policy, perform exports, and compute measures. External parties are payers and providers connected through a shared trust fabric.</p>
+      <div class="mermaid">
+      flowchart TB
+        subgraph ACO_Core[ACO core services]
+          Dir[Participant directory]
+          Attr[Attribution and claims]
+          Consent[Consent and policy]
+          Orchestrator[FHIR connector and orchestrator]
+          Lake[Data lake and normalization]
+          Measures[Measure engine and gap closure]
+          Gov[Observability and governance]
+        end
+
+        Payer[Payer]
+        ProvIn[Participating provider]
+        ProvOut[External provider]
+        Trust[Trust fabric]
+
+        Payer --> Attr
+        Attr --> Orchestrator
+        Consent --> Orchestrator
+        Dir --> Orchestrator
+        Orchestrator --> Trust
+        Trust --> ProvIn
+        Trust --> ProvOut
+        ProvIn --> Trust
+        ProvOut --> Trust
+        Orchestrator --> Lake
+        Lake --> Measures
+        Measures --> Gov
+        Orchestrator --> Gov
+      </div>
+    </section>
+
+    <section id="process-in">
+      <h2>In network happy path</h2>
+      <ol>
+        <li>Payer sends attribution roster to the ACO.</li>
+        <li>ACO proposes roster to each participating provider using ATR and receives a confirmed group id.</li>
+        <li>ACO requests bulk export for the group with USCDI resources.</li>
+        <li>Provider returns accepted with status link. ACO polls and downloads NDJSON when ready.</li>
+        <li>ACO normalizes data and computes measures, then drives gap closure.</li>
+      </ol>
+      <div class="mermaid">
+      sequenceDiagram
+        participant Payer
+        participant ACO
+        participant Provider
+        Payer->>ACO: Attribution roster
+        ACO->>Provider: ATR propose roster
+        Provider-->>ACO: ATR confirm group id
+        ACO->>Provider: Bulk export request for group
+        Provider-->>ACO: Accepted with status link
+        ACO->>Provider: Poll status
+        Provider-->>ACO: Manifest with ndjson links
+        ACO->>Provider: Download ndjson files
+        ACO->>ACO: Normalize and measure compute
+      </div>
+    </section>
+
+    <section id="process-out">
+      <h2>Outside network targeted path</h2>
+      <ol>
+        <li>ACO ranks external providers by claims overlap and selects targets.</li>
+        <li>ACO attaches machine readable consent artifacts when required.</li>
+        <li>ACO proposes a limited roster with ATR and provider may approve after review.</li>
+        <li>ACO requests bulk export for the approved group and ingests results.</li>
+      </ol>
+      <div class="mermaid">
+      sequenceDiagram
+        participant ACO
+        participant ExtProv as External provider
+        ACO->>ACO: Select npis using claims
+        ACO->>ExtProv: ATR with limited roster and consent
+        ExtProv-->>ACO: ATR approval with group id
+        ACO->>ExtProv: Bulk export for group
+        ExtProv-->>ACO: Export ready then download
+        ACO->>ACO: Ingest and measure compute
+      </div>
+    </section>
+
+    <section id="decisions">
+      <h2>Key technical decisions</h2>
+      <ul>
+        <li><strong>Population first not broadcast</strong> target providers by claims signal and work down the list.</li>
+        <li><strong>Group scoped exports</strong> always request by group id per counterparty.</li>
+        <li><strong>Incrementals</strong> use export since after initial full pull.</li>
+        <li><strong>Identity matching</strong> prefer deterministic keys and record linkage provenance.</li>
+        <li><strong>Data minimization</strong> request only needed resource types for measures.</li>
+        <li><strong>Deep observability</strong> capture purpose of use consent id group id token scope and timings.</li>
+      </ul>
+    </section>
+
+    <section id="challenges">
+      <h2>Challenges and mitigations</h2>
+      <div class="grid cols-2">
+        <div>
+          <h3>Consent complexity</h3>
+          <p>Central store for consent with machine readable policy. Attach evidence to ATR and export. Record decisions with audit events.</p>
+        </div>
+        <div>
+          <h3>Patient versus population</h3>
+          <p>Define an operations profile under the same trust rails with tailored token scopes and request content.</p>
+        </div>
+        <div>
+          <h3>Data quality</h3>
+          <p>Normalize codes and track source quality scores. Fill gaps with mappings where safe.</p>
+        </div>
+        <div>
+          <h3>Scale</h3>
+          <p>Parallelize by source and resource type with safe retries and resume. Use queues to manage back pressure.</p>
+        </div>
+        <div>
+          <h3>Roster drift</h3>
+          <p>Refresh ATR on cadence and on claims deltas. Handle joins and leaves idempotently.</p>
+        </div>
+        <div>
+          <h3>Human in the loop</h3>
+          <p>Support manual approval paths without breaking pipeline automation.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="security">
+      <h2>Security privacy and compliance</h2>
+      <ul>
+        <li>Mutual tls and oauth with short lived tokens and least privilege scopes.</li>
+        <li>Key and certificate lifecycle tied to the trust fabric with automated rotation.</li>
+        <li>Encryption at rest careful phi logging controls and segregated environments.</li>
+        <li>Complete audit trail of requester subject policy consent and payloads.</li>
+        <li>Data retention aligned to contracts and state law.</li>
+      </ul>
+    </section>
+
+    <section id="roadmap">
+      <h2>Roadmap</h2>
+      <ul>
+        <li>Standardize operations population profile under the trust framework with clear scopes.</li>
+        <li>Extend ATR to carry consent references and policy qualifiers.</li>
+        <li>Interoperable consent with provenance revocation and partial sharing.</li>
+        <li>Measure aware export presets that pull only needed elements.</li>
+        <li>Network level discovery of supported resources history depth and rate limits.</li>
+      </ul>
+    </section>
+
+    <section id="glossary">
+      <h2>Glossary</h2>
+      <p class="pill">ACO accountable care organization</p>
+      <p class="pill">CIN clinically integrated network</p>
+      <p class="pill">ATR attribution implementation guide</p>
+      <p class="pill">USCDI united states core data for interoperability</p>
+      <p class="pill">NDJSON new line delimited json</p>
+      <p class="pill">TPO treatment payment operations</p>
+    </section>
+
+    <div class="hr"></div>
+    <p class="small muted">Tip you can print or save as pdf using your browser. The layout is responsive for desktop and mobile.</p>
+  </main>
+
+  <footer>
+    Built as a single page static app with Mermaid diagrams. No hidden content. All labels avoid uncommon punctuation for clean display.
+  </footer>
 </body>
 </html>
