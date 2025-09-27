@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>30‑Second Rolling Speed Tracker</title>
+  <style>
+    :root{--bg:#0b1220;--card:#121a2b;--muted:#8ea0bf;--text:#e6edf7;--accent:#22c55e;--danger:#ef4444;--indigo:#6366f1;}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+    .wrap{max-width:900px;margin:0 auto;padding:20px}
+    h1{margin:0 0 6px;font-weight:700;letter-spacing:-0.02em}
+    p.sub{margin:0 0 16px;color:var(--muted)}
+    .grid{display:grid;gap:12px}
+    @media(min-width:860px){.grid{grid-template-columns:2fr 1fr}}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.05));border:1px solid #1f2b46;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,0.25)}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+    .pill{display:inline-flex;align-items:center;gap:8px;font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+    .dot{width:10px;height:10px;border-radius:999px;background:#556}
+    .dot.on{background:var(--accent)}
+    button{appearance:none;border:0;border-radius:14px;padding:10px 14px;font-weight:600;color:#fff;background:#1f9d65;cursor:pointer}
+    button:hover{filter:brightness(1.07)}
+    button.red{background:var(--danger)}
+    button.indigo{background:var(--indigo)}
+    label.switch{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:#c6d2eb}
+    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+    .metric{background:var(--card);border:1px solid #1f2b46;border-radius:14px;padding:10px;text-align:center}
+    .metric .lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+    .metric .val{margin-top:6px;font-size:28px;font-weight:700}
+    .fine{font-size:12px;color:var(--muted)}
+    .gauge{margin-top:16px;background:var(--card);border:1px solid #1f2b46;border-radius:22px;padding:22px;text-align:center}
+    .gauge .title{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+    .gauge .big{margin-top:8px;font-size:64px;font-weight:800}
+    .tips{margin-top:16px;color:var(--muted);font-size:12px}
+    .err{margin-top:12px;color:#ffe2e2;background:#3a0f18;border:1px solid #6c1322;border-radius:12px;padding:10px}
+    .side .row2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:14px;color:var(--muted)}
+    .mono{font-variant-numeric:tabular-nums}
+    a.link{color:#9bbcff}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>30‑Second Rolling Speed</h1>
+  <p class="sub">Fine‑grained GPS tracking with a 30s moving average for steadier walking speed.</p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="row">
+        <div class="pill"><span id="dot" class="dot"></span><span id="status">Idle</span></div>
+        <div class="row" style="gap:10px">
+          <label class="switch">
+            <input id="accChk" type="checkbox" /> High accuracy
+          </label>
+          <button id="toggleBtn">Start</button>
+        </div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><div class="lbl">Avg 30s (mph)</div><div id="mMph" class="val mono">—</div></div>
+        <div class="metric"><div class="lbl">Avg 30s (km/h)</div><div id="mKmh" class="val mono">—</div></div>
+        <div class="metric"><div class="lbl">Avg 30s (m/s)</div><div id="mMps" class="val mono">—</div></div>
+      </div>
+
+      <div class="fine row" style="margin-top:8px">
+        <div>Window: <span id="winSec">—</span></div>
+        <div>Last fix: <span id="lastFix">—</span></div>
+      </div>
+    </div>
+
+    <div class="card side">
+      <div class="fine">Permission</div>
+      <div id="perm" style="margin-bottom:8px">—</div>
+      <button class="indigo" id="permBtn">Request precise location</button>
+      <hr style="border:none;border-top:1px solid #1f2b46;margin:12px 0"/>
+      <div class="fine">Instantaneous (sensor)</div>
+      <div class="row2">
+        <div>mph: <span id="iMph" class="mono" style="color:#fff">—</span></div>
+        <div>km/h: <span id="iKmh" class="mono" style="color:#fff">—</span></div>
+        <div>m/s: <span id="iMps" class="mono" style="color:#fff">—</span></div>
+      </div>
+      <div style="margin-top:8px" class="fine">Accuracy</div>
+      <div id="accVal" class="mono">—</div>
+    </div>
+  </div>
+
+  <div class="gauge">
+    <div class="title">Current Walking Speed (Avg 30s)</div>
+    <div class="big mono"><span id="bigMph">—</span> <span style="font-size:22px;color:var(--muted)">mph</span></div>
+    <div class="fine">Steadier and less jumpy than instantaneous GPS speed.</div>
+  </div>
+
+  <div class="tips">
+    <ul>
+      <li>Serve this page over <b>HTTPS</b> (required by browsers for precise geolocation). GitHub Pages is perfect.</li>
+      <li>On iOS Safari, allow location and enable <b>Precise Location</b> in the site permissions.</li>
+      <li>High‑accuracy mode uses more battery. You can toggle it before starting.</li>
+    </ul>
+    <div>Source available in this single file. No external deps.</div>
+  </div>
+
+  <div id="err" class="err" style="display:none"></div>
+</div>
+
+<script>
+(function(){
+  // --- Elements ---
+  const els = {
+    dot: document.getElementById('dot'),
+    status: document.getElementById('status'),
+    accChk: document.getElementById('accChk'),
+    toggleBtn: document.getElementById('toggleBtn'),
+    perm: document.getElementById('perm'),
+    permBtn: document.getElementById('permBtn'),
+    mMph: document.getElementById('mMph'),
+    mKmh: document.getElementById('mKmh'),
+    mMps: document.getElementById('mMps'),
+    winSec: document.getElementById('winSec'),
+    lastFix: document.getElementById('lastFix'),
+    iMph: document.getElementById('iMph'),
+    iKmh: document.getElementById('iKmh'),
+    iMps: document.getElementById('iMps'),
+    accVal: document.getElementById('accVal'),
+    bigMph: document.getElementById('bigMph'),
+    err: document.getElementById('err'),
+  };
+
+  // --- State ---
+  let watchId = null;
+  let lastFix = null;
+  const samples = []; // {lat, lon, t}
+
+  // Permission status (best-effort)
+  function updatePermissionStatus(){
+    try{
+      if(!('permissions' in navigator) || !navigator.permissions.query){
+        els.perm.textContent = 'Permissions API unsupported';
+        return;
+      }
+      navigator.permissions.query({name:'geolocation'}).then(status =>{
+        els.perm.textContent = status.state;
+        status.onchange = ()=>{ els.perm.textContent = status.state; };
+      });
+    }catch{ els.perm.textContent = '—'; }
+  }
+  updatePermissionStatus();
+
+  // UI helpers
+  function setTracking(on){
+    els.dot.classList.toggle('on', !!on);
+    els.status.textContent = on ? 'Tracking' : 'Idle';
+    els.toggleBtn.textContent = on ? 'Pause' : 'Start';
+  }
+  function showError(msg){ els.err.style.display = 'block'; els.err.textContent = msg; }
+  function clearError(){ els.err.style.display = 'none'; els.err.textContent = ''; }
+  function fmt(v){ if(v==null||!isFinite(v)) return '—'; return Math.abs(v)>=10? v.toFixed(1): v.toFixed(2);} // number -> string
+  function haversineMeters(lat1,lon1,lat2,lon2){ const R=6371000, toRad=d=>d*Math.PI/180; const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1); const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2; return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
+
+  // Rolling 30s average recompute
+  function recompute(){
+    if(samples.length<2){
+      els.mMph.textContent = els.mKmh.textContent = els.mMps.textContent = '—';
+      els.bigMph.textContent = '—';
+      els.winSec.textContent = '—';
+      return;
+    }
+    const now = Date.now();
+    const windowStart = now - 30*1000;
+    const windowSamples = samples.filter(s=>s.t>=windowStart);
+    if(windowSamples.length<2){
+      els.mMph.textContent = els.mKmh.textContent = els.mMps.textContent = '—';
+      els.bigMph.textContent = '—';
+      els.winSec.textContent = '—';
+      return;
+    }
+    let dist=0;
+    for(let i=1;i<windowSamples.length;i++){
+      const a=windowSamples[i-1], b=windowSamples[i];
+      dist += haversineMeters(a.lat,a.lon,b.lat,b.lon);
+    }
+    const dt = (windowSamples.at(-1).t - windowSamples[0].t)/1000; // s
+    if(dt<=0){ return; }
+    const mps = dist/dt; const kmh=mps*3.6; const mph=mps*2.23693629;
+    els.mMps.textContent = fmt(mps);
+    els.mKmh.textContent = fmt(kmh);
+    els.mMph.textContent = fmt(mph);
+    els.bigMph.textContent = fmt(mph);
+    els.winSec.textContent = String(Math.round(dt))+'s';
+  }
+
+  function onPos(pos){
+    lastFix = pos;
+    const {latitude, longitude, accuracy, speed} = pos.coords;
+    const now = Date.now();
+    samples.push({lat:latitude, lon:longitude, t:now});
+    // trim to last 5 minutes
+    const cutoff = now - 5*60*1000;
+    while(samples.length && samples[0].t < cutoff) samples.shift();
+
+    // UI updates
+    els.lastFix.textContent = new Date(pos.timestamp).toLocaleTimeString();
+    els.accVal.textContent = accuracy!=null? Math.round(accuracy)+' m':'—';
+    if(speed==null || !isFinite(speed)){
+      els.iMps.textContent = els.iKmh.textContent = els.iMph.textContent = '—';
+    } else {
+      els.iMps.textContent = fmt(speed);
+      els.iKmh.textContent = fmt(speed*3.6);
+      els.iMph.textContent = fmt(speed*2.23693629);
+    }
+
+    recompute();
+  }
+
+  function onErr(err){ showError(err && err.message ? err.message : String(err)); }
+
+  function start(){
+    if(!('geolocation' in navigator)){ showError('Geolocation not supported on this device/browser.'); return; }
+    clearError();
+    samples.length = 0;
+    const high = !!els.accChk.checked;
+    watchId = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy: high, maximumAge: 0, timeout: 20000 });
+    setTracking(true);
+  }
+
+  function stop(){
+    if(watchId!=null){ navigator.geolocation.clearWatch(watchId); watchId=null; }
+    setTracking(false);
+  }
+
+  // Events
+  els.toggleBtn.addEventListener('click', ()=>{ if(watchId==null) start(); else stop(); });
+  els.permBtn.addEventListener('click', ()=>{
+    clearError();
+    if(!('geolocation' in navigator)){ showError('Geolocation not supported.'); return; }
+    navigator.geolocation.getCurrentPosition(()=>{}, onErr, {enableHighAccuracy:true, maximumAge:0, timeout:15000});
+    updatePermissionStatus();
+  });
+
+  // Minimal self-tests (console)
+  (function runTests(){
+    const approx=(a,b,t)=>Math.abs(a-b)<=t;
+    console.groupCollapsed('Self‑tests');
+    try{
+      console.assert(fmt(null)==='—','fmt(null)');
+      console.assert(fmt(0)==='0.00','fmt(0)');
+      console.assert(fmt(9.99)==='9.99','fmt(9.99)');
+      console.assert(fmt(10)==='10.0','fmt(10)');
+      console.assert(haversineMeters(0,0,0,0)===0,'haversine zero');
+      const d1=haversineMeters(0,0,0,1); console.assert(approx(d1,111319,1500),'1° lon ≈111.3km');
+      const d2=haversineMeters(0,0,1,0); console.assert(approx(d2,111195,1500),'1° lat ≈111.2km');
+    } finally { console.groupEnd(); }
+  })();
+})();
+</script>
+</body>
+</html>
