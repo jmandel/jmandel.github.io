@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Plantar Fasciitis – 7‑Day Tracker</title>
+<style>
+  :root{
+    --bg:#0b0c10; --card:#111218; --muted:#9aa3b2; --text:#e6e7ea; --accent:#74c0fc; --accent2:#63e6be;
+    --danger:#ff6b6b; --ok:#2fd37a; --border:#1a1b22;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0b0c10, #0e1116 40%, #0b0c10);color:var(--text);font:500 16px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
+  header{padding:20px 16px;position:sticky;top:0;background:#0b0c10cc;backdrop-filter:blur(6px);border-bottom:1px solid var(--border);z-index:5}
+  h1{margin:0 0 6px;font-size:clamp(20px,2.6vw,28px);letter-spacing:.2px}
+  .sub{color:var(--muted);font-size:14px}
+  main{padding:18px 16px 80px;max-width:1100px;margin:0 auto}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 10px 20px #0003}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .col{flex:1 1 320px}
+  .pill{display:inline-flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:999px;background:#0f1016}
+  button, .btn{appearance:none;border:none;border-radius:12px;padding:10px 14px;font-weight:650;color:#0b0c10;background:var(--accent);cursor:pointer}
+  button.secondary{background:#1a1b22;color:var(--text);border:1px solid var(--border)}
+  button.ghost{background:transparent;color:var(--text);border:1px dashed var(--border)}
+  button.danger{background:var(--danger);color:white}
+  .muted{color:var(--muted)}
+  .grid{display:grid;gap:10px}
+  .grid.days{grid-template-columns: 130px repeat(6, 1fr)}
+  .dayhdr{font-size:13px;color:var(--muted)}
+  .daycell{background:#0e0f15;border:1px solid var(--border);border-radius:12px;padding:10px}
+  .exercise{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:6px 0}
+  .exercise label{display:flex;align-items:center;gap:10px;cursor:pointer}
+  .exercise small{color:var(--muted)}
+  .video-btn{padding:6px 10px;font-size:13px;border-radius:10px;background:#1c2333;color:#cfe4ff;border:1px solid #203050}
+  .meters{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .meter{flex:1 1 140px}
+  .meter input{width:100%}
+  .kpi{display:flex;gap:10px;flex-wrap:wrap}
+  .kpi .card{flex:1 1 180px;text-align:center;padding:14px}
+  .kpi .big{font-size:28px;font-weight:800}
+  .footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+  .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .tag{background:#12202a;border:1px solid #1d3342;color:#9fd4ff;padding:6px 10px;border-radius:999px;font-size:12px}
+  
+  /* Modal */
+  dialog{width:min(880px, 96vw);border:1px solid var(--border);background:#0b0c10;border-radius:16px;color:var(--text);padding:0}
+  dialog::backdrop{background:#0008}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);background:#0f121a;border-radius:16px 16px 0 0}
+  .modal-content{padding:14px}
+  .close{background:#1a1b22;color:var(--text)}
+  iframe{aspect-ratio:16/9;width:100%;border:0;border-radius:12px}
+  
+  /* Mobile tweaks */
+  @media (max-width:720px){
+    .grid.days{grid-template-columns: 1fr}
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Plantar Fasciitis – 7‑Day Recovery Tracker</h1>
+    <div class="sub">Track daily stretches, icing, and pain levels. Your data is saved privately in your browser (Local Storage).</div>
+  </header>
+  <main>
+
+    <section class="row">
+      <div class="col card">
+        <div class="pill" id="startInfo">
+          <span>📅 Started <strong id="startDate"></strong></span>
+          <span>•</span>
+          <span>🎯 Goal: Complete today’s plan</span>
+          <button class="secondary" id="resetBtn" title="Reset this 7‑day plan">Reset</button>
+        </div>
+        <div class="kpi">
+          <div class="card"><div class="big" id="pctComplete">0%</div><div class="muted">Week completion</div></div>
+          <div class="card"><div class="big" id="streak">0</div><div class="muted">Day streak</div></div>
+          <div class="card"><div class="big" id="avgPain">–</div><div class="muted">Avg pain today</div></div>
+        </div>
+      </div>
+
+      <div class="col card">
+        <strong>Today’s Plan</strong>
+        <div class="tags" id="todayTags"></div>
+        <div class="muted" style="margin-top:8px">Tip: do the towel stretch before your first steps; use cushioned shoes/insoles all day; ice‑roll in the evening.</div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <div class="row">
+        <div class="col">
+          <strong>Exercises</strong>
+          <div class="muted">Click ▶ to view an instruction video.</div>
+          <div id="exerciseList"></div>
+        </div>
+        <div class="col">
+          <strong>Notes</strong>
+          <textarea id="notes" rows="8" placeholder="How did it feel today? Surfaces, shoes, time of day, anything that helped…" style="width:100%;background:#0e0f15;border:1px solid var(--border);border-radius:12px;color:var(--text);padding:12px"></textarea>
+          <div class="meters">
+            <div class="meter"><label>AM pain (0–10)</label><input type="range" id="painAM" min="0" max="10" step="1"><div class="muted"><span id="painAMv">0</span>/10</div></div>
+            <div class="meter"><label>PM pain (0–10)</label><input type="range" id="painPM" min="0" max="10" step="1"><div class="muted"><span id="painPMv">0</span>/10</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <strong>7‑Day Checklist</strong>
+      <div class="grid days" id="daysGrid"></div>
+    </section>
+
+    <div class="footer">Educational only and not a diagnosis. If pain worsens, is constant at rest, or lasts >2 weeks, seek medical care.</div>
+  </main>
+
+  <!-- Modal for videos -->
+  <dialog id="videoModal">
+    <div class="modal-head">
+      <div id="videoTitle">Exercise Video</div>
+      <button class="close" id="closeModal">✕</button>
+    </div>
+    <div class="modal-content">
+      <iframe id="ytFrame" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
+  </dialog>
+
+<script>
+(function(){
+  const LS_KEY = 'pfasciitis_week_v1';
+  const today = new Date();
+  const fmt = (d)=> d.toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'});
+
+  const EXERCISES = [
+    { id:'towel', name:'Towel calf stretch (before first steps)', freq:'Morning', videoId:'l5zCe0AdQks', source:'OrthoIndy', url:'https://www.youtube.com/watch?v=l5zCe0AdQks' },
+    { id:'gastroc', name:'Calf stretch – gastrocnemius (straight knee)', freq:'Evening', videoId:'f1HzSAuB-Vw', source:'Physical Therapy', url:'https://www.youtube.com/watch?v=f1HzSAuB-Vw' },
+    { id:'soleus', name:'Calf stretch – soleus (bent knee)', freq:'Evening', videoId:'Zmc36LtB7f8', source:'Instructional', url:'https://www.youtube.com/watch?v=Zmc36LtB7f8' },
+    { id:'pfstretch', name:'Plantar fascia stretch (seated, toes back)', freq:'Evening', videoId:'A6xAC0RGGaQ', source:'Physio', url:'https://www.youtube.com/watch?v=A6xAC0RGGaQ' },
+    { id:'ice', name:'Ice massage: frozen water bottle roll', freq:'Evening', videoId:'YeC1TQeOA8Y', source:'Instructional', url:'https://www.youtube.com/watch?v=YeC1TQeOA8Y' },
+    { id:'ball', name:'Foot massage: lacrosse/ball roll', freq:'Evening', videoId:'hfYw8VUNMIE', source:'B3 Physical Therapy', url:'https://www.youtube.com/watch?v=hfYw8VUNMIE' }
+  ];
+
+  function initState(){
+    const saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    if(saved && saved.days && saved.days.length===7){ return saved; }
+    const start = new Date();
+    const days = Array.from({length:7}, (_,i)=>{
+      const d = new Date(start); d.setDate(d.getDate()+i);
+      return { date: d.toISOString(), done: {}, painAM: 0, painPM: 0, notes:'' };
+    });
+    const state = { start: start.toISOString(), days, version:1 };
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    return state;
+  }
+
+  let state = initState();
+
+  const startDateEl = document.getElementById('startDate');
+  startDateEl.textContent = new Date(state.start).toLocaleDateString();
+
+  // Reset
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    if(confirm('Reset your 7‑day plan and clear saved data?')){
+      localStorage.removeItem(LS_KEY); location.reload();
+    }
+  });
+
+  // Build exercise list with video buttons
+  const exerciseList = document.getElementById('exerciseList');
+  EXERCISES.forEach(ex => {
+    const wrap = document.createElement('div');
+    wrap.className='exercise';
+    wrap.innerHTML = `<div><div><strong>${ex.name}</strong></div><small>${ex.freq} • Source: ${ex.source}</small></div>`;
+    const btn = document.createElement('button');
+    btn.className='video-btn'; btn.textContent='▶ Video';
+    btn.addEventListener('click', ()=> openVideo(ex.name, ex.videoId));
+    wrap.appendChild(btn);
+    exerciseList.appendChild(wrap);
+  });
+
+  // Today tags
+  const todayTags = document.getElementById('todayTags');
+  ['Supportive shoes','Arch support/insoles','Avoid barefoot on hard floors','Light activity','Ice roll 10 min'].forEach(t=>{
+    const tag=document.createElement('div');tag.className='tag';tag.textContent=t;todayTags.appendChild(tag);
+  });
+
+  // Build days grid
+  const daysGrid = document.getElementById('daysGrid');
+  function renderGrid(){
+    daysGrid.innerHTML='';
+    // header row
+    const h = document.createElement('div'); h.className='dayhdr'; h.textContent='Day'; daysGrid.appendChild(h);
+    EXERCISES.forEach(ex=>{ const d=document.createElement('div'); d.className='dayhdr'; d.textContent=ex.id; daysGrid.appendChild(d); });
+
+    state.days.forEach((day, idx)=>{
+      const cell = document.createElement('div'); cell.className='daycell';
+      const d = new Date(day.date);
+      cell.innerHTML = `<strong>${fmt(d)}</strong><div class="muted">Day ${idx+1}</div>`;
+      daysGrid.appendChild(cell);
+
+      EXERCISES.forEach(ex=>{
+        const c = document.createElement('div'); c.className='daycell';
+        const id = `d${idx}_${ex.id}`;
+        c.innerHTML = `<label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="${id}"><span>Done</span></label>`;
+        daysGrid.appendChild(c);
+        const cb = c.querySelector('input');
+        cb.checked = !!day.done[ex.id];
+        cb.addEventListener('change', ()=>{
+          day.done[ex.id] = cb.checked; save(); updateKPIs();
+        });
+      });
+    });
+  }
+
+  // Notes & pain sliders (for today only)
+  const todayIndex = 0; // always show controls for Day 1 relative to start; user can advance each day
+  function currentDay(){
+    const now = new Date();
+    const start = new Date(state.start);
+    const diff = Math.floor((now - new Date(start.toDateString()))/86400000);
+    return Math.min(Math.max(diff,0), 6);
+  }
+
+  function bindDailyControls(){
+    const i = currentDay();
+    const day = state.days[i];
+    document.getElementById('notes').value = day.notes || '';
+    document.getElementById('notes').oninput = (e)=>{ day.notes = e.target.value; save(); };
+
+    const am = document.getElementById('painAM'), pm = document.getElementById('painPM');
+    const amv = document.getElementById('painAMv'), pmv = document.getElementById('painPMv');
+    am.value = day.painAM||0; pm.value = day.painPM||0; amv.textContent=am.value; pmv.textContent=pm.value;
+    am.oninput = ()=>{ day.painAM = +am.value; amv.textContent=am.value; save(); updateKPIs(); };
+    pm.oninput = ()=>{ day.painPM = +pm.value; pmv.textContent=pm.value; save(); updateKPIs(); };
+  }
+
+  function completionPct(){
+    const total = state.days.length * EXERCISES.length;
+    const done = state.days.reduce((s,day)=> s + Object.values(day.done).filter(Boolean).length, 0);
+    return Math.round((done/total)*100);
+  }
+
+  function dayCompleted(i){
+    const d = state.days[i];
+    return EXERCISES.every(ex=> !!d.done[ex.id]);
+  }
+
+  function calcStreak(){
+    let s = 0; for(let i=0;i<state.days.length;i++){ if(dayCompleted(i)) s++; else break; } return s;
+  }
+
+  function avgPainToday(){
+    const i = currentDay();
+    const d = state.days[i];
+    const vals = [d.painAM||0, d.painPM||0];
+    const avg = (vals[0]+vals[1])/2;
+    return isNaN(avg) ? null : Math.round(avg*10)/10;
+  }
+
+  function updateKPIs(){
+    document.getElementById('pctComplete').textContent = completionPct()+"%";
+    document.getElementById('streak').textContent = calcStreak();
+    const avg = avgPainToday();
+    document.getElementById('avgPain').textContent = (avg==null? '–' : avg);
+  }
+
+  function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+
+  function openVideo(title, id){
+    document.getElementById('videoTitle').textContent = title;
+    const src = `https://www.youtube.com/embed/${id}`;
+    const frame = document.getElementById('ytFrame');
+    frame.src = src;
+    document.getElementById('videoModal').showModal();
+  }
+
+  document.getElementById('closeModal').addEventListener('click', ()=>{
+    const dlg = document.getElementById('videoModal');
+    document.getElementById('ytFrame').src = '';
+    dlg.close();
+  });
+
+  // Render
+  renderGrid();
+  bindDailyControls();
+  updateKPIs();
+
+})();
+</script>
+</body>
+</html>
