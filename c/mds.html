@@ -158,11 +158,15 @@
           useEffect(() => {
             if (Object.keys(positions).length === 0) return;
             
+            // Ensure all animals have positions before calculating
+            const allPositionsReady = animals.every(animal => positions[animal] !== undefined);
+            if (!allPositionsReady) return;
+            
             const distanceMatrix = calculateDistanceMatrix();
             const dissimilarityMatrix = confusionMatrixToDissimilarity(confusionMatrix);
             const calculatedStress = calculateStress(distanceMatrix, dissimilarityMatrix);
             setStress(calculatedStress);
-          }, [positions, confusionMatrix]);
+          }, [positions, confusionMatrix, animals]);
 
           const confusionMatrixToDissimilarity = (matrix) => {
             const maxVal = Math.max(...matrix.flat());
@@ -179,6 +183,11 @@
                 } else {
                   const pos1 = positions[animal1];
                   const pos2 = positions[animal2];
+                  // Guard against undefined positions during initialization
+                  if (!pos1 || !pos2) {
+                    matrix[i][j] = 0;
+                    return;
+                  }
                   const dist = Math.sqrt(
                     Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)
                   );
