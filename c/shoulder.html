@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Right Shoulder Recovery • Simple Phase Guide & Tracker</title>
+<meta name="description" content="A simple, mobile-first, single-page app for right-shoulder recovery. Clear phase rules, minimal tasks, embedded videos, and local tracking.">
+<!-- React via UNPKG + Babel for single-file JSX -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root{
+    --bg:#0b0f14; --card:#11161d; --ink:#f5f7fa; --muted:#b9c2cf; --line:#223042;
+    --brand:#39d2c4; --brand-2:#8fe7df; --ok:#43d17a; --warn:#ffb020; --danger:#ff6b6b;
+    --shadow:0 10px 30px rgba(0,0,0,.35); --radius:14px; --radius-sm:10px;
+    --space:clamp(14px,3.4vw,20px); --space-sm:clamp(8px,2.2vw,12px); --space-lg:clamp(18px,4.2vw,26px);
+    --maxw:860px; --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f7fafc; --card:#ffffff; --ink:#0b1220; --muted:#465266; --line:#e6edf3; --shadow:0 10px 24px rgba(0,0,0,.08); }
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--ink); font:16px/1.45 var(--font); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale}
+  a{color:var(--brand); text-decoration:none}
+  a:focus,button:focus,input:focus,textarea:focus{outline:2px solid var(--brand-2); outline-offset:3px; border-radius:8px}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:calc(env(safe-area-inset-top)+64px) var(--space) var(--space-lg)}
+  header.sticky{
+    position:fixed; inset:0 0 auto 0; height:56px; display:flex; align-items:center; gap:10px;
+    padding:8px var(--space); border-bottom:1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter:saturate(140%) blur(10px); z-index:999
+  }
+  .brand{font-weight:700}
+  .bar{flex:1; height:10px; border:1px solid var(--line); border-radius:999px; overflow:hidden; background:linear-gradient(90deg,#1a2330,#15202a)}
+  .bar>i{display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--brand),var(--brand-2)); transition:width .25s}
+  .kpi{font-size:.85rem; color:var(--muted)}
+  .stack{display:grid; gap:var(--space)}
+  section{scroll-margin-top:84px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:var(--space); display:grid; gap:var(--space-sm)}
+  .card h2,.card h3{margin:0}
+  .card h2{font-size:clamp(20px,4.5vw,26px)}
+  .card h3{font-size:clamp(18px,4.2vw,22px)}
+  .sub{color:var(--muted); margin-top:-4px}
+  .toc{display:flex; flex-wrap:wrap; gap:10px}
+  .toc a{border:1px solid var(--line); background:var(--card); padding:10px 12px; border-radius:999px}
+  .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .hint{color:var(--muted); font-size:.95rem}
+  .badge{font-size:.8rem; padding:4px 8px; border:1px solid var(--line); border-radius:999px; color:var(--muted)}
+  .btn{appearance:none; border:1px solid var(--line); background:linear-gradient(180deg,#1a202c,#141a24); color:var(--ink); padding:10px 12px; border-radius:10px; font-weight:600}
+  .btn.small{padding:8px 10px; border-radius:9px}
+  .btn.secondary{background:var(--card)}
+  .btn.danger{border-color:color-mix(in srgb, var(--danger) 55%, var(--line)); background:linear-gradient(180deg,#311919,#241112); color:#ffdede}
+  .pill{display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--line); border-radius:999px; background:var(--card)}
+  .field{display:grid; gap:6px}
+  input,select,textarea{width:100%; padding:12px; border:1px solid var(--line); border-radius:12px; background:transparent; color:var(--ink)}
+  input[type="range"]{padding:0}
+  iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:12px}
+  .exercise{display:grid; gap:10px; border:1px dashed var(--line); border-radius:12px; padding:14px; background:color-mix(in srgb, var(--card) 92%, transparent)}
+  .exercise .title{display:flex; justify-content:space-between; gap:10px; align-items:center}
+  .progressline{height:8px; border-radius:6px; background:#1b2533; border:1px solid var(--line); overflow:hidden}
+  .progressline>i{display:block; height:100%; width:0; background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .sets{display:flex; gap:8px; flex-wrap:wrap}
+  .setbox{display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid var(--line); background:linear-gradient(180deg,#16202a,#10151d); font-weight:700; user-select:none; cursor:pointer}
+  .setbox[aria-checked="true"]{background:linear-gradient(180deg,#0f2f29,#0d2622); color:#c9fff7; border-color: color-mix(in srgb, var(--brand) 60%, var(--line)); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--brand) 35%, transparent)}
+  .sessionCtr{display:flex; align-items:center; gap:10px}
+  .sessionCtr .count{min-width:56px; text-align:center; font-weight:700}
+  .fine{font-size:.9rem; color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="sticky">
+  <div class="brand">Right Shoulder Recovery</div>
+  <div class="bar"><i id="hdrProgress" style="width:0%"></i></div>
+  <div class="kpi" id="hdrKpi">0/0</div>
+</header>
+
+<main class="wrap">
+  <div id="app" class="stack" role="main" aria-live="polite"></div>
+</main>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+
+/* -------------------- PROGRAM DESIGN -------------------- */
+/*
+  SIMPLIFIED, CLEAR PHASES
+  - Phase 0: Flare Control (<= 3 tasks, sessions/day tracking)
+  - Phase 1: Mobility (<= 3 tasks, sessions/day tracking, continues in later phases)
+  - Phase 2: Strength (<= 3 tasks, sets tracking on Strength Days, continues in Phase 3)
+  - Phase 3: Functional Loading (carry exposure + light press on Strength Days)
+*/
+
+/* Small, stable YouTube embeds with nocookie domain.
+   Each has a fallback search link if an embed ever fails on your device. */
+const YT = id => `https://www.youtube-nocookie.com/embed/${id}`;
+const SEARCH = q => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+
+const STORAGE_KEY = "rsr_app_state_v3";
+
+const PROGRAM = [
+  {
+    id: 0, slug:'phase-0', name:'Phase 0 — Flare Control (3–7 days)',
+    whenToStart: [
+      'Pain during activity ≥4/10, recent flare, or overhead reach is sharply uncomfortable.',
+    ],
+    whatToDo: 'Short, calm sessions. Avoid fast/jerky moves and loaded internal rotation. Keep overhead work ≤90°.',
+    advanceWhen: [
+      'For 2–3 days in a row: exercise pain ≤3/10 and next‑day pain is back to baseline.',
+      'Raising to about shoulder height (≈90°) feels acceptable.',
+    ],
+    overlap: 'Once you move on, you may still use these isometrics as “pain‑gate” relief if something flares.',
+    tasks: [
+      { id:'p0-iso-pair', kind:'sessions', target:2, title:'Isometric pair (IR + ER)', note:'30–45s each, gentle pressure (no movement).', video:YT('lB2fnJzqEqM'), search:SEARCH('shoulder internal rotation isometric with towel') },
+      { id:'p0-pendulums', kind:'sessions', target:2, title:'Pendulums (Codman)', note:'Relax shoulder; small smooth circles, 30–60s.', video:YT('QF_ubbr_RUE'), search:SEARCH('shoulder pendulum exercise codman') },
+      { id:'p0-wall', kind:'sessions', target:1, title:'Wall / table slide (to comfort ≤90°)', note:'10 slow reps; keep it easy.', video:YT('4QqcbCjnnlw'), search:SEARCH('shoulder wall slide flexion towel') },
+    ],
+    carryover:false, // Phase 0 does not count toward daily totals once you leave it (use only as needed)
+  },
+  {
+    id: 1, slug:'phase-1', name:'Phase 1 — Mobility (Daily, continue throughout)',
+    whenToStart: [
+      'You’ve met the Phase 0 advance rules (above).',
+    ],
+    whatToDo: 'Gentle mobility to give the shoulder room. No sharp top‑of‑shoulder pinch.',
+    advanceWhen: [
+      'Mobility feels smooth with minimal next‑day increase.',
+      'You can perform scaption to ~90° with a slow, controlled lower (no >3/10 pain).',
+    ],
+    overlap: 'Keep Phase 1 mobility going during Phases 2–3 (it’s your base).',
+    tasks: [
+      { id:'p1-tspine', kind:'sessions', target:1, title:'Thoracic extension (over towel/roller)', note:'5 slow reps at 2–3 spots.', video:YT('csjTuWpZA10'), search:SEARCH('thoracic extension foam roller exercise') },
+      { id:'p1-pec', kind:'sessions', target:1, title:'Doorway pec stretch (elbow below shoulder)', note:'3×30s, gentle.', video:YT('XSvYPcRlvFI'), search:SEARCH('doorway pec stretch proper form') },
+      { id:'p1-lat', kind:'sessions', target:1, title:'Lat “prayer” stretch (bench/counter)', note:'3×30s; ribs down; breathe.', video:YT('mPiJ53F_kIU'), search:SEARCH('lat prayer stretch bench counter') },
+    ],
+    carryover:true, // Phase 1 tasks stay in your daily plan even in later phases
+  },
+  {
+    id: 2, slug:'phase-2', name:'Phase 2 — Strength (3 days/week, “Strength Day”)',
+    whenToStart: [
+      'Phase 1 is comfortable and next‑day pain stays ≤3/10.',
+      'Can lift to ~90° with only mild discomfort.',
+    ],
+    whatToDo: 'On Strength Days only (about Mon/Wed/Fri), do the 3 moves below. Keep pain ≤3/10 and return to baseline next day.',
+    advanceWhen: [
+      'You can do each move below at your chosen light load: Row 3×12, ER 3×12, Scaption 3×10–12 without next‑day increase.',
+      'Overhead to ~120° feels okay (no pinch).',
+    ],
+    overlap: 'Keep Phase 1 mobility on most days. Phase 0 isometrics are optional anytime for pain relief.',
+    tasks: [
+      { id:'p2-row', kind:'sets', target:3, title:'Row (band or chest‑supported)', note:'3×12 smooth reps.', video:YT('ZIAQvUA_wbs'), search:SEARCH('resistance band row seated') },
+      { id:'p2-er', kind:'sets', target:3, title:'Sidelying external rotation', note:'3×12 with 1–2s pause.', video:YT('YzL3koB1mE4'), search:SEARCH('sidelying external rotation dumbbell towel elbow') },
+      { id:'p2-scaption', kind:'sets', target:3, title:'Scaption (full‑can) to ~90°', note:'3×10–12, slow lowers.', video:YT('WV3qHhypasc'), search:SEARCH('scaption full can thumbs up 90 degrees') },
+    ],
+    carryover:true, // Keep doing these in Phase 3 (2–3 days/week)
+  },
+  {
+    id: 3, slug:'phase-3', name:'Phase 3 — Functional Loading (2–3 days/week)',
+    whenToStart: [
+      'Phase 2 strength feels steady for ~2 weeks with calm next‑day pain.',
+      'Reaching to ~120° is acceptable without pinch.',
+    ],
+    whatToDo: 'Now add graded carry/press on your Strength Days. If you don’t need to carry in real life, you may skip carry training.',
+    advanceWhen: [
+      'You can complete carry sessions with calm next‑day pain (≤3/10) while slowly increasing weight or distance by ≤10%/week.',
+    ],
+    overlap: 'Keep Phase 1 mobility and Phase 2 strength (at least 2×/week) while you ramp carries.',
+    tasks: [
+      { id:'p3-carry', kind:'sessions', target:1, title:'Carry exposure (choose Farmer’s or Suitcase)', note:'Start very light; keep weights close; switch hands often.', video:YT('vW81EITekU0'), search:SEARCH('farmer carry technique') , meta:[
+        {key:'weight', label:'Weight (lb per hand or bag)'}, {key:'distance', label:'Distance (m)'}
+      ]},
+      { id:'p3-press', kind:'sets', target:2, title:'Banded press in scapular plane (~90°)', note:'2×10 smooth reps.', video:YT('s4BCCOF08JI'), search:SEARCH('banded shoulder press scapular plane to 90 degrees') },
+    ],
+    carryover:true
+  }
+];
+
+/* -------------------- STORAGE -------------------- */
+const todayStr = () => {
+  const d = new Date(); const tz = d.getTimezoneOffset()*60000;
+  return new Date(Date.now()-tz).toISOString().slice(0,10);
+};
+const loadState = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; } };
+const saveState = (s) => localStorage.setItem(STORAGE_KEY, JSON.stringify(s, null, 2));
+const supportsLocal = (()=>{ try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); return true; } catch { return false; } })();
+
+/* -------------------- APP -------------------- */
+function App(){
+  const [date, setDate] = useState(()=>loadState().date || todayStr());
+  const [phase, setPhase] = useState(()=>loadState().phase ?? 0);
+  const [isStrengthDay, setIsStrengthDay] = useState(()=>loadState().isStrengthDay ?? false);
+  const [data, setData] = useState(()=>loadState().data || {}); // { [date]: { painDuring, painNext, notes, sessions:{}, sets:{}, meta:{}, isStrengthDay } }
+
+  // persist
+  useEffect(()=>{ saveState({ date, phase, isStrengthDay, data }); }, [date, phase, isStrengthDay, data]);
+  useEffect(()=>{
+    // hydrate per-day flag into state object so it syncs if date changes
+    const d = data[date] || {};
+    if(typeof d.isStrengthDay === 'boolean') setIsStrengthDay(d.isStrengthDay);
+  }, [date]);
+
+  const ensureToday = () => {
+    setData(prev=>{
+      const next = {...prev};
+      if(!next[date]) next[date] = { painDuring:0, painNext:0, notes:'', sessions:{}, sets:{}, meta:{}, isStrengthDay:false };
+      return next;
+    });
+  };
+  useEffect(ensureToday, [date]);
+
+  // helpers to include tasks based on rules
+  function includedTasks(){
+    const out = [];
+    PROGRAM.forEach(p=>{
+      if(p.id > phase) return; // never show future phases’ tasks in totals/progress
+      const includeThisPhase =
+        (p.id === phase) || (p.carryover && p.id < phase);
+      if(!includeThisPhase) return;
+
+      p.tasks.forEach(t=>{
+        const isStrength = t.kind === 'sets' || t.id.startsWith('p3-'); // p3-carry is a session but on Strength Days
+        const needsStrengthDay = (p.id >= 2) && isStrength; // phases 2–3 strength content only on strength days
+        if(needsStrengthDay && !isStrengthDay) return;
+        // Phase 0 only counts while you’re in Phase 0
+        if(p.id === 0 && phase !== 0) return;
+
+        out.push({ ...t, phaseId: p.id, phaseName: p.name });
+      });
+    });
+    return out;
+  }
+
+  const tasksToday = useMemo(includedTasks, [phase, isStrengthDay, date, data]);
+
+  // progress calculation
+  const day = data[date] || {};
+  const sessions = day.sessions || {};
+  const sets = day.sets || {};
+  const totals = useMemo(()=>{
+    let total=0, done=0;
+    tasksToday.forEach(t=>{
+      if(t.kind === 'sessions'){
+        total += t.target;
+        done += Math.min(t.target, sessions[t.id] || 0);
+      }else if(t.kind === 'sets'){
+        total += t.target;
+        const arr = sets[t.id] || [];
+        done += arr.filter(Boolean).length;
+      }
+    });
+    return { total, done };
+  }, [tasksToday, sessions, sets]);
+
+  useEffect(()=>{
+    const bar = document.getElementById('hdrProgress');
+    const kpi = document.getElementById('hdrKpi');
+    const pct = totals.total ? Math.round((totals.done/totals.total)*100) : 0;
+    if(bar) bar.style.width = pct + '%';
+    if(kpi) kpi.textContent = `${totals.done}/${totals.total}`;
+  }, [totals]);
+
+  // updaters
+  const setSession = (id, val) => {
+    setData(prev=>{
+      const next = {...prev}; next[date] ||= { painDuring:0, painNext:0, notes:'', sessions:{}, sets:{}, meta:{}, isStrengthDay };
+      next[date].sessions[id] = Math.max(0, val);
+      return next;
+    });
+  };
+  const toggleSet = (id, idx, target) => {
+    setData(prev=>{
+      const next = {...prev}; next[date] ||= { painDuring:0, painNext:0, notes:'', sessions:{}, sets:{}, meta:{}, isStrengthDay };
+      const arr = (next[date].sets[id] || Array.from({length:target}, ()=>false)).slice(0,target);
+      arr[idx] = !arr[idx];
+      next[date].sets[id] = arr;
+      return next;
+    });
+  };
+  const markAllSets = (id, target, value) => {
+    setData(prev=>{
+      const next = {...prev}; next[date] ||= { painDuring:0, painNext:0, notes:'', sessions:{}, sets:{}, meta:{}, isStrengthDay };
+      next[date].sets[id] = Array.from({length:target}, ()=>!!value);
+      return next;
+    });
+  };
+  const setMeta = (id, key, value) => {
+    setData(prev=>{
+      const next = {...prev}; next[date] ||= { painDuring:0, painNext:0, notes:'', sessions:{}, sets:{}, meta:{}, isStrengthDay };
+      next[date].meta[id] = { ...(next[date].meta[id]||{}), [key]: value };
+      return next;
+    });
+  };
+  const setPain = (field, val) => {
+    setData(prev=>{
+      const next = {...prev}; next[date] ||= { painDuring:0, painNext:0, notes:'', sessions:{}, sets:{}, meta:{}, isStrengthDay };
+      next[date][field] = Math.max(0, Math.min(10, Number(val)));
+      return next;
+    });
+  };
+  const setNotes = (txt) => {
+    setData(prev=>{
+      const next = {...prev}; next[date] ||= { painDuring:0, painNext:0, notes:'', sessions:{}, sets:{}, meta:{}, isStrengthDay };
+      next[date].notes = String(txt).slice(0,2000);
+      return next;
+    });
+  };
+  const toggleStrengthDay = () => {
+    setIsStrengthDay(v=>{
+      const nv = !v;
+      setData(prev=>({ ...prev, [date]: { ...(prev[date]||{ painDuring:0, painNext:0, notes:'', sessions:{}, sets:{}, meta:{} }), isStrengthDay: nv } }));
+      return nv;
+    });
+  };
+
+  const resetToday = () => {
+    if(confirm("Clear today’s progress, pain, and notes?")){
+      setData(prev=>({ ...prev, [date]: { painDuring:0, painNext:0, notes:'', sessions:{}, sets:{}, meta:{}, isStrengthDay:false } }));
+      setIsStrengthDay(false);
+    }
+  };
+  const resetAll = () => {
+    if(confirm("Erase ALL saved data?")){
+      setPhase(0); setIsStrengthDay(false); setData({}); setDate(todayStr());
+      saveState({ date: todayStr(), phase:0, isStrengthDay:false, data:{} });
+    }
+  };
+  const exportJson = () => {
+    const blob = new Blob([JSON.stringify({ date, phase, isStrengthDay, data }, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href = url; a.download='shoulder_recovery_backup.json'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  };
+  const importJson = (file) => {
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const parsed = JSON.parse(reader.result);
+        setDate(parsed.date || todayStr());
+        setPhase(Number.isInteger(parsed.phase) ? parsed.phase : 0);
+        setIsStrengthDay(!!parsed.isStrengthDay);
+        setData(parsed.data || {});
+        alert('Import successful.');
+      }catch(e){ alert('Import failed: ' + e.message); }
+    };
+    reader.readAsText(file);
+  };
+
+  const canAdvance = phase < 3;
+  const nextPhaseName = phase < 3 ? PROGRAM[phase+1].name : null;
+  const advancePhase = () => { if(canAdvance){ setPhase(p=>p+1); window.scrollTo({top:0, behavior:'smooth'}); } };
+
+  /* -------------------- RENDER -------------------- */
+  return (
+    <div className="stack">
+      {!supportsLocal && (
+        <section className="card">
+          <h2>Heads up: local storage unavailable</h2>
+          <p className="sub">Your browser blocked localStorage (private mode?). Progress won’t be saved between visits.</p>
+        </section>
+      )}
+
+      <section className="card" id="overview">
+        <h2>How to use this program</h2>
+        <p className="sub">Simple, phase‑based recovery for your <b>right</b> shoulder. You’ll never have more than <b>3 core tasks</b> in a phase.</p>
+        <ol>
+          <li><b>Pick your current phase</b> (below). See the “Start / Advance / Overlap” rules in each phase.</li>
+          <li><b>Daily tracker</b>: mark sessions (e.g., 0/2) and sets as you do them. Keep pain ≤3/10 and back to baseline by next day.</li>
+          <li><b>Strength Days</b> (Phase 2–3): toggle “Strength Day” on days you lift. Those tasks appear only on Strength Days.</li>
+        </ol>
+        <div className="toc">
+          <a href="#setup">Today’s Setup</a>
+          <a href="#log">Pain & Notes</a>
+          <a href="#phase-0">Phase 0</a>
+          <a href="#phase-1">Phase 1</a>
+          <a href="#phase-2">Phase 2</a>
+          <a href="#phase-3">Phase 3</a>
+          <a href="#safety">Safety</a>
+        </div>
+      </section>
+
+      <section className="card" id="setup">
+        <h2>Today’s Setup</h2>
+        <div className="row">
+          <div className="pill"><span>Date</span><input type="date" value={date} onChange={e=>setDate(e.target.value)}/></div>
+          <div className="pill"><span>Phase</span>
+            <select value={phase} onChange={e=>setPhase(Number(e.target.value))}>
+              {PROGRAM.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          {phase>=2 && (
+            <button className="btn small" onClick={toggleStrengthDay}>
+              {isStrengthDay ? 'Strength Day: ON' : 'Strength Day: OFF'}
+            </button>
+          )}
+          <div className="pill"><span>Progress</span> <b id="hdrKpiLocal">{totals.done}/{totals.total}</b></div>
+        </div>
+        <div className="row">
+          <button className="btn small secondary" onClick={exportJson}>Export</button>
+          <label className="btn small secondary" style={{cursor:'pointer'}}>
+            Import <input type="file" accept="application/json" hidden onChange={e=>importJson(e.target.files[0])}/>
+          </label>
+          <button className="btn small secondary" onClick={resetToday}>Reset today</button>
+          <button className="btn small danger" onClick={resetAll}>Reset all</button>
+          {canAdvance && <button className="btn small" onClick={advancePhase}>Advance to: {nextPhaseName}</button>}
+        </div>
+        <p className="hint">Pain rules: keep ≤3/10 during; back to baseline next day. If not, scale next session by 30–50% (load or range) and move slower.</p>
+      </section>
+
+      <section className="card" id="log">
+        <h2>Pain & Notes (today)</h2>
+        <div className="row" style={{gap:'12px', flexWrap:'wrap'}}>
+          <div className="field" style={{minWidth:'220px', flex:'1 1 220px'}}>
+            <label>During exercise (0–10)</label>
+            <input type="range" min="0" max="10" step="1" value={(day.painDuring??0)} onChange={e=>setPain('painDuring', e.target.value)} />
+          </div>
+          <div className="field" style={{minWidth:'220px', flex:'1 1 220px'}}>
+            <label>Next‑day (0–10)</label>
+            <input type="range" min="0" max="10" step="1" value={(day.painNext??0)} onChange={e=>setPain('painNext', e.target.value)} />
+          </div>
+        </div>
+        <div className="field">
+          <label>Notes</label>
+          <textarea rows="4" placeholder="e.g., 10 lb suitcase felt fine; lowering from 90° smoother; slept better with pillow under arm." value={day.notes || ''} onChange={e=>setNotes(e.target.value)} />
+        </div>
+      </section>
+
+      {PROGRAM.map(p => (
+        <PhaseSection key={p.id}
+          phaseObj={p}
+          currentPhase={phase}
+          isStrengthDay={isStrengthDay}
+          day={day}
+          data={data}
+          tasksToday={tasksToday}
+          setSession={setSession}
+          toggleSet={toggleSet}
+          markAllSets={markAllSets}
+          setMeta={setMeta}
+        />
+      ))}
+
+      <section className="card" id="safety">
+        <h2>Safety & When to get help</h2>
+        <ul>
+          <li>Sudden “pop,” deformity, or you can’t lift the arm.</li>
+          <li>Numbness/tingling, progressive weakness, or neck pain shooting past the elbow.</li>
+          <li>Night pain that doesn’t improve in 2–3 weeks, steadily shrinking range, or no progress after ~6 weeks following the rules.</li>
+        </ul>
+        <p className="fine">This app supports a common pattern (subacromial shoulder pain / rotator‑cuff overload) but isn’t a substitute for a clinical exam.</p>
+      </section>
+    </div>
+  );
+}
+
+function PhaseSection({ phaseObj, currentPhase, isStrengthDay, day, tasksToday, setSession, toggleSet, markAllSets, setMeta }){
+  const visible = phaseObj.id <= currentPhase; // show all up to and including current phase (for orientation), but totals only include carryover rules
+  if(!visible) return null;
+
+  return (
+    <section className="card" id={phaseObj.slug} style={{borderColor: phaseObj.id===currentPhase ? 'var(--brand)' : 'var(--line)'}}>
+      <h2>{phaseObj.name}</h2>
+      <p className="sub"><b>Start if:</b> {phaseObj.whenToStart.join(' ')}</p>
+      <p className="sub"><b>Do this:</b> {phaseObj.whatToDo}</p>
+      <p className="sub"><b>Advance when:</b> {phaseObj.advanceWhen.join(' ')}</p>
+      <p className="hint"><b>Overlap:</b> {phaseObj.overlap}</p>
+
+      {/* Tasks */}
+      {phaseObj.id>=2 && (phaseObj.tasks.some(t=>t.kind==='sets' || t.id==='p3-carry')) ? (
+        <p className="hint">{isStrengthDay ? 'Strength Day ON — do the block below.' : 'Not a Strength Day — skip these today.'}</p>
+      ) : null}
+
+      <div className="stack">
+        {phaseObj.tasks.map(t => {
+          // should this task appear today? (progress bar already filtered; here we show all with gentle hint)
+          const included = tasksToday.find(x=>x.id===t.id);
+          const dim = !included;
+          return (
+            <ExerciseCard key={t.id}
+              ex={t}
+              dim={!included}
+              day={day}
+              setSession={setSession}
+              toggleSet={toggleSet}
+              markAllSets={markAllSets}
+              setMeta={setMeta}
+            />
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ExerciseCard({ ex, dim, day, setSession, toggleSet, markAllSets, setMeta }){
+  const sessions = (day.sessions||{})[ex.id] || 0;
+  const setsArr = (day.sets||{})[ex.id] || Array.from({length:ex.target||0}, ()=>false);
+  const meta = (day.meta||{})[ex.id] || {};
+
+  const header = (
+    <div className="title">
+      <div>
+        <h3 style={{opacity: dim? .65:1}}>{ex.title}</h3>
+        <div className="hint">{ex.note}</div>
+      </div>
+      <div style={{minWidth:88, textAlign:'right'}}>
+        <div className="kpi">
+          {ex.kind==='sessions' ? `${Math.min(sessions, ex.target)}/${ex.target}` : `${setsArr.filter(Boolean).length}/${ex.target}`}
+        </div>
+        <div className="progressline" aria-hidden="true">
+          <i style={{width: (()=> {
+            const done = ex.kind==='sessions' ? Math.min(sessions, ex.target) : setsArr.filter(Boolean).length;
+            return ex.target ? `${Math.round(done/ex.target*100)}%` : '0%';
+          })()}}/>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="exercise" style={{opacity: dim? .6:1}}>
+      {header}
+
+      {ex.video && (
+        <>
+          <iframe loading="lazy" src={ex.video} title={`${ex.title} video`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
+          <p className="fine">If the video won’t load on your device, <a href={ex.search} target="_blank" rel="noreferrer noopener">tap to search this move on YouTube</a>.</p>
+        </>
+      )}
+
+      {ex.kind==='sessions' && (
+        <div className="row sessionCtr">
+          <button className="btn small secondary" onClick={()=>setSession(ex.id, Math.max(0, sessions-1))}>−</button>
+          <div className="count">{Math.min(sessions, ex.target)} / {ex.target}</div>
+          <button className="btn small" onClick={()=>setSession(ex.id, Math.min(ex.target, sessions+1))}>+</button>
+        </div>
+      )}
+
+      {ex.kind==='sets' && (
+        <>
+          <div className="sets" role="group" aria-label={`${ex.title} sets`}>
+            {Array.from({length: ex.target}).map((_,i)=>(
+              <div key={i} className="setbox" role="checkbox" aria-checked={!!setsArr[i]} tabIndex={0}
+                onClick={()=>toggleSet(ex.id, i, ex.target)}
+                onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleSet(ex.id, i, ex.target); } }}>
+                {i+1}
+              </div>
+            ))}
+          </div>
+          <div className="row">
+            <button className="btn small secondary" onClick={()=>markAllSets(ex.id, ex.target, false)}>Clear</button>
+            <button className="btn small" onClick={()=>markAllSets(ex.id, ex.target, true)}>Mark all done</button>
+          </div>
+        </>
+      )}
+
+      {Array.isArray(ex.meta) && ex.meta.length>0 && (
+        <div className="row" style={{gap:'10px', flexWrap:'wrap'}}>
+          {ex.meta.map(f=>(
+            <div className="field" key={f.key} style={{minWidth:'180px', flex:'1 1 180px'}}>
+              <label>{f.label}</label>
+              <input type="number" inputMode="decimal" value={meta[f.key] ?? ''} placeholder="e.g., 8" onChange={e=>setMeta(ex.id, f.key, e.target.value)} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* --------- MOUNT --------- */
+ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+</script>
+</body>
+</html>
