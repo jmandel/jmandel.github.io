@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta
+  http-equiv="Content-Security-Policy"
+  content="default-src 'self' blob: data: https://unpkg.com http://* https://*; connect-src http://* https://* blob: data:; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline';"
+/>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AIR‑1 Logger (SSE → IndexedDB + Charts + CSV + Sheets)</title>
+
+<!-- React / ReactDOM from UNPKG -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+<!-- Dexie (IndexedDB wrapper) -->
+<script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+
+<!-- Chart.js and date adapter -->
+<script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="https://unpkg.com/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.umd.js"></script>
+
+<style>
+  :root {
+    --bg: #0b0f14;
+    --panel: #121821;
+    --muted: #8aa0b4;
+    --accent: #39b26b;
+    --accent-2: #4da3ff;
+    --warn: #ffcc66;
+    --danger: #ff7a7a;
+    --txt: #e6edf3;
+    --grid: rgba(138,160,180,0.2);
+  }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--txt); font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu; }
+  .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+  h1 { font-size: 20px; margin: 0 0 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .panel { background: var(--panel); border-radius: 10px; padding: 12px 14px; }
+  .stack { display: grid; gap: 8px; }
+  input[type="text"], input[type="url"], input[type="number"], select, textarea {
+    background: #0f1520; color: var(--txt); border: 1px solid #223145; border-radius: 8px; padding: 8px 10px;
+  }
+  button {
+    background: var(--accent); color: #04130a; border: none; border-radius: 8px; padding: 8px 12px; font-weight: 600; cursor: pointer;
+  }
+  button.secondary { background: #253347; color: var(--txt); }
+  button.warn { background: var(--warn); color: #211a00; }
+  button.danger { background: var(--danger); color: #2d0000; }
+  .stat { display: grid; gap: 4px; }
+  .stat .k { font-size: 12px; color: var(--muted); }
+  .stat .v { font-size: 16px; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+  @media (max-width: 920px) { .grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: #1a2330; color: var(--txt); border: 1px solid #2a3b53; border-radius: 20px; padding: 6px 10px; cursor: pointer; }
+  .chip.active { border-color: var(--accent-2); box-shadow: inset 0 0 0 1px var(--accent-2); }
+  .muted { color: var(--muted); }
+  .hr { height: 1px; background: #1a2330; margin: 8px 0; }
+  canvas { background: #0a0f16; border-radius: 8px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  .logs { max-height: 240px; overflow: auto; background: #0c121a; border: 1px solid #1a2330; border-radius: 8px; padding: 8px; }
+</style>
+</head>
+<body>
+<div id="app" class="wrap"></div>
+
+<script>
+(() => {
+  const { useEffect, useMemo, useRef, useState } = React;
+
+  // ---------- Dexie setup ----------
+  const db = new Dexie("air1-logger");
+  db.version(1).stores({
+    readings: "++id, ts, sensorId, value", // {id, ts(ms), sensorId, value, state}
+    logs:     "++id, ts",                  // {id, ts, level?, message}
+    kv:       "key"                        // misc settings/state
+  });
+
+  async function ensurePersistentStorage() {
+    if (!navigator.storage || !navigator.storage.persist) return { persisted: false, quota: 0, usage: 0 };
+    const persisted = await navigator.storage.persist();
+    const est = await navigator.storage.estimate();
+    return { persisted, quota: est.quota || 0, usage: est.usage || 0 };
+  }
+
+  function humanBytes(n) {
+    if (!n) return "0 B";
+    const u = ["B","KB","MB","GB","TB"];
+    const e = Math.floor(Math.log(n)/Math.log(1024));
+    return (n / Math.pow(1024, e)).toFixed(2) + " " + u[e];
+  }
+
+  // ---------- CSV export ----------
+  async function exportCSV() {
+    const parts = ["ts_ms,sensor_id,value,state"];
+    await db.readings.orderBy("id").each(row => {
+      const state = (row.state ?? "").toString().replace(/"/g,'""');
+      parts.push(`${row.ts},${row.sensorId},${row.value},\"${state}\"`);
+    });
+    const blob = new Blob([parts.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const now = new Date();
+    a.href = url;
+    a.download = `air1_log_${now.toISOString().replace(/[:.]/g,"-")}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // ---------- Google Sheets streaming (optional) ----------
+  // Provide an Apps Script "web app" URL that accepts JSON POST {ts, sensorId, value, state}
+  // See instructions below in the UI (Settings panel).
+  const makeSheetsSender = (endpoint) => {
+    // batch by timer to reduce requests
+    const queue = [];
+    let timer = null;
+    async function flush() {
+      const batch = queue.splice(0, queue.length);
+      if (batch.length === 0) return;
+      try {
+        await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(batch)
+        });
+      } catch (e) {
+        console.warn("Sheets push failed", e);
+      }
+    }
+    return {
+      enqueue: (row) => {
+        queue.push(row);
+        if (!timer) timer = setInterval(flush, 2000);
+      },
+      stop: () => { if (timer) clearInterval(timer); timer = null; }
+    };
+  };
+
+  // ---------- Chart component ----------
+  function TimeSeriesChart({ seriesMap, sinceMs }) {
+    const canvasRef = useRef(null);
+    const chartRef = useRef(null);
+
+    // Build Chart.js datasets
+    const datasets = useMemo(() => {
+      const palette = {};
+      const pick = (k) => {
+        // Deterministic but distinct-ish hues
+        let h = 0;
+        for (let i=0; i<k.length; i++) h = (h * 33 + k.charCodeAt(i)) % 360;
+        return `hsl(${h} 70% 55%)`;
+      };
+      return Object.entries(seriesMap).map(([sensorId, points]) => {
+        if (!palette[sensorId]) palette[sensorId] = pick(sensorId);
+        return {
+          label: sensorId.replace(/^sensor-/, ""),
+          data: points.filter(p => p.x >= sinceMs),
+          parsing: false, // x/y already set
+          borderWidth: 1.5,
+        };
+      });
+    }, [seriesMap, sinceMs]);
+
+    useEffect(() => {
+      const ctx = canvasRef.current.getContext("2d");
+      const chart = new Chart(ctx, {
+        type: "line",
+        data: { datasets },
+        options: {
+          interaction: { mode: "nearest", intersect: false },
+          responsive: true,
+          animation: false,
+          scales: {
+            x: { type: "time", time: { tooltipFormat: "PPpp" }, grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--grid') } },
+            y: { beginAtZero: true, grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--grid') } }
+          },
+          plugins: {
+            legend: { labels: { color: "#cfe0f0" } },
+            tooltip: { mode: "index", intersect: false }
+          }
+        }
+      });
+      chartRef.current = chart;
+      return () => chart.destroy();
+    }, []);
+
+    useEffect(() => {
+      const chart = chartRef.current;
+      if (!chart) return;
+      chart.data.datasets = datasets;
+      chart.update("none");
+    }, [datasets]);
+
+    return <canvas ref={canvasRef} height="260"></canvas>;
+  }
+
+  // ---------- Main App ----------
+  function App() {
+    const [deviceURL, setDeviceURL] = useState("http://apollo-air-1-06c454.local");
+    const [status, setStatus] = useState("disconnected"); // disconnected | connecting | streaming | error
+    const [persistInfo, setPersistInfo] = useState({ persisted: false, quota: 0, usage: 0 });
+    const [retentionDays, setRetentionDays] = useState(90);
+    const [selected, setSelected] = useState(new Set(["sensor-pm__2_5_m_weight_concentration","sensor-co2","sensor-sen55_voc","sensor-sen55_nox","sensor-sen55_temperature","sensor-sen55_humidity"]));
+    const [knownSensors, setKnownSensors] = useState(new Set());
+    const [latest, setLatest] = useState({}); // sensorId -> {ts,value,state}
+    const [logLines, setLogLines] = useState([]); // last N lines
+    const [rowsInDb, setRowsInDb] = useState(0);
+    const [sheetsUrl, setSheetsUrl] = useState("");
+    const [sheetsOn, setSheetsOn] = useState(false);
+    const [hoursWindow, setHoursWindow] = useState(6);
+
+    const esRef = useRef(null);
+    const flushTimerRef = useRef(null);
+    const pending = useRef([]); // batch of reading rows to persist
+    const series = useRef({});  // in-memory timeseries for selected sensors
+    const sheetsSenderRef = useRef(null);
+
+    // Ask for persistent storage on load
+    useEffect(() => {
+      (async () => setPersistInfo(await ensurePersistentStorage()))();
+      // live counter
+      const t = setInterval(async () => {
+        const c = await db.readings.count();
+        setRowsInDb(c);
+        const est = await navigator.storage?.estimate?.() || {};
+        setPersistInfo(p => ({ ...p, usage: est.usage || p.usage, quota: est.quota || p.quota }));
+      }, 2000);
+      return () => clearInterval(t);
+    }, []);
+
+    // Periodic flush to IndexedDB (batch writes)
+    useEffect(() => {
+      function ensureTimer() {
+        if (flushTimerRef.current) return;
+        flushTimerRef.current = setInterval(async () => {
+          const batch = pending.current.splice(0, pending.current.length);
+          if (batch.length === 0) return;
+          try {
+            await db.transaction('rw', db.readings, db.logs, async () => {
+              const rs = batch.filter(b => b.kind === "reading").map(b => b.row);
+              const ls = batch.filter(b => b.kind === "log").map(b => b.row);
+              if (rs.length) await db.readings.bulkAdd(rs);
+              if (ls.length) await db.logs.bulkAdd(ls);
+            });
+          } catch (e) {
+            console.error("DB flush error", e);
+          }
+        }, 1000);
+      }
+      ensureTimer();
+      return () => { if (flushTimerRef.current) clearInterval(flushTimerRef.current); flushTimerRef.current = null; }
+    }, []);
+
+    // Retention policy - run every 60s
+    useEffect(() => {
+      const t = setInterval(async () => {
+        const cutoff = Date.now() - retentionDays * 24*3600*1000;
+        await db.readings.where('ts').below(cutoff).delete();
+      }, 60_000);
+      return () => clearInterval(t);
+    }, [retentionDays]);
+
+    // Build the series map for selected sensors (limited to the last N hours)
+    const sinceMs = Date.now() - hoursWindow * 3600 * 1000;
+    const seriesMap = useMemo(() => {
+      const m = {};
+      for (const id of selected) m[id] = (series.current[id] || []).filter(p => p.x >= sinceMs);
+      return m;
+    }, [selected, hoursWindow, latest]); // update when new data arrives (latest changes)
+
+    function toggleSensor(id) {
+      const ns = new Set(selected);
+      if (ns.has(id)) ns.delete(id); else ns.add(id);
+      setSelected(ns);
+    }
+
+    function prettyId(id) {
+      return id.replace(/^sensor-/, "")
+               .replace(/_weight_concentration$/, "")
+               .replace(/__/g, " ")
+               .replace(/_/g, " ")
+               .replace(/\bm\b/g, "µm")
+               .replace(/\bco2\b/i, "CO₂")
+               .trim();
+    }
+
+    function start() {
+      if (!deviceURL) return;
+      const url = deviceURL.replace(/\/$/, "") + "/events";
+      try {
+        setStatus("connecting");
+        const es = new EventSource(url);
+        esRef.current = es;
+
+        es.addEventListener("open", () => setStatus("streaming"));
+        es.addEventListener("error", (e) => {
+          console.warn("EventSource error", e);
+          setStatus("error");
+        });
+
+        es.addEventListener("ping", () => {
+          // heartbeat; nothing to store
+        });
+
+        es.addEventListener("log", (ev) => {
+          const ts = Date.now();
+          const text = ev.data;
+          pending.current.push({ kind: "log", row: { ts, message: text } });
+          setLogLines(lines => {
+            const next = [...lines, text];
+            if (next.length > 200) next.splice(0, next.length - 200);
+            return next;
+          });
+        });
+
+        es.addEventListener("state", (ev) => {
+          const ts = Date.now();
+          let payload = null;
+          try { payload = JSON.parse(ev.data); } catch {}
+          if (!payload || !payload.id) return;
+          const sensorId = payload.id;
+          const value = (typeof payload.value === "number") ? payload.value : NaN;
+          const state = (payload.state ?? "").toString();
+
+          // Track known sensors
+          setKnownSensors(s => new Set([...s, sensorId]));
+
+          // Update latest
+          setLatest(prev => ({ ...prev, [sensorId]: { ts, value, state } }));
+
+          // Append to in-memory series for selected sensors
+          if (!series.current[sensorId]) series.current[sensorId] = [];
+          series.current[sensorId].push({ x: ts, y: value });
+          // Keep each series trimmed to ~1e4 points
+          if (series.current[sensorId].length > 10000)
+            series.current[sensorId].splice(0, series.current[sensorId].length - 10000);
+
+          // Queue for IndexedDB
+          pending.current.push({ kind: "reading", row: { ts, sensorId, value, state } });
+
+          // Optional: stream to Google Sheets
+          if (sheetsOn && sheetsSenderRef.current) {
+            sheetsSenderRef.current.enqueue({ ts, sensorId, value, state });
+          }
+        });
+      } catch (e) {
+        console.error(e);
+        setStatus("error");
+      }
+    }
+
+    function stop() {
+      if (esRef.current) { esRef.current.close(); esRef.current = null; }
+      setStatus("disconnected");
+    }
+
+    async function clearDb() {
+      await db.transaction('rw', db.readings, db.logs, async () => {
+        await db.readings.clear();
+        await db.logs.clear();
+      });
+      setRowsInDb(0);
+      series.current = {};
+      setLatest({});
+      setLogLines([]);
+    }
+
+    function toggleSheets(on) {
+      setSheetsOn(on);
+      if (on && sheetsUrl) {
+        sheetsSenderRef.current = makeSheetsSender(sheetsUrl);
+      } else {
+        if (sheetsSenderRef.current) sheetsSenderRef.current.stop();
+        sheetsSenderRef.current = null;
+      }
+    }
+
+    return (
+      <div className="stack">
+        <h1>Apollo AIR‑1 — Local Logger & Dashboard</h1>
+
+        <div className="panel">
+          <div className="row">
+            <div className="stat">
+              <div className="k">Status</div>
+              <div className="v">{status === "streaming" ? "Streaming" : status.charAt(0).toUpperCase() + status.slice(1)}</div>
+            </div>
+            <div className="stat">
+              <div className="k">Persistent storage</div>
+              <div className="v">{persistInfo.persisted ? "✔ Granted" : "— Requesting…"}</div>
+            </div>
+            <div className="stat">
+              <div className="k">Usage / Quota</div>
+              <div className="v">{humanBytes(persistInfo.usage)} / {humanBytes(persistInfo.quota)}</div>
+            </div>
+            <div className="stat">
+              <div className="k">Rows (readings)</div>
+              <div className="v">{rowsInDb.toLocaleString()}</div>
+            </div>
+          </div>
+          <div className="hr"></div>
+          <div className="row">
+            <input type="url" style="min-width: 380px;" value={deviceURL} onChange={e=>setDeviceURL(e.target.value)} placeholder="http://apollo-air-1-xxxxxx.local" />
+            {status !== "streaming" ? (
+              <button onClick={start}>Start Logging</button>
+            ) : (
+              <button className="danger" onClick={stop}>Stop</button>
+            )}
+            <button className="secondary" onClick={exportCSV}>Download CSV</button>
+            <button className="warn" onClick={clearDb}>Clear DB</button>
+          </div>
+          <div className="row" style={{marginTop:8}}>
+            <label>Retention (days):&nbsp;
+              <input type="number" min="1" max="10000" value={retentionDays} onChange={e=>setRetentionDays(parseInt(e.target.value||"90",10))} />
+            </label>
+            <label style={{marginLeft:16}}>Chart window (hours):&nbsp;
+              <input type="number" min="1" max="720" value={hoursWindow} onChange={e=>setHoursWindow(parseInt(e.target.value||"6",10))} />
+            </label>
+          </div>
+        </div>
+
+        <div className="panel">
+          <div className="row" style={{justifyContent:'space-between', alignItems:'flex-start'}}>
+            <div className="stack" style={{flex: 1, minWidth: 280, marginRight: 12}}>
+              <div className="muted">Select sensors to chart (auto‑populates as data arrives)</div>
+              <div className="chips">
+                {[...knownSensors].sort().map(id => (
+                  <div key={id}
+                       className={"chip " + (selected.has(id) ? "active": "")}
+                       onClick={()=>toggleSensor(id)}>
+                    {prettyId(id)}
+                  </div>
+                ))}
+                {knownSensors.size === 0 && <div className="muted">Waiting for first states…</div>}
+              </div>
+              <div className="hr"></div>
+              <div className="grid">
+                {Object.entries(latest).slice(0,8).map(([id, r]) => (
+                  <div key={id} className="stat">
+                    <div className="k">{prettyId(id)}</div>
+                    <div className="v">{(r.state ?? r.value)?.toString()}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{flex: 2, minWidth: 320}}>
+              <TimeSeriesChart seriesMap={seriesMap} sinceMs={sinceMs}/>
+            </div>
+          </div>
+        </div>
+
+        <div className="panel">
+          <div className="row" style={{alignItems:'flex-start'}}>
+            <div className="stack" style={{flex:1}}>
+              <div className="muted" style={{marginBottom:4}}>Optional: stream every reading to Google Sheets</div>
+              <input type="url" placeholder="Apps Script Web App URL (POST JSON)" value={sheetsUrl} onChange={e=>setSheetsUrl(e.target.value)} />
+              <div className="row">
+                {!sheetsOn ? (
+                  <button className="secondary" onClick={()=>toggleSheets(true)} disabled={!sheetsUrl}>Enable Sheets Streaming</button>
+                ) : (
+                  <button className="danger" onClick={()=>toggleSheets(false)}>Disable Sheets Streaming</button>
+                )}
+              </div>
+              <div className="muted" style={{marginTop:6}}>
+                <details>
+                  <summary class="muted">How to create the endpoint</summary>
+                  <ol>
+                    <li>In Google Drive → <b>New → Google Apps Script</b>.</li>
+                    <li>Paste this code and change <code>SHEET_ID</code> & sheet name:</li>
+                  </ol>
+<pre class="mono" style="white-space:pre-wrap;background:#0c121a;border:1px solid #1a2330;border-radius:8px;padding:8px;">
+/** Web App to append JSON batch to a Google Sheet */
+const SHEET_ID = "PASTE_SHEET_ID";
+const SHEET_NAME = "Sheet1";
+
+function doPost(e) {
+  const data = JSON.parse(e.postData.contents); // [{ts,sensorId,value,state},...]
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sh = ss.getSheetByName(SHEET_NAME) || ss.getSheets()[0];
+  if (sh.getLastRow() === 0) sh.appendRow(["ts_ms","sensor_id","value","state"]);
+  const rows = data.map(r => [r.ts, r.sensorId, r.value, r.state]);
+  sh.getRange(sh.getLastRow()+1, 1, rows.length, rows[0].length).setValues(rows);
+  return ContentService.createTextOutput("ok").setMimeType(ContentService.MimeType.TEXT);
+}
+</pre>
+                  <ol start="3">
+                    <li>Deploy → <b>New deployment</b> → type <b>Web app</b> → Execute as <i>Me</i>, Who has access: <i>Anyone with the link</i>. Copy the URL into the box above.</li>
+                  </ol>
+                </details>
+              </div>
+            </div>
+
+            <div style={{flex:1, marginLeft:12}}>
+              <div className="muted">Recent device logs</div>
+              <div className="logs mono">
+                {logLines.slice(-200).map((l,i)=>(<div key={i}>{l}</div>))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="muted" style={{fontSize:12}}>
+          Tips: If the stream drops, ensure your AIR‑1 isn’t in deep sleep (toggle the device’s <b>Prevent Sleep</b>).  
+          If your browser prompts for credentials, it’s the device’s HTTP auth.  
+          This app requests <b>Persistent Storage</b> so the log is unlikely to be evicted.
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("app")).render(<App/>);
+})();
+</script>
+</body>
+</html>
