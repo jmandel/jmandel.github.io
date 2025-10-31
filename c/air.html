@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover"
+/>
+<title>Apollo AIR‑1 Logger (v2)</title>
+
+<style>
+  :root {
+    --bg: #0b0d10;
+    --panel: #12161b;
+    --ink: #e7ecef;
+    --muted: #95a1ad;
+    --accent: #6ee7b7;
+    --accent2: #93c5fd;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --ok: #34d399;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--ink); font-family: var(--sans); }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 20px; margin: 0 0 12px; }
+  .row { display: grid; gap: 12px; grid-template-columns: 1fr; }
+  @media (min-width: 900px) { .row { grid-template-columns: 1.3fr 1fr; } }
+  .card { background: var(--panel); border: 1px solid #1f2937; border-radius: 12px; padding: 16px; }
+  .controls { display: grid; grid-template-columns: 1.2fr 0.6fr 0.8fr 1fr; gap: 8px; align-items: center; }
+  .status { display: flex; gap: 12px; align-items: center; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #64748b; display: inline-block; }
+  .dot.ok { background: var(--ok); }
+  .dot.bad { background: var(--bad); }
+  .kv { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 13px; color: var(--muted); }
+  .kv b { color: var(--ink); }
+  .pill { padding: 2px 8px; border-radius: 999px; background: #0f1318; border: 1px solid #29303a; font-size: 12px; color: var(--muted); }
+  .flex { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .small { font-size: 12px; color: var(--muted); }
+  .grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); }
+  .checkbox { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+  .mono { font-family: var(--mono); }
+  .muted { color: var(--muted); }
+  .section-title { margin: 6px 0 10px; font-weight: 600; color: var(--accent2); font-size: 13px; letter-spacing: .02em; }
+  .inline { font-family: var(--mono); background: #0f1318; border: 1px solid #29303a; border-radius: 6px; padding: 1px 6px; }
+  canvas { width: 100% !important; height: 360px !important; }
+  button, .btn, input, select { font-family: var(--sans); }
+  input[type="text"] { width: 100%; padding: 10px 12px; background: #0f1318; color: var(--ink); border: 1px solid #29303a; border-radius: 8px; }
+  button, .btn { cursor: pointer; padding: 10px 12px; border-radius: 8px; border: 1px solid #29303a; background: #0f1318; color: var(--ink); }
+  button:hover, .btn:hover { background: #111821; }
+  .footer { margin-top: 16px; font-size: 12px; color: var(--muted); }
+</style>
+
+<!-- React + ReactDOM (UMD) and Babel for inline JSX -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+
+<!-- Dexie (IndexedDB) -->
+<script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+
+<!-- Chart.js + time adapter -->
+<script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="https://unpkg.com/chartjs-adapter-date-fns@3"></script>
+</head>
+<body>
+<div id="app" class="wrap"></div>
+
+<script type="text/babel">
+/** ============
+ *  Constants
+ *  ============ */
+// The Apps Script snippet as a JS string so JSX doesn’t try to parse it.
+const APPS_SCRIPT_SNIPPET = `/** Google Apps Script (bound to your Sheet) */
+function doPost(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getActiveSheet();
+  var body = e.postData && e.postData.contents ? e.postData.contents : '';
+  try {
+    var obj = JSON.parse(body);
+    if (sh.getLastRow() === 0) sh.appendRow(['ts_ms','sensor','value','state','event']);
+    sh.appendRow([obj.ts, obj.sensor, obj.value, obj.state, obj.event || 'state']);
+    return ContentService.createTextOutput('OK').setMimeType(ContentService.MimeType.TEXT);
+  } catch (err) {
+    return ContentService.createTextOutput('ERR: ' + err).setMimeType(ContentService.MimeType.TEXT);
+  }
+}`;
+
+/** ===========================
+ *  IndexedDB setup (Dexie)
+ *  =========================== */
+const db = new Dexie('air1_logger_db');
+db.version(1).stores({
+  samples: '++id, sensor, ts',  // sensor id -> time series
+  meta: '&key'                  // arbitrary key/value
+});
+
+// Persistent storage so logs don't get GC'd
+async function ensurePersistence() {
+  if (!('storage' in navigator) || !navigator.storage.persist) return { persisted: false };
+  const already = await navigator.storage.persisted();
+  if (already) return { persisted: true };
+  const ok = await navigator.storage.persist();
+  return { persisted: ok };
+}
+async function storageEstimate() {
+  if (!('storage' in navigator) || !navigator.storage.estimate) return {};
+  return await navigator.storage.estimate(); // {usage, quota}
+}
+
+// CSV helpers
+function toCsvCell(x) {
+  if (x === null || x === undefined) return '';
+  const s = String(x);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+function rowToCsv(r) {
+  return [r.ts, r.sensor, r.value ?? '', r.state ?? '', r.event ?? 'state'].map(toCsvCell).join(',') + '\\n';
+}
+function parseUnit(stateStr) {
+  if (!stateStr || typeof stateStr !== 'string') return '';
+  const m = stateStr.trim().match(/^[\\s\\-+0-9.,eE]+(?:\\s*)(.*)$/);
+  const unit = m && m[1] ? m[1].trim() : '';
+  return unit.replace('Â',''); // fix stray encoding artifacts like Â°C
+}
+
+/** ===========================
+ *  SSE Connector
+ *  =========================== */
+function connectSSE(baseUrl, onEvent, onStatus) {
+  let url = baseUrl.replace(/\\/+$/,'');
+  const eventsUrl = url + '/events';
+  let es;
+
+  try {
+    es = new EventSource(eventsUrl);
+    onStatus({state:'connecting'});
+    es.addEventListener('open', () => onStatus({state:'open'}));
+    es.addEventListener('error', () => onStatus({state:'error'}));
+    es.addEventListener('ping', (ev) => onEvent({type:'ping', raw: ev.data}));
+    es.addEventListener('log', (ev) => onEvent({type:'log', ts: Date.now(), text: ev.data}));
+    es.addEventListener('state', (ev) => {
+      try {
+        const msg = JSON.parse(ev.data);
+        onEvent({
+          type: 'state',
+          id: msg.id,
+          value: (typeof msg.value === 'number' ? msg.value : null),
+          state: msg.state,
+          unit: parseUnit(msg.state),
+          ts: Date.now()
+        });
+      } catch (e) {
+        onEvent({type:'parse_error', ts: Date.now(), raw: ev.data, detail: String(e)});
+      }
+    });
+  } catch (e) {
+    onStatus({state:'error', detail: String(e)});
+  }
+
+  return { stop: () => { try { es && es.close(); } catch {} } };
+}
+
+/** ===========================
+ *  React App
+ *  =========================== */
+const { useState, useEffect, useRef } = React;
+
+function App() {
+  const [deviceUrl, setDeviceUrl] = useState(localStorage.getItem('deviceUrl') || 'http://apollo-air-1-06c454.local');
+  const [status, setStatus] = useState('idle'); // idle | connecting | open | error
+  const [persisted, setPersisted] = useState(false);
+  const [usage, setUsage] = useState(null);
+  const [quota, setQuota] = useState(null);
+  const [logEvents, setLogEvents] = useState(false);
+  const [connectedSince, setConnectedSince] = useState(null);
+  const [sensorList, setSensorList] = useState([]);
+  const [selectedSensors, setSelectedSensors] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('selectedSensors') || '[]'); } catch { return []; }
+  });
+  const [windowMinutes, setWindowMinutes] = useState(240);
+  const [googleHook, setGoogleHook] = useState(localStorage.getItem('googleHook') || '');
+
+  const esRef = useRef(null);
+  const chartRef = useRef(null);
+  const chartObjRef = useRef(null);
+  const latestValuesRef = useRef(new Map()); // sensorId -> {ts, value, unit, state}
+
+  // Init persistence + storage stats
+  useEffect(() => {
+    (async () => {
+      const p = await ensurePersistence(); setPersisted(!!p.persisted);
+      const est = await storageEstimate(); setUsage(est.usage||null); setQuota(est.quota||null);
+    })();
+  }, []);
+
+  // Chart.js init
+  useEffect(() => {
+    const ctx = chartRef.current.getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: { datasets: [] },
+      options: {
+        parsing: false, animation: false, normalized: true, responsive: true,
+        plugins: {
+          legend: { display: true, labels: { color: '#cdd5df' } },
+          title: { display: false },
+          decimation: { enabled: true, algorithm: 'lttb' },
+          tooltip: { mode: 'nearest', intersect: false }
+        },
+        scales: {
+          x: { type: 'time', ticks: { color: '#9aa6b2' }, grid: { color: '#1e293b' } },
+          y: { ticks: { color: '#9aa6b2' }, grid: { color: '#1e293b' } }
+        }
+      }
+    });
+    chartObjRef.current = chart;
+    return () => chart.destroy();
+  }, []);
+
+  // Connect
+  const connect = async () => {
+    if (esRef.current) esRef.current.stop();
+    const est = await storageEstimate(); setUsage(est.usage||null); setQuota(est.quota||null);
+
+    const onEvent = async (evt) => {
+      if (evt.type === 'state') {
+        const rec = { ts: evt.ts, sensor: evt.id, value: evt.value, state: evt.state, event: 'state' };
+        latestValuesRef.current.set(evt.id, { ts: evt.ts, value: evt.value, unit: evt.unit, state: evt.state });
+        await db.samples.add(rec);
+
+        if (googleHook && googleHook.startsWith('https://script.google.com/')) {
+          fetch(googleHook, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rec) }).catch(()=>{});
+        }
+      } else if (evt.type === 'log' && logEvents) {
+        await db.samples.add({ ts: evt.ts, sensor: 'log', value: null, state: evt.text, event: 'log' });
+      }
+    };
+    const onStatus = (s) => { setStatus(s.state); if (s.state==='open') setConnectedSince(Date.now()); };
+
+    esRef.current = connectSSE(deviceUrl, onEvent, onStatus);
+    localStorage.setItem('deviceUrl', deviceUrl);
+
+    // discover sensors from recent rows
+    setTimeout(async () => {
+      const since = Date.now() - 24 * 60 * 60 * 1000;
+      const ids = new Set();
+      await db.samples.where('ts').above(since).each(r => { if (r.event==='state') ids.add(r.sensor); });
+      const arr = Array.from(ids).sort();
+      setSensorList(arr);
+      if (selectedSensors.length === 0 && arr.length) {
+        const defaults = arr.filter(id => /pm__?2_5|pm_2_5|co2|sen55_temperature|sen55_humidity/i.test(id)).slice(0,4);
+        setSelectedSensors(defaults.length ? defaults : arr.slice(0,4));
+      }
+    }, 1000);
+  };
+
+  const disconnect = () => { if (esRef.current) esRef.current.stop(); setStatus('idle'); setConnectedSince(null); };
+
+  // Refresh chart every 2.5 s
+  async function refreshChart() {
+    const chart = chartObjRef.current; if (!chart) return;
+    chart.data.datasets.length = 0;
+    const sinceTs = Date.now() - windowMinutes * 60 * 1000;
+
+    for (const sensor of selectedSensors) {
+      const points = [];
+      await db.samples.where('sensor').equals(sensor)
+        .and(r => r.ts >= sinceTs && r.event==='state' && typeof r.value === 'number')
+        .each(r => points.push({ x: r.ts, y: r.value }));
+      chart.data.datasets.push({ label: sensor, data: points, pointRadius: 0, borderWidth: 1 });
+    }
+    chart.update('none');
+  }
+  useEffect(() => {
+    const t = setInterval(refreshChart, 2500);
+    refreshChart();
+    return () => clearInterval(t);
+  }, [selectedSensors, windowMinutes]);
+
+  // Export CSV (streaming when available)
+  const exportCsv = async () => {
+    const header = 'ts_ms,sensor,value,state,event\\n';
+    if (window.showSaveFilePicker) {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: `air1-logs-${new Date().toISOString().replace(/[:.]/g,'-')}.csv`,
+        types: [{ description:'CSV', accept: { 'text/csv': ['.csv'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(header);
+      let lastId = 0, batch = 5000;
+      while (true) {
+        const rows = await db.samples.where('id').above(lastId).limit(batch).toArray();
+        if (!rows.length) break;
+        let chunk = '';
+        for (const r of rows) chunk += rowToCsv(r);
+        await writable.write(chunk);
+        lastId = rows[rows.length - 1].id;
+      }
+      await writable.close();
+      alert('CSV export complete.');
+      return;
+    }
+    // Fallback for iOS/Safari etc.
+    const rows = await db.samples.toArray();
+    let csv = header + rows.map(rowToCsv).join('');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `air1-logs-${new Date().toISOString().replace(/[:.]/g,'-')}.csv`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  };
+
+  const nuke = async () => {
+    if (!confirm('Delete ALL logged samples?')) return;
+    await db.samples.clear();
+    await refreshChart();
+  };
+
+  // Periodically update storage stats
+  useEffect(() => {
+    const t = setInterval(async () => {
+      const est = await storageEstimate(); setUsage(est.usage||null); setQuota(est.quota||null);
+    }, 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Render
+  return (
+    <div>
+      <h1>Apollo AIR‑1 — Live Logger</h1>
+
+      <div className="card">
+        <div className="controls">
+          <input type="text"
+            spellCheck={false}
+            value={deviceUrl}
+            onChange={e => setDeviceUrl(e.target.value)}
+            placeholder="http://apollo-air-1-xxxxxx.local"
+            title="Base URL of the device (no trailing slash)"
+          />
+          <button onClick={status==='open' ? disconnect : connect}>
+            {status==='open' ? 'Disconnect' : 'Connect'}
+          </button>
+          <button onClick={async ()=> {
+            const { persisted } = await ensurePersistence();
+            setPersisted(!!persisted);
+            const est = await storageEstimate();
+            setUsage(est.usage||null); setQuota(est.quota||null);
+          }}>Enable Persistent Storage</button>
+          <div className="status">
+            <span className={'dot ' + (status==='open' ? 'ok' : (status==='error' ? 'bad': ''))}></span>
+            <span className="small">
+              {status==='open' ? 'Connected' : status==='connecting' ? 'Connecting…' : status==='error' ? 'Error' : 'Idle'}
+              {connectedSince ? ` • since ${new Date(connectedSince).toLocaleTimeString()}` : ''}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex" style={{marginTop: 10}}>
+          <label className="checkbox">
+            <input type="checkbox" checked={logEvents} onChange={e=>setLogEvents(e.target.checked)} />
+            Log firmware <code className="inline">event: log</code> lines too
+          </label>
+          <span className="pill">Persistence: {persisted ? 'ON' : 'OFF'}</span>
+          {usage!=null && quota!=null && <span className="pill">Storage: {(usage/1e6).toFixed(1)} / {(quota/1e6).toFixed(1)} MB</span>}
+          <button className="btn" onClick={exportCsv}>Download CSV</button>
+          <button className="btn" onClick={refreshChart}>Refresh Chart</button>
+          <button className="btn" onClick={nuke}>Delete All Logs</button>
+        </div>
+      </div>
+
+      <div className="row" style={{marginTop: 12}}>
+        <div className="card">
+          <div className="section-title">Chart & Time Window</div>
+          <div className="flex" style={{marginBottom: 8}}>
+            <label className="checkbox">
+              Window:&nbsp;
+              <select value={windowMinutes} onChange={e=>setWindowMinutes(+e.target.value)} style={{marginLeft: 6}}>
+                <option value={60}>Last 1h</option>
+                <option value={120}>Last 2h</option>
+                <option value={240}>Last 4h</option>
+                <option value={720}>Last 12h</option>
+                <option value={1440}>Last 24h</option>
+                <option value={4320}>Last 3d</option>
+                <option value={10080}>Last 7d</option>
+                <option value={43200}>Last 30d</option>
+              </select>
+            </label>
+            <span className="small">Decimation enabled for performance.</span>
+          </div>
+          <canvas ref={chartRef}></canvas>
+        </div>
+
+        <div className="card">
+          <div className="section-title">Sensors to Plot</div>
+          <div className="grid" style={{maxHeight: 360, overflow: 'auto'}}>
+            {sensorList.map(id => (
+              <label key={id} className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={selectedSensors.includes(id)}
+                  onChange={e => {
+                    const checked = e.target.checked;
+                    setSelectedSensors(prev => checked ? [...new Set([...prev, id])] : prev.filter(x => x!==id));
+                  }}
+                />
+                <span className="mono">{id}</span>
+              </label>
+            ))}
+            {sensorList.length === 0 && <div className="small">No sensors discovered yet. Connect and wait a few updates…</div>}
+          </div>
+
+          <div className="section-title" style={{marginTop: 12}}>Latest Values</div>
+          <div className="kv mono" id="latest">
+            {Array.from(latestValuesRef.current.entries()).length === 0
+              ? <span className="small">Connect to start receiving values…</span>
+              : Array.from(latestValuesRef.current.entries())
+                  .sort((a,b)=>a[0].localeCompare(b[0]))
+                  .map(([id, o]) => (
+                    <React.Fragment key={id}>
+                      <div className="muted">{id}</div>
+                      <div><b>{o.value ?? ''}</b> <span className="muted">{o.unit || ''}</span> <span className="muted">• {new Date(o.ts).toLocaleTimeString()}</span></div>
+                    </React.Fragment>
+                  ))
+            }
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{marginTop: 12}}>
+        <div className="section-title">Optional: Stream rows to Google Sheets</div>
+        <div className="small">
+          Paste a <b>Google Apps Script Web App URL</b> (bound to your sheet) to receive JSON rows
+          like <code className="inline">{'{ts,sensor,value,state,event}'}</code>. Steps:
+          <ol>
+            <li>Sheet → <b>Extensions → Apps Script</b>.</li>
+            <li>Replace code with the snippet below.</li>
+            <li><b>Deploy → New deployment</b> → type: <i>Web app</i> → Execute as: <i>You</i> → Who has access: <i>Anyone with the link</i> → <b>Deploy</b>.</li>
+            <li>Paste the Web App URL below.</li>
+          </ol>
+        </div>
+
+        <pre className="mono" style={{whiteSpace:'pre-wrap', background:'#0f1318', border:'1px solid #29303a', borderRadius:'8px', padding:'12px'}}>{APPS_SCRIPT_SNIPPET}</pre>
+
+        <div className="flex" style={{marginTop: 8}}>
+          <input
+            type="text"
+            placeholder="https://script.google.com/macros/s/AKfycbx.../exec"
+            value={googleHook}
+            onChange={e => { const v = e.target.value.trim(); setGoogleHook(v); localStorage.setItem('googleHook', v); }}
+          />
+          <span className="pill">Writes on each <b>state</b> event</span>
+        </div>
+      </div>
+
+      <div className="footer">
+        If you enable <span className="inline">auth:</span> on ESPHome’s <span className="inline">web_server</span>, the browser will show a login prompt. Keep this page on the same LAN as your device.
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(<App/>);
+</script>
+</body>
+</html>
