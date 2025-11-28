@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid.js Link Navigation Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { color: #333; }
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid #ddd;
+        }
+        .panel h2 {
+            margin-top: 0;
+            font-size: 14px;
+            color: #555;
+        }
+        .buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        button, .test-link {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            color: #333;
+        }
+        button:hover, .test-link:hover { background: #f0f0f0; }
+        button.active {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        .test-link { background: #d1fae5; }
+        #diagram-container {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            border-radius: 8px;
+            background: white;
+            min-height: 150px;
+        }
+        #log {
+            background: #1a1a2e;
+            color: #4ade80;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            height: 200px;
+            overflow-y: auto;
+        }
+        #log div { padding: 2px 0; }
+        .diagnostics {
+            background: #faf5ff;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .diagnostics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+        }
+        #test-anchor {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .status {
+            padding: 8px 12px;
+            background: #e0f2fe;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mermaid.js Link Navigation Test</h1>
+
+    <div class="panel diagnostics">
+        <h2>Environment Diagnostics</h2>
+        <div class="diagnostics-grid" id="diagnostics"></div>
+    </div>
+
+    <div class="panel">
+        <h2>Security Level</h2>
+        <div class="buttons" id="security-buttons">
+            <button onclick="setSecurityLevel('strict')">strict</button>
+            <button onclick="setSecurityLevel('loose')" class="active">loose</button>
+            <button onclick="setSecurityLevel('antiscript')">antiscript</button>
+            <button onclick="setSecurityLevel('sandbox')">sandbox</button>
+        </div>
+        <div class="info">
+            <strong>strict:</strong> clicks disabled |
+            <strong>loose:</strong> full links |
+            <strong>antiscript:</strong> no JS URLs |
+            <strong>sandbox:</strong> iframe isolation (htmlLabels disabled due to bug)
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="status" id="status">Initializing...</div>
+    </div>
+
+    <div class="panel">
+        <h2>Diagram (click the colored nodes)</h2>
+        <div id="diagram-container"></div>
+    </div>
+
+    <div class="panel">
+        <h2>Manual Navigation Tests</h2>
+        <div class="buttons">
+            <button onclick="testHashNav()">Test Hash Nav</button>
+            <button onclick="testWindowOpen()">Test window.open</button>
+            <button onclick="testLocationChange()">Test location.href</button>
+            <a href="#test-anchor" class="test-link">Regular &lt;a&gt; hash</a>
+            <a href="https://example.com" target="_blank" class="test-link">Regular &lt;a&gt; external</a>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Event Log</h2>
+        <div id="log"></div>
+        <button onclick="clearLog()" style="margin-top: 8px;">Clear Log</button>
+    </div>
+
+    <div id="test-anchor">
+        <h2 style="margin-top: 0;">#test-anchor</h2>
+        <p>If hash navigation works, clicking hash links should scroll to here.</p>
+    </div>
+
+    <script>
+        let currentSecurityLevel = 'loose';
+        let renderCount = 0;
+
+        const diagramDef = `
+flowchart TD
+    A[Start] --> B{Click a link}
+    B --> C[External URL]
+    B --> D[Hash Link]
+    B --> E[JavaScript URL]
+    B --> F[Relative URL]
+    
+    click C "https://example.com" "Opens example.com" _blank
+    click D "#test-anchor" "Scrolls to anchor"
+    click E "javascript:alert('Hello from Mermaid!')" "Runs JavaScript"
+    click F "./other-page.html" "Relative navigation"
+    
+    style A fill:#e0f2fe,stroke:#0369a1
+    style B fill:#fef3c7,stroke:#d97706
+    style C fill:#d1fae5,stroke:#059669
+    style D fill:#dbeafe,stroke:#2563eb
+    style E fill:#fee2e2,stroke:#dc2626
+    style F fill:#ede9fe,stroke:#7c3aed
+        `;
+
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.textContent = `${time}: ${message}`;
+            logEl.appendChild(div);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function setStatus(msg) {
+            document.getElementById('status').textContent = msg;
+        }
+
+        function runDiagnostics() {
+            const diag = {
+                'In iframe': window.self !== window.top ? 'Yes' : 'No',
+                'Origin': window.location.origin,
+                'Protocol': window.location.protocol,
+                'window.open': testWindowOpenSilent(),
+            };
+
+            const el = document.getElementById('diagnostics');
+            el.innerHTML = Object.entries(diag)
+                .map(([k, v]) => `<div><strong>${k}:</strong> ${v}</div>`)
+                .join('');
+        }
+
+        function testWindowOpenSilent() {
+            try {
+                const win = window.open('', '_blank');
+                if (win) { win.close(); return 'Allowed'; }
+                return 'Blocked (null)';
+            } catch (e) {
+                return `Blocked (${e.name})`;
+            }
+        }
+
+        function setSecurityLevel(level) {
+            currentSecurityLevel = level;
+            document.querySelectorAll('#security-buttons button').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent === level);
+            });
+            log(`Security level: "${level}"`);
+            renderDiagram();
+        }
+
+        async function renderDiagram() {
+            const container = document.getElementById('diagram-container');
+            
+            // Sandbox mode has a bug with htmlLabels:true - tags render as escaped text
+            // See: https://github.com/mermaid-js/mermaid/issues/6889
+            const useHtmlLabels = currentSecurityLevel !== 'sandbox';
+            
+            try {
+                mermaid.initialize({
+                    startOnLoad: false,
+                    securityLevel: currentSecurityLevel,
+                    theme: 'default',
+                    flowchart: { 
+                        htmlLabels: useHtmlLabels, 
+                        useMaxWidth: true 
+                    }
+                });
+
+                renderCount++;
+                const id = `mermaid-diagram-${renderCount}`;
+                
+                const { svg } = await mermaid.render(id, diagramDef);
+                container.innerHTML = svg;
+                
+                setStatus(`Rendered with securityLevel: "${currentSecurityLevel}", htmlLabels: ${useHtmlLabels}`);
+                log(`Rendered with "${currentSecurityLevel}" (htmlLabels: ${useHtmlLabels})`);
+
+                const links = container.querySelectorAll('a');
+                log(`Found ${links.length} <a> tags`);
+                
+                links.forEach((link, i) => {
+                    const href = link.getAttribute('href');
+                    const target = link.getAttribute('target');
+                    log(`  [${i}] href="${href}" target="${target}"`);
+                });
+
+                if (links.length === 0) {
+                    log(`No links created in "${currentSecurityLevel}" mode`);
+                }
+
+            } catch (err) {
+                container.innerHTML = `<div style="color: #dc2626; padding: 20px; background: #fee2e2; border-radius: 8px;">
+                    <strong>Error:</strong> ${err.message}
+                </div>`;
+                setStatus(`Error: ${err.message}`);
+                log(`Error: ${err.message}`);
+            }
+        }
+
+        function testHashNav() {
+            log('Testing hash navigation...');
+            window.location.hash = '#test-anchor';
+        }
+
+        function testWindowOpen() {
+            log('Testing window.open...');
+            try {
+                const win = window.open('https://example.com', '_blank');
+                log(win ? 'Window opened' : 'Blocked (null)');
+            } catch (e) {
+                log(`Error: ${e.message}`);
+            }
+        }
+
+        function testLocationChange() {
+            log('Testing location.href...');
+            window.location.href = '#test-anchor';
+        }
+
+        window.addEventListener('hashchange', () => {
+            log(`HASHCHANGE: ${window.location.hash}`);
+        });
+
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (link) {
+                const href = link.getAttribute('href');
+                const target = link.getAttribute('target');
+                log(`Link clicked: href="${href}" target="${target}"`);
+            }
+            if (e.target.closest('.node')) {
+                log(`Mermaid node clicked`);
+            }
+        }, true);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            runDiagnostics();
+            log('Page loaded');
+            renderDiagram();
+        });
+    </script>
+</body>
+</html>
