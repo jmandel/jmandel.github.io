@@ -293,7 +293,7 @@
             </div>
             <div class="stat-box">
                 <h3>Insights Condition</h3>
-                <div class="value">Current: 1 measure active, 6 suspended → HTI-5: 1 measure, 6 permanently removed</div>
+                <div class="value">Current: 1 active + 6 suspended measures → HTI-5: 1 retained, 6 permanently removed</div>
             </div>
             <div class="stat-box">
                 <h3>Estimated Savings (HTI-5)</h3>
@@ -435,12 +435,12 @@
                         <td class="citation">§ 170.315(b)(1)</td>
                         <td class="criterion-name">Transitions of Care<br><span class="base-ehr">Base EHR</span></td>
                         <td class="impl-text">Create and receive C-CDA transition/referral documents. Display section summaries. Send/receive via Direct or XD* transport. Validate received documents.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br>C-CDA exchange volume</td>
                         <td class="status-cell hti5-revise"><span class="badge badge-revise">⚠ REVISE</span></td>
                         <td class="change-text hti5-revise">Effective <strong>Jan 1, 2027</strong>: <strong>REMOVE receive/reconcile</strong>. RETAIN only send/create. Aligns with FHIR-first strategy.</td>
-                        <td class="current-na">—</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>permanently excluded</small></td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>measure eliminated</small></td>
                         <td class="notes-text">Major scope reduction. FHIR APIs (g)(10) become primary exchange method.</td>
                     </tr>
                     
@@ -448,12 +448,12 @@
                         <td class="citation">§ 170.315(b)(2)</td>
                         <td class="criterion-name">Clinical Information Reconciliation</td>
                         <td class="impl-text">Reconcile medications, allergies, problems from received C-CDA documents. Generate reconciled lists. Incorporate into record.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br>C-CDA reconciliation</td>
                         <td class="status-cell hti5-remove"><span class="badge badge-remove">✗ REMOVE</span></td>
                         <td class="change-text hti5-remove">Remove effective <strong>Jan 1, 2027</strong>. Consolidated with (b)(1) revision. FHIR workflows preferred.</td>
-                        <td class="current-na">—</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>with criterion</small></td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>with criterion</small></td>
                         <td class="notes-text">Low adoption. Reconciliation via FHIR-based exchange.</td>
                     </tr>
                     
@@ -461,11 +461,11 @@
                         <td class="citation">§ 170.315(b)(3)</td>
                         <td class="criterion-name">Electronic Prescribing</td>
                         <td class="impl-text">NCPDP SCRIPT messages: NewRx, CancelRx, RxFill, RxRenewal, RxChange. Formulary/benefit checking. Medication history. ePA (optional until HTI-4).</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-retain"><span class="badge badge-retain">✓ RETAIN</span></td>
                         <td class="change-text hti5-retain">No removal. HTI-4 requires NCPDP SCRIPT 2023011 and mandatory ePA by <strong>Dec 31, 2027</strong>.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>permanently excluded</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text">Surescripts primary intermediary. HTI-4 modernizes standards.</td>
                     </tr>
@@ -487,11 +487,11 @@
                         <td class="citation">§ 170.315(b)(7)</td>
                         <td class="criterion-name">Security Tags – Summary of Care – Send</td>
                         <td class="impl-text">Apply DS4P security labels to C-CDA document segments based on sensitivity.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-remove"><span class="badge badge-remove">✗ REMOVE</span></td>
                         <td class="change-text hti5-remove">Remove effective date of final rule. Very low adoption; C-CDA de-emphasis.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>with criterion</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text">DS4P adoption minimal despite years of availability.</td>
                     </tr>
@@ -500,11 +500,11 @@
                         <td class="citation">§ 170.315(b)(8)</td>
                         <td class="criterion-name">Security Tags – Summary of Care – Receive</td>
                         <td class="impl-text">Process and respect DS4P security labels on received C-CDA documents.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-remove"><span class="badge badge-remove">✗ REMOVE</span></td>
                         <td class="change-text hti5-remove">Remove effective date of final rule. Same rationale as (b)(7).</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>with criterion</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text">Companion to (b)(7). Neither widely implemented.</td>
                     </tr>
@@ -513,11 +513,11 @@
                         <td class="citation">§ 170.315(b)(9)</td>
                         <td class="criterion-name">Care Plan</td>
                         <td class="impl-text">Create, receive, display care plan documents per C-CDA Care Plan template.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-remove"><span class="badge badge-remove">✗ REMOVE</span></td>
                         <td class="change-text hti5-remove">Remove effective date of final rule. Low adoption; care planning via FHIR apps.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>with criterion</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text">Functionality may persist without certification.</td>
                     </tr>
@@ -526,24 +526,24 @@
                         <td class="citation">§ 170.315(b)(10)</td>
                         <td class="criterion-name">Electronic Health Information (EHI) Export</td>
                         <td class="impl-text">Single patient EHI export: On-demand, computable format. Patient population export: Full database capability.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-retain"><span class="badge badge-retain">✓ RETAIN</span></td>
-                        <td class="change-text hti5-retain">No change. Critical for information blocking compliance and data portability.</td>
+                        <td class="change-text hti5-retain">No change to implementation. Critical for information blocking compliance and data portability.</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>permanently excluded</small></td>
                         <td class="current-na">—</td>
-                        <td class="current-na">—</td>
-                        <td class="notes-text">Format flexible (JSON, XML). Distinct from (g)(10) Bulk Data.</td>
+                        <td class="notes-text">Format flexible (JSON, XML). Distinct from (g)(10) Bulk Data. RWT suspension made permanent.</td>
                     </tr>
                     
                     <tr>
                         <td class="citation">§ 170.315(b)(11)</td>
                         <td class="criterion-name">Decision Support Interventions (DSI)<br><span class="base-ehr">Base EHR (since Jan 2025)</span></td>
                         <td class="impl-text">Evidence-based DSIs (alerts, reminders). Predictive DSIs (AI/ML): Requires "source attributes" (model cards) including intended use, training data, risks, validation. Risk management practices required.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-revise"><span class="badge badge-revise">⚠ REVISE</span></td>
                         <td class="change-text hti5-revise"><strong>REMOVE AI MODEL CARD requirements.</strong> Remove source attributes and risk management for predictive DSIs. Retain basic DSI functionality.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>permanently excluded</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text"><strong>Major policy reversal on AI transparency.</strong> HTI-1 model cards removed entirely.</td>
                     </tr>
@@ -555,11 +555,11 @@
                         <td class="citation">§ 170.315(c)(1)</td>
                         <td class="criterion-name">CQM – Record and Export<br><span class="base-ehr">Base EHR</span></td>
                         <td class="impl-text">Record data elements for CQMs. Export QRDA Category I (patient-level) and QRDA Category III (aggregate).</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-retain"><span class="badge badge-retain">✓ RETAIN</span></td>
                         <td class="change-text hti5-retain">No change. Required for quality reporting (MIPS, hospital quality).</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>permanently excluded</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text">QRDA standards updated annually by CMS.</td>
                     </tr>
@@ -568,11 +568,11 @@
                         <td class="citation">§ 170.315(c)(2)</td>
                         <td class="criterion-name">CQM – Import and Calculate</td>
                         <td class="impl-text">Import QRDA Category I files. Calculate CQM results from imported and native data.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-retain"><span class="badge badge-retain">✓ RETAIN</span></td>
                         <td class="change-text hti5-retain">No change.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>permanently excluded</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text">Supports multi-source quality reporting.</td>
                     </tr>
@@ -581,11 +581,11 @@
                         <td class="citation">§ 170.315(c)(3)</td>
                         <td class="criterion-name">CQM – Report</td>
                         <td class="impl-text">Report calculated CQMs to CMS and other entities. Filter and sort capabilities.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-revise"><span class="badge badge-revise">⚠ REVISE</span></td>
                         <td class="change-text hti5-revise">Streamline requirements. Remove redundant format specifications.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>permanently excluded</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text">Minor revision to reduce burden.</td>
                     </tr>
@@ -598,6 +598,7 @@
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-remove"><span class="badge badge-remove">✗ REMOVE</span></td>
                         <td class="change-text hti5-remove">Remove effective <strong>Jan 1, 2027</strong>. Functionality well-established.</td>
+                        <td class="current-na">—</td>
                         <td class="current-na">—</td>
                         <td class="current-na">—</td>
                         <td class="notes-text">Filtering expected to persist without certification.</td>
@@ -782,12 +783,12 @@
                         <td class="citation">§ 170.315(e)(1)</td>
                         <td class="criterion-name">View, Download, and Transmit to 3rd Party</td>
                         <td class="impl-text">Patient portal: View health info online. Download C-CDA. Transmit to third party via Direct or download.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br>Individuals' access to EHI</td>
                         <td class="status-cell hti5-revise"><span class="badge badge-revise">⚠ REVISE</span></td>
                         <td class="change-text hti5-revise">Streamline. Align with FHIR patient access via (g)(10). Reduce C-CDA requirements.</td>
-                        <td class="current-na">—</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>permanently excluded</small></td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>measure eliminated</small></td>
                         <td class="notes-text">Patient access increasingly via FHIR apps rather than portals.</td>
                     </tr>
                     
@@ -811,12 +812,12 @@
                         <td class="citation">§ 170.315(f)(1)</td>
                         <td class="criterion-name">Transmission to Immunization Registries</td>
                         <td class="impl-text">HL7 v2.5.1 immunization messages (VXU) to IIS.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br>Immunization data</td>
                         <td class="status-cell hti5-retain"><span class="badge badge-retain">✓ RETAIN</span></td>
                         <td class="change-text hti5-retain">No change. Critical public health infrastructure.</td>
                         <td class="current-na">—</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>measure eliminated</small></td>
                         <td class="notes-text">HL7 v2 persists due to registry infrastructure.</td>
                     </tr>
                     
@@ -824,11 +825,11 @@
                         <td class="citation">§ 170.315(f)(2)</td>
                         <td class="criterion-name">Transmission – Syndromic Surveillance</td>
                         <td class="impl-text">HL7 v2.5.1 ADT messages for ED syndromic surveillance.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-retain"><span class="badge badge-retain">✓ RETAIN</span></td>
                         <td class="change-text hti5-retain">No change.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>permanently excluded</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text"></td>
                     </tr>
@@ -837,11 +838,11 @@
                         <td class="citation">§ 170.315(f)(3)</td>
                         <td class="criterion-name">Transmission – Reportable Lab Results</td>
                         <td class="impl-text">HL7 v2.5.1 Electronic Lab Reporting (ELR) to public health.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-retain"><span class="badge badge-retain">✓ RETAIN</span></td>
                         <td class="change-text hti5-retain">No change.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>permanently excluded</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text"></td>
                     </tr>
@@ -850,11 +851,11 @@
                         <td class="citation">§ 170.315(f)(4)</td>
                         <td class="criterion-name">Transmission to Cancer Registries</td>
                         <td class="impl-text">HL7 CDA-based cancer case reports to registries.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-remove"><span class="badge badge-remove">✗ REMOVE</span></td>
                         <td class="change-text hti5-remove">Remove effective <strong>Jan 1, 2027</strong>. Transitioning to FHIR-based mCODE.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>with criterion</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text">mCODE (Minimal Common Oncology Data Elements) is replacement.</td>
                     </tr>
@@ -863,11 +864,11 @@
                         <td class="citation">§ 170.315(f)(5)</td>
                         <td class="criterion-name">Electronic Case Reporting (eCR)</td>
                         <td class="impl-text">Trigger-based case detection. Create eICR. C-CDA or FHIR pathways. Receive Reportability Response.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-revise"><span class="badge badge-revise">⚠ REVISE</span></td>
                         <td class="change-text hti5-revise">Streamline. Focus on FHIR-based eCR pathway. De-emphasize C-CDA.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>permanently excluded</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text">COVID-19 accelerated eCR adoption.</td>
                     </tr>
@@ -876,11 +877,11 @@
                         <td class="citation">§ 170.315(f)(6)</td>
                         <td class="criterion-name">Antimicrobial Use and Resistance Reporting</td>
                         <td class="impl-text">CDA-based AUR reports to NHSN.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-revise"><span class="badge badge-revise">⚠ REVISE</span></td>
                         <td class="change-text hti5-revise">Streamline requirements.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>permanently excluded</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text"></td>
                     </tr>
@@ -889,11 +890,11 @@
                         <td class="citation">§ 170.315(f)(7)</td>
                         <td class="criterion-name">Health Care Surveys</td>
                         <td class="impl-text">Transmission to NHSN for CDC surveys.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-remove"><span class="badge badge-remove">✗ REMOVE</span></td>
                         <td class="change-text hti5-remove">Remove effective <strong>Jan 1, 2027</strong>. Low adoption.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>with criterion</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text"></td>
                     </tr>
@@ -987,7 +988,7 @@
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-remove"><span class="badge badge-remove">✗ REMOVE</span></td>
                         <td class="change-text hti5-remove">Remove effective <strong>Jan 1, 2027</strong>. Superseded by (g)(10) FHIR API.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Ends</span><br><small>criterion removed</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text">Legacy API. Will be removed from Base EHR.</td>
                     </tr>
@@ -1000,7 +1001,7 @@
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-remove"><span class="badge badge-remove">✗ REMOVE</span></td>
                         <td class="change-text hti5-remove">Already effectively removed by Cures. Superseded by (g)(10).</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Ends</span><br><small>criterion removed</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text">Largely deprecated.</td>
                     </tr>
@@ -1013,7 +1014,7 @@
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-remove"><span class="badge badge-remove">✗ REMOVE</span></td>
                         <td class="change-text hti5-remove">Remove effective <strong>Jan 1, 2027</strong>. Superseded by (g)(10).</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Ends</span><br><small>criterion removed</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text">Returns C-CDA; (g)(10) returns FHIR.</td>
                     </tr>
@@ -1023,11 +1024,11 @@
                         <td class="criterion-name" style="background: #ebf8ff;"><strong>Standardized API for Patient and Population Services</strong><br><span class="base-ehr">Base EHR — ANCHOR CRITERION</span></td>
                         <td class="impl-text" style="background: #ebf8ff;"><strong>FHIR R4 API.</strong> US Core profiles. USCDI data. SMART on FHIR auth (patient, user, system scopes). Bulk Data Access for population export. Token introspection. Patient authorization revocation within 1 hour.</td>
                         <td class="current-required" style="background: #d4edda;"><span class="badge badge-required">Required</span><br>Results due Mar 2026. Must address all sub-requirements.</td>
-                        <td class="current-required" style="background: #d4edda;"><span class="badge badge-required">Required</span><br>"Use of FHIR in apps" — only active measure</td>
+                        <td class="current-required" style="background: #d4edda;"><span class="badge badge-required">Required</span><br>"Use of FHIR in apps"<br><small style="color:#666;">+ 3 suspended: Apps supported, Bulk data, Individuals' access</small></td>
                         <td class="status-cell hti5-retain"><span class="badge badge-retain">✓ RETAIN</span></td>
                         <td class="change-text hti5-retain" style="background: #ebf8ff;"><strong>NO CHANGE.</strong> Core API criterion. Standards: FHIR R4, US Core 6.1.0+, SMART 2.0+, Bulk Data 1.0.1+, USCDI v3+. Foundation for FHIR-first strategy.</td>
                         <td style="background: #d4edda;"><span class="badge badge-required">Required</span></td>
-                        <td style="background: #d4edda;"><span class="badge badge-required">Required</span><br>Only retained measure</td>
+                        <td style="background: #fffff0;"><span class="badge badge-required">Required</span><br>"FHIR in apps" only<br><small style="color:#b45309;">3 measures removed</small></td>
                         <td class="notes-text" style="background: #ebf8ff;"><strong>THE anchor criterion for interoperability.</strong> Enables third-party apps, patient access, population health, research.</td>
                     </tr>
                     
@@ -1077,11 +1078,11 @@
                         <td class="citation">§ 170.315(h)(1)</td>
                         <td class="criterion-name">Direct Project<br><span class="base-ehr">Base EHR (current)</span></td>
                         <td class="impl-text">Send/receive Direct secure messages (SMTP-based healthcare email). S/MIME encryption. Certificate management.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-remove"><span class="badge badge-remove">✗ REMOVE</span></td>
                         <td class="change-text hti5-remove">Remove effective date of final rule. FHIR APIs preferred. Direct declining.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>with criterion</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text">Direct was primary pre-FHIR. Will be removed from Base EHR.</td>
                     </tr>
@@ -1090,11 +1091,11 @@
                         <td class="citation">§ 170.315(h)(2)</td>
                         <td class="criterion-name">Direct Project, Edge Protocol, XDR/XDM<br><span class="base-ehr">Base EHR (current)</span></td>
                         <td class="impl-text">Direct + SMTP Edge + IHE XDR/XDM document exchange.</td>
-                        <td class="current-na">—</td>
+                        <td class="current-suspended"><span class="badge badge-suspended">Suspended</span><br><small>was required pre-June 2025</small></td>
                         <td class="current-na">—</td>
                         <td class="status-cell hti5-remove"><span class="badge badge-remove">✗ REMOVE</span></td>
                         <td class="change-text hti5-remove">Remove effective date of final rule. Same rationale.</td>
-                        <td class="current-na">—</td>
+                        <td class="hti5-remove"><span class="badge badge-remove">✗ Removed</span><br><small>with criterion</small></td>
                         <td class="current-na">—</td>
                         <td class="notes-text">Alternative to (h)(1). Both removed.</td>
                     </tr>
