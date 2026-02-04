@@ -110,7 +110,7 @@
 </head>
 <body>
 
-<div class="slide">
+<div class="slide" id="intro">
     <div class="slide-number">01 / 08</div>
     <h1>Health Skillz: Direct Patient Access for AI Agents</h1>
     <p class="subtitle">An Explainer Session</p>
@@ -118,7 +118,7 @@
     <p style="margin-top: 3rem;"><em>With ePatient Dave deBronkart, Hugo Campos, and Josh Mandel, MD</em></p>
 </div>
 
-<div class="slide">
+<div class="slide" id="data">
     <div class="slide-number">02 / 08</div>
     <h1>What Data You Get — And Why Notes Matter</h1>
     
@@ -162,7 +162,7 @@
     <p><strong>For AI to reason about your health, it needs the narrative — not just codes and values.</strong></p>
 </div>
 
-<div class="slide">
+<div class="slide" id="how-it-works">
     <div class="slide-number">03 / 08</div>
     <h1>What Happens in a Health Skillz Session</h1>
     
@@ -209,16 +209,24 @@
     <p><strong>Key properties:</strong> Server never sees plaintext. Hospital never sees the AI. You control what gets shared.</p>
 </div>
 
-<div class="slide">
+<div class="slide" id="demo">
     <div class="slide-number">04 / 08</div>
     <h1>Demo Time</h1>
     
+    <h2>Step 1: Enable Network Access</h2>
+    <p>Open <a href="https://claude.ai/settings/capabilities" target="_blank">claude.ai/settings/capabilities</a> and configure:</p>
+    <ul>
+        <li><strong>Allow network egress:</strong> ON</li>
+        <li><strong>Domain allowlist:</strong> All domains</li>
+    </ul>
+
+    <h2>Step 2: Start a Session</h2>
     <div class="demo-box">
         <p style="font-size: 1.5rem;">🎯</p>
         <p><strong>Hands-on: Dave and Hugo try Health Skillz</strong></p>
         <p><em>With your own data or the Epic sandbox</em></p>
         <p style="margin-top: 1.5rem;">
-            <a target="_blank" href="https://claude.ai/new?q=Please%20use%20the%20skill%20at%20https://health-skillz.joshuamandel.com/skill.zip%20:%20start%20a%20session%20for%20me" style="font-size: 1.2rem; color: black;">
+            <a href="https://claude.ai/new?q=Please%20use%20the%20skill%20at%20https://health-skillz.joshuamandel.com/skill.zip%20:%20start%20a%20session%20for%20me" target="_blank" style="font-size: 1.2rem; color: black;">
                 ▶ Click here to start a Health Skillz session
             </a>
         </p>
@@ -231,7 +239,7 @@ Password: epicepic1
 </pre>
 </div>
 
-<div class="slide">
+<div class="slide" id="regulatory">
     <div class="slide-number">05 / 08</div>
     <h1>The Regulatory Foundation</h1>
     
@@ -259,7 +267,7 @@ Password: epicepic1
     <p><strong>Bottom line:</strong> Direct patient access is not a favor from your hospital — it's your legal right.</p>
 </div>
 
-<div class="slide">
+<div class="slide" id="two-paths">
     <div class="slide-number">06 / 08</div>
     <h1>Two Paths to Your Health Data</h1>
     
@@ -323,7 +331,7 @@ Portal Login #1, #2...
     </table>
 </div>
 
-<div class="slide">
+<div class="slide" id="tefca-critique">
     <div class="slide-number">07 / 08</div>
     <h1>What TEFCA Should Provide — But Doesn't</h1>
     
@@ -355,7 +363,7 @@ Portal Login #1, #2...
     <p><strong>We deserve better.</strong></p>
 </div>
 
-<div class="slide">
+<div class="slide" id="takeaways">
     <div class="slide-number">08 / 08</div>
     <h1>Key Takeaways</h1>
     
