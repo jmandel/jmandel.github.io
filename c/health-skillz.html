@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Health Skillz: Direct Patient Access for AI Agents</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f8f6f1;
+      --bg-slide: #ffffff;
+      --text: #1a1a1a;
+      --text-muted: #5a5a5a;
+      --accent: #2c5282;
+      --accent-light: #ebf4ff;
+      --border: #d4d0c8;
+      --highlight: #c53030;
+      --success: #276749;
+      --table-header: #edf2f7;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 18px;
+    }
+
+    .slide {
+      min-height: 100vh;
+      background: var(--bg-slide);
+      border-bottom: 4px solid var(--border);
+      padding: 5vh 6vw;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .slide-number {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      margin-bottom: 3vh;
+    }
+
+    h1 {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: clamp(32px, 6vw, 56px);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+
+    h2 {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: clamp(28px, 5vw, 42px);
+      font-weight: 600;
+      line-height: 1.2;
+      margin-bottom: 4vh;
+      color: var(--text);
+    }
+
+    h3 {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: clamp(14px, 2vw, 16px);
+      font-weight: 600;
+      margin-bottom: 1.5vh;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      font-size: clamp(16px, 2.5vw, 20px);
+    }
+
+    .subtitle {
+      font-size: clamp(18px, 3vw, 24px);
+      color: var(--text-muted);
+      margin-bottom: 4vh;
+    }
+
+    .title-slide {
+      justify-content: center;
+    }
+
+    .title-slide h3 {
+      margin-bottom: 2vh;
+    }
+
+    .authors {
+      font-size: clamp(16px, 2.5vw, 20px);
+      color: var(--text-muted);
+      margin-top: auto;
+      padding-top: 4vh;
+      border-top: 2px solid var(--border);
+    }
+
+    .authors strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: clamp(14px, 2vw, 17px);
+    }
+
+    th {
+      background: var(--table-header);
+      font-weight: 600;
+      text-align: left;
+      padding: clamp(12px, 2vw, 18px);
+      border-bottom: 2px solid var(--border);
+    }
+
+    td {
+      padding: clamp(10px, 2vw, 16px);
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Lists */
+    ul, ol {
+      margin: 2vh 0 2vh 1.5em;
+      font-size: clamp(16px, 2.5vw, 20px);
+    }
+
+    li {
+      margin-bottom: 1.5vh;
+      line-height: 1.4;
+    }
+
+    li strong {
+      color: var(--text);
+    }
+
+    /* Callout boxes */
+    .callout {
+      background: var(--accent-light);
+      border-left: 5px solid var(--accent);
+      padding: clamp(16px, 3vw, 28px);
+      margin: 3vh 0;
+      border-radius: 0 6px 6px 0;
+      font-size: clamp(15px, 2.2vw, 18px);
+    }
+
+    .callout p:last-child {
+      margin-bottom: 0;
+    }
+
+    .callout-warning {
+      background: #fff5f5;
+      border-left-color: var(--highlight);
+    }
+
+    .callout-success {
+      background: #f0fff4;
+      border-left-color: var(--success);
+    }
+
+    /* Status indicators */
+    .status {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: clamp(11px, 1.5vw, 13px);
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+
+    .status-yes { background: #c6f6d5; color: #276749; }
+    .status-no { background: #fed7d7; color: #c53030; }
+    .status-partial { background: #fefcbf; color: #975a16; }
+
+    /* Code */
+    code {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.9em;
+      background: #f1f1f1;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    /* Two pathway layout */
+    .pathways {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4vw;
+      flex: 1;
+      margin: 2vh 0;
+    }
+
+    .pathway {
+      background: #f7fafc;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: clamp(20px, 4vw, 40px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pathway.active {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .pathway h3 {
+      font-size: clamp(16px, 2.5vw, 20px);
+      margin-bottom: 3vh;
+    }
+
+    .pathway-flow {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5vh;
+      flex: 1;
+    }
+
+    .flow-step {
+      background: var(--accent);
+      color: white;
+      padding: clamp(12px, 2vw, 18px);
+      border-radius: 6px;
+      text-align: center;
+      font-size: clamp(14px, 2vw, 17px);
+      font-weight: 500;
+    }
+
+    .pathway:not(.active) .flow-step {
+      background: #718096;
+    }
+
+    .flow-arrow {
+      text-align: center;
+      color: var(--accent);
+      font-size: 24px;
+    }
+
+    .pathway:not(.active) .flow-arrow {
+      color: #718096;
+    }
+
+    .pathway-note {
+      margin-top: auto;
+      padding-top: 2vh;
+      font-size: clamp(13px, 1.8vw, 15px);
+      color: var(--text-muted);
+    }
+
+    /* Two column */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4vw;
+      margin: 2vh 0;
+    }
+
+    /* Example blocks */
+    .examples {
+      display: flex;
+      flex-direction: column;
+      gap: 2vh;
+      flex: 1;
+    }
+
+    .example {
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: clamp(16px, 3vw, 24px);
+      flex: 1;
+    }
+
+    .example-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: clamp(11px, 1.5vw, 13px);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 1vh;
+    }
+
+    .example-structured {
+      color: var(--accent);
+      font-weight: 500;
+      margin-bottom: 1vh;
+      font-size: clamp(15px, 2vw, 18px);
+    }
+
+    .example-note {
+      color: var(--text);
+      font-style: italic;
+      padding-left: 1rem;
+      border-left: 3px solid var(--success);
+      font-size: clamp(14px, 1.8vw, 16px);
+      line-height: 1.5;
+    }
+
+    /* Resources */
+    .resources {
+      list-style: none;
+      margin: 0;
+      font-size: clamp(16px, 2.5vw, 20px);
+    }
+
+    .resources li {
+      padding: clamp(14px, 2.5vw, 20px) 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .resources li:last-child {
+      border-bottom: none;
+    }
+
+    .resource-name {
+      font-weight: 600;
+    }
+
+    .resource-url {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85em;
+      color: var(--accent);
+    }
+
+    /* Takeaways */
+    .takeaways {
+      list-style: none;
+      margin: 0;
+      counter-reset: takeaway;
+    }
+
+    .takeaways li {
+      counter-increment: takeaway;
+      padding: clamp(16px, 2.5vw, 24px) 0;
+      padding-left: clamp(50px, 8vw, 70px);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      font-size: clamp(16px, 2.5vw, 20px);
+    }
+
+    .takeaways li:last-child {
+      border-bottom: none;
+    }
+
+    .takeaways li::before {
+      content: counter(takeaway);
+      position: absolute;
+      left: 0;
+      top: clamp(12px, 2vw, 20px);
+      width: clamp(36px, 5vw, 44px);
+      height: clamp(36px, 5vw, 44px);
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: clamp(16px, 2vw, 20px);
+    }
+
+    /* Opacity diagram */
+    .opacity-diagram {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2vw;
+      flex-wrap: wrap;
+      padding: 4vh 0;
+      flex: 1;
+    }
+
+    .diagram-box {
+      padding: clamp(16px, 3vw, 28px) clamp(20px, 4vw, 36px);
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 500;
+      font-size: clamp(14px, 2vw, 18px);
+    }
+
+    .diagram-box.patient { background: var(--accent); color: white; }
+    .diagram-box.intermediary { 
+      background: #f7fafc; 
+      border: 3px dashed var(--highlight);
+      min-width: 30vw;
+      padding: clamp(20px, 4vw, 40px);
+    }
+    .diagram-box.ai { background: var(--success); color: white; }
+
+    .intermediary-inner {
+      display: flex;
+      gap: 1.5vw;
+      justify-content: center;
+      margin-top: 2vh;
+      flex-wrap: wrap;
+    }
+
+    .intermediary-item {
+      background: #718096;
+      color: white;
+      padding: clamp(8px, 1.5vw, 14px) clamp(12px, 2vw, 20px);
+      border-radius: 4px;
+      font-size: clamp(12px, 1.6vw, 15px);
+    }
+
+    .diagram-arrow {
+      font-size: clamp(24px, 4vw, 36px);
+      color: #718096;
+    }
+
+    .intermediary-label {
+      color: var(--highlight);
+      font-weight: 600;
+      font-size: clamp(13px, 1.8vw, 16px);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .question-marks {
+      margin-top: 2vh;
+      font-size: clamp(20px, 3vw, 28px);
+      color: var(--highlight);
+      letter-spacing: 1rem;
+    }
+
+    /* Session flow */
+    .session-flow {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 4vw;
+      align-items: start;
+      flex: 1;
+    }
+
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5vh;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: clamp(16px, 3vw, 24px);
+    }
+
+    .step-number {
+      width: clamp(44px, 7vw, 56px);
+      height: clamp(44px, 7vw, 56px);
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: clamp(20px, 3vw, 26px);
+      flex-shrink: 0;
+    }
+
+    .step:last-child .step-number {
+      background: var(--success);
+    }
+
+    .step-content h4 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 600;
+      margin-bottom: 0.5vh;
+    }
+
+    .step-content p {
+      font-size: clamp(14px, 2vw, 17px);
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    .architecture {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5vh;
+      padding: 3vh 2vw;
+      background: #f7fafc;
+      border-radius: 8px;
+      min-width: 180px;
+    }
+
+    .arch-box {
+      padding: clamp(14px, 2.5vw, 22px) clamp(20px, 4vw, 36px);
+      border-radius: 6px;
+      text-align: center;
+      font-size: clamp(14px, 2vw, 17px);
+      font-weight: 500;
+      width: 100%;
+    }
+
+    .arch-box.agent { background: var(--accent); color: white; }
+    .arch-box.server { background: #718096; color: white; }
+    .arch-box.browser { background: var(--success); color: white; }
+
+    .arch-arrow {
+      color: #718096;
+      font-size: 24px;
+    }
+
+    .arch-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: clamp(11px, 1.5vw, 13px);
+      color: var(--accent);
+      text-align: center;
+      margin-top: 1vh;
+    }
+
+    /* Data types grid */
+    .data-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4vw;
+      flex: 1;
+    }
+
+    .data-col h3 {
+      margin-bottom: 2vh;
+    }
+
+    .data-col table {
+      font-size: clamp(13px, 1.8vw, 16px);
+    }
+
+    .data-col ul {
+      font-size: clamp(15px, 2vw, 18px);
+    }
+
+    .data-note {
+      font-size: clamp(13px, 1.6vw, 15px);
+      color: var(--text-muted);
+      margin-top: 2vh;
+      font-style: italic;
+    }
+
+    /* Regulatory flow */
+    .reg-flow {
+      display: flex;
+      justify-content: space-between;
+      align-items: stretch;
+      gap: 2vw;
+      padding: 4vh 0;
+      flex: 1;
+    }
+
+    .reg-box {
+      flex: 1;
+      background: var(--accent-light);
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      padding: clamp(24px, 4vw, 40px);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .reg-box h4 {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: clamp(18px, 2.5vw, 26px);
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 1.5vh;
+    }
+
+    .reg-box p {
+      font-size: clamp(14px, 1.8vw, 17px);
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    .reg-arrow {
+      display: flex;
+      align-items: center;
+      font-size: clamp(24px, 4vw, 36px);
+      color: var(--accent);
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+      .slide {
+        padding: 4vh 5vw;
+      }
+
+      .pathways {
+        grid-template-columns: 1fr;
+        gap: 3vh;
+      }
+
+      .two-col, .data-grid, .session-flow {
+        grid-template-columns: 1fr;
+        gap: 3vh;
+      }
+
+      .reg-flow {
+        flex-direction: column;
+        gap: 2vh;
+      }
+
+      .reg-arrow {
+        transform: rotate(90deg);
+        justify-content: center;
+      }
+
+      .opacity-diagram {
+        flex-direction: column;
+      }
+
+      .diagram-arrow {
+        transform: rotate(90deg);
+      }
+
+      .resources li {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .architecture {
+        width: 100%;
+        margin-top: 2vh;
+      }
+    }
+
+    /* Print */
+    @media print {
+      .slide {
+        page-break-after: always;
+        min-height: auto;
+        padding: 2cm;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Slide 1: Title -->
+  <div class="slide title-slide">
+    <span class="slide-number">01 / 08</span>
+    <h3>An Explainer Session</h3>
+    <h1>Health Skillz: Direct Patient Access for AI Agents</h1>
+    <p class="subtitle">How any AI agent can connect to patient portals via SMART on FHIR — and why TEFCA isn't yet delivering on its promise to patients</p>
+    <div class="authors">
+      <p>With <strong>ePatient Dave deBronkart</strong>, <strong>Hugo Campos</strong>, and <strong>Josh Mandel, MD</strong></p>
+    </div>
+  </div>
+
+  <!-- Slide 2: Two Paths -->
+  <div class="slide">
+    <span class="slide-number">02 / 08</span>
+    <h2>Two Paths to Your Health Data</h2>
+    
+    <div class="pathways">
+      <div class="pathway active">
+        <h3>Direct Patient Access API</h3>
+        <p style="font-size: clamp(14px, 1.8vw, 16px); color: var(--text-muted); margin-bottom: 2vh;">What we're demoing today</p>
+        <div class="pathway-flow">
+          <div class="flow-step">You</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="position: relative;">
+            Portal Login<br><small style="opacity: 0.8;">Provider #1</small>
+            <div style="position: absolute; right: -40px; top: 50%; transform: translateY(-50%); font-size: 20px; color: var(--accent);">↻</div>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">SMART on FHIR<br><small style="opacity: 0.8;">data flows to app</small></div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="background: var(--success);">AI Agent Analyzes</div>
+        </div>
+        <p class="pathway-note"><strong>Repeat for each provider.</strong> You need to know where your data lives + have portal credentials.</p>
+      </div>
+      
+      <div class="pathway">
+        <h3>TEFCA Network</h3>
+        <p style="font-size: clamp(14px, 1.8vw, 16px); color: var(--text-muted); margin-bottom: 2vh;">As implemented today</p>
+        <div class="pathway-flow">
+          <div class="flow-step">You</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Identity Verification<br><small style="opacity: 0.8;">(Clear, ID.me)</small></div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Record Locator Service<br><small style="opacity: 0.8;">finds where data exists</small></div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="background: #975a16; position: relative; border: 2px dashed var(--highlight);">
+            Portal Login #1, #2...<br><small style="opacity: 0.8;">site-by-site approval</small>
+            <div style="position: absolute; right: -40px; top: 50%; transform: translateY(-50%); font-size: 20px; color: #975a16;">↻</div>
+          </div>
+        </div>
+        <p class="pathway-note"><strong>Same portal-by-portal burden</strong> as direct access — plus the ID verification step upfront.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: The Core Difference -->
+  <div class="slide">
+    <span class="slide-number">03 / 08</span>
+    <h2>The Core Difference: Who Can Build?</h2>
+    
+    <div class="two-col" style="flex: 1; align-items: stretch;">
+      <div style="background: var(--accent-light); border: 2px solid var(--accent); border-radius: 8px; padding: clamp(24px, 4vw, 40px); display: flex; flex-direction: column;">
+        <h3 style="color: var(--accent);">Direct Access (SMART on FHIR)</h3>
+        <ul style="flex: 1;">
+          <li><strong>Anyone can build</strong> — solo developer, patient, hobbyist</li>
+          <li><strong>No partnerships required</strong></li>
+          <li><strong>Data flows directly</strong> — no intermediary</li>
+        </ul>
+        <div class="callout-success callout" style="margin-top: auto; margin-bottom: 0;">
+          <p style="margin: 0;"><strong>I built Health Skillz in a weekend</strong> because the standards let me.</p>
+        </div>
+      </div>
+      
+      <div style="background: #fff5f5; border: 2px solid var(--highlight); border-radius: 8px; padding: clamp(24px, 4vw, 40px); display: flex; flex-direction: column;">
+        <h3 style="color: var(--highlight);">TEFCA Individual Access</h3>
+        <p style="margin-bottom: 2vh;">To get your own data, you must become an "IAS Provider":</p>
+        <ul style="flex: 1;">
+          <li>Contract with approved identity verification service</li>
+          <li>Privacy notices, consent collection, breach notification</li>
+          <li>Compliance obligations that survive 50 years</li>
+        </ul>
+        <div class="callout-warning callout" style="margin-top: auto; margin-bottom: 0;">
+          <p style="margin: 0;"><strong>No "I just want my records" pathway.</strong></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 4: TEFCA Critique -->
+  <div class="slide">
+    <span class="slide-number">04 / 08</span>
+    <h2>What TEFCA Should Provide — But Doesn't</h2>
+    <p class="subtitle">Three principles we advocated for (Mandel, Pollak, Mandl — JMIR 2022)</p>
+
+    <table style="margin-bottom: 4vh;">
+      <tr>
+        <th style="width: 75%">Principle</th>
+        <th>Status</th>
+      </tr>
+      <tr>
+        <td><strong>1. Patients can query for data about themselves</strong></td>
+        <td><span class="status status-partial">PARTIAL</span></td>
+      </tr>
+      <tr>
+        <td><strong>2. Patients can know when their data are queried and shared</strong></td>
+        <td><span class="status status-no">NOT YET</span></td>
+      </tr>
+      <tr>
+        <td><strong>3. Patients can configure what is shared about them</strong></td>
+        <td><span class="status status-no">NOT YET</span></td>
+      </tr>
+    </table>
+
+    <div class="callout-warning callout">
+      <p><strong>To be direct: I am critiquing TEFCA.</strong></p>
+      <p>The networks have built policies and technical specifications that don't serve patient needs. Individual access still requires portal-by-portal login. There's no path for patients who want to build tools for themselves.</p>
+      <p style="margin-bottom: 0;"><strong>We deserve better.</strong></p>
+    </div>
+  </div>
+
+  <!-- Slide 6: Regulatory Foundation -->
+  <div class="slide">
+    <span class="slide-number">05 / 08</span>
+    <h2>The Regulatory Foundation</h2>
+
+    <div class="reg-flow">
+      <div class="reg-box">
+        <h4>21st Century Cures Act</h4>
+        <p>2016</p>
+        <p style="margin-top: 1vh;">Mandated patient access APIs</p>
+      </div>
+      <div class="reg-arrow">→</div>
+      <div class="reg-box">
+        <h4>ONC HTI-1 Rule</h4>
+        <p style="margin-top: 1vh;">Providers must support SMART on FHIR</p>
+      </div>
+      <div class="reg-arrow">→</div>
+      <div class="reg-box">
+        <h4>Information Blocking Rule</h4>
+        <p style="margin-top: 1vh;">Can't unreasonably prevent patient access</p>
+      </div>
+    </div>
+
+    <div class="callout-success callout" style="margin-top: 4vh;">
+      <p style="font-size: clamp(18px, 2.5vw, 22px);"><strong>Bottom line:</strong> Direct patient access is not a favor from your hospital — it's your legal right.</p>
+    </div>
+  </div>
+
+  <!-- Slide 7: Session Flow -->
+  <div class="slide">
+    <span class="slide-number">06 / 08</span>
+    <h2>What Happens in a Health Skillz Session</h2>
+
+    <div class="session-flow">
+      <div class="flow-steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h4>AI agent generates encryption keys</h4>
+            <p>ECDH keypair for end-to-end encryption</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h4>You click link → sign into hospital portal</h4>
+            <p>AI never sees your credentials</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h4>Hospital returns FHIR data → encrypted in your browser</h4>
+            <p>AES-256-GCM encryption before it leaves your device</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h4>Only your AI agent can decrypt</h4>
+            <p>Explores conditions, meds, labs, clinical notes</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="architecture">
+        <div class="arch-box agent">AI Agent</div>
+        <div class="arch-arrow">↕</div>
+        <div class="arch-box server">Server<br><small>(ciphertext only)</small></div>
+        <div class="arch-arrow">↕</div>
+        <div class="arch-box browser">Your Browser</div>
+        <div class="arch-label">← ECDH key exchange →</div>
+      </div>
+    </div>
+
+    <div class="callout-success callout">
+      <p><strong>Key properties:</strong> Server never sees plaintext. Hospital never sees the AI. You control what gets shared.</p>
+    </div>
+  </div>
+
+  <!-- Slide 7: What Data You Get -->
+  <div class="slide">
+    <span class="slide-number">07 / 08</span>
+    <h2>What Data You Get — And Why Notes Matter</h2>
+
+    <div class="data-grid" style="margin-bottom: 3vh;">
+      <div class="data-col">
+        <h3>Structured (FHIR Resources)</h3>
+        <p>What happened:</p>
+        <ul style="font-size: clamp(14px, 1.8vw, 16px);">
+          <li><code>Condition</code> — diagnosis codes</li>
+          <li><code>MedicationRequest</code> — drug, dose, instructions</li>
+          <li><code>Observation</code> — lab values, vitals</li>
+          <li><code>Procedure</code> — what was done</li>
+          <li><code>Encounter</code> — dates, providers</li>
+        </ul>
+      </div>
+      <div class="data-col">
+        <h3>Unstructured (Clinical Notes)</h3>
+        <p>Why it happened:</p>
+        <ul style="font-size: clamp(14px, 1.8vw, 16px);">
+          <li>The clinician's reasoning</li>
+          <li>Differential diagnosis</li>
+          <li>Assessment and plan</li>
+          <li>What was discussed with the patient</li>
+          <li>Context that gives meaning to the codes</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="examples" style="flex: 1;">
+      <div class="example">
+        <div class="example-structured">Structured: Metformin 500mg BID</div>
+        <div class="example-note">Note: "Started for pre-diabetes given A1c trend and family history; patient preferred medication over waiting."</div>
+      </div>
+      <div class="example">
+        <div class="example-structured">Structured: Creatinine 1.8 mg/dL (H)</div>
+        <div class="example-note">Note: "Likely pre-renal from dehydration; baseline was normal; will recheck after fluids."</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p style="margin: 0;"><strong>For AI to reason about your health, it needs the narrative</strong> — not just codes and values.</p>
+    </div>
+  </div>
+
+  <!-- Slide 8: Takeaways -->
+  <div class="slide">
+    <span class="slide-number">08 / 08</span>
+    <h2>Key Takeaways</h2>
+
+    <ol class="takeaways">
+      <li><strong>Patient access APIs work today</strong> — legally mandated, no gatekeepers required</li>
+      <li><strong>Direct connection = full data</strong> — including clinical notes essential for AI reasoning</li>
+      <li><strong>Health Skillz: any AI agent can connect</strong> — open source, end-to-end encrypted, no intermediary</li>
+      <li><strong>Trade-off:</strong> You need to know where your data is and have portal logins</li>
+      <li><strong>TEFCA should do better</strong> — patients deserve visibility, control, and the ability to build their own tools</li>
+    </ol>
+
+    <h3 style="margin-top: 5vh;">Resources</h3>
+    <ul class="resources">
+      <li>
+        <span class="resource-name">Health Skillz Source</span>
+        <span class="resource-url">github.com/jmandel/health-skillz</span>
+      </li>
+      <li>
+        <span class="resource-name">SMART on FHIR</span>
+        <span class="resource-url">smarthealthit.org</span>
+      </li>
+      <li>
+        <span class="resource-name">Epic Sandbox</span>
+        <span class="resource-url">fhircamila / epicepic1</span>
+      </li>
+      <li>
+        <span class="resource-name">JMIR Paper (2022)</span>
+        <span class="resource-url">"The Patient Role in a Federal National-Scale HIE"</span>
+      </li>
+    </ul>
+  </div>
+
+</body>
+</html>
