@@ -1,0 +1,495 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FHIR Terminology Operations — Conformance Requirements Across R4 / R5 / R6</title>
+<style>
+:root{--bg:#f8f9fa;--card:#fff;--border:#dee2e6;--text:#212529;--muted:#6c757d;
+  --shall:#dc3545;--should:#fd7e14;--must:#9c27b0;--may:#0d6efd;--new:#198754;--removed:#6c757d;--changed:#e9a000}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;padding:0 1rem 4rem}
+header{max-width:1400px;margin:0 auto;padding:2rem 0 1rem}
+header h1{font-size:1.6rem;font-weight:700}
+header p{color:var(--muted);margin-top:.25rem}
+.toc{max-width:1400px;margin:1rem auto;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1rem 1.5rem}
+.toc h2{font-size:1rem;margin-bottom:.5rem}
+.toc ul{list-style:none;columns:2;gap:1rem}
+.toc li{margin:.15rem 0}
+.toc a{color:var(--may);text-decoration:none;font-size:.9rem}
+.toc a:hover{text-decoration:underline}
+section{max-width:1400px;margin:2rem auto 0}
+section h2{font-size:1.3rem;font-weight:700;border-bottom:3px solid var(--shall);padding-bottom:.3rem;margin-bottom:1rem}
+section h3{font-size:1.05rem;font-weight:600;margin:1.5rem 0 .5rem;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:.75rem;margin:1rem auto;font-size:.8rem;max-width:1400px}
+.legend span{padding:2px 8px;border-radius:4px;font-weight:600}
+.l-shall{background:#dc354520;color:var(--shall)}
+.l-should{background:#fd7e1420;color:var(--should)}
+.l-must{background:#9c27b020;color:var(--must)}
+.l-may{background:#0d6efd20;color:var(--may)}
+.l-new{background:#19875420;color:var(--new)}
+.l-removed{background:#6c757d20;color:var(--removed)}
+.l-changed{background:#e9a00020;color:var(--changed)}
+table{width:100%;border-collapse:collapse;font-size:.82rem;margin-bottom:1.5rem;background:var(--card);border-radius:6px;overflow:hidden;border:1px solid var(--border)}
+thead{background:#343a40;color:#fff}
+th{padding:6px 8px;text-align:left;font-weight:600;white-space:nowrap}
+td{padding:5px 8px;border-top:1px solid var(--border);vertical-align:top}
+tr:hover td{background:#f1f3f5}
+.kw-shall{color:var(--shall);font-weight:700}
+.kw-should{color:var(--should);font-weight:700}
+.kw-must{color:var(--must);font-weight:700}
+.kw-may{color:var(--may);font-weight:700}
+.badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:.7rem;font-weight:700;vertical-align:middle}
+.b-new{background:#19875420;color:var(--new)}
+.b-removed{background:#6c757d20;color:var(--removed);text-decoration:line-through}
+.b-changed{background:#e9a00020;color:var(--changed)}
+.b-r4{background:#6f42c120;color:#6f42c1}
+.b-r5{background:#0d6efd20;color:#0d6efd}
+.b-r6{background:#dc354520;color:#dc3545}
+.check{color:var(--new)}.cross{color:var(--removed)}.dash{color:var(--muted)}
+td.param-name{font-family:'Cascadia Code','Fira Code',monospace;font-weight:600;white-space:nowrap}
+td.card{font-family:monospace;white-space:nowrap;text-align:center}
+td.type{font-family:monospace;font-size:.78rem}
+.conformance-block{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:1rem;margin-bottom:1rem}
+.conformance-block blockquote{margin:.5rem 0;padding-left:.75rem;border-left:3px solid var(--border);font-size:.85rem;color:#495057}
+.op-links{font-size:.8rem;color:var(--muted);margin-bottom:.5rem}
+.op-links a{color:var(--may);margin:0 .25rem}
+.note{background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:.75rem 1rem;font-size:.85rem;margin:1rem 0}
+footer{max-width:1400px;margin:3rem auto 0;padding:1rem 0;border-top:1px solid var(--border);color:var(--muted);font-size:.8rem;text-align:center}
+</style>
+</head>
+<body>
+<header>
+<h1>🔥 FHIR Terminology Operations — Conformance Evolution: R4 → R5 → R6</h1>
+<p>Systematic comparison of SHALL, SHOULD, MUST, and MAY requirements across FHIR R4 (4.0.1), R5 (5.0.0), and R6 (6.0.0-ballot3 CI Build)</p>
+</header>
+
+<div class="legend">
+  <span class="l-shall">SHALL</span>
+  <span class="l-should">SHOULD</span>
+  <span class="l-must">MUST</span>
+  <span class="l-may">MAY</span>
+  <span class="l-new">NEW in version</span>
+  <span class="l-changed">CHANGED</span>
+  <span class="l-removed">REMOVED</span>
+</div>
+
+<nav class="toc">
+<h2>Contents</h2>
+<ul>
+<li><a href="#cs-validate">1. CodeSystem/$validate-code</a></li>
+<li><a href="#cs-lookup">2. CodeSystem/$lookup</a></li>
+<li><a href="#cs-subsumes">3. CodeSystem/$subsumes</a></li>
+<li><a href="#vs-validate">4. ValueSet/$validate-code</a></li>
+<li><a href="#vs-expand">5. ValueSet/$expand</a></li>
+<li><a href="#cm-translate">6. ConceptMap/$translate</a></li>
+<li><a href="#cm-closure">7. ConceptMap/$closure</a></li>
+<li><a href="#unified">8. Unified Conformance Matrix</a></li>
+</ul>
+</nav>
+
+<!-- ==================== 1. CS $validate-code ==================== -->
+<section id="cs-validate">
+<h2>1. CodeSystem/$validate-code</h2>
+<p class="op-links">Sources:
+  <a href="https://hl7.org/fhir/R4/codesystem-operation-validate-code.html">R4</a>
+  <a href="https://hl7.org/fhir/R5/codesystem-operation-validate-code.html">R5</a>
+  <a href="https://build.fhir.org/codesystem-operation-validate-code.html">R6</a>
+</p>
+
+<h3>Conformance Statements</h3>
+<table>
+<thead><tr><th>#</th><th>Statement</th><th>Keyword</th><th>R4</th><th>R5</th><th>R6</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Client <span class="kw-shall">SHALL</span> provide one (and only one) of the parameters (code+system, coding, or codeableConcept)</td><td><span class="kw-shall">SHALL</span></td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>2</td><td>When validating a code or coding, code/system/version output parameters <span class="kw-should">SHOULD</span> be populated when possible</td><td><span class="kw-should">SHOULD</span></td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>3</td><td>When validating a CodeableConcept, the codeableConcept output parameter <span class="kw-should">SHOULD</span> be populated when possible</td><td><span class="kw-should">SHOULD</span></td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+</tbody></table>
+
+<h3>Unified Parameter Table</h3>
+<table>
+<thead><tr><th>Dir</th><th>Parameter</th><th>R4 Card</th><th>R4 Type</th><th>R5 Card</th><th>R5 Type</th><th>R6 Card</th><th>R6 Type</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>IN</td><td class="param-name">url</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">codeSystem</td><td class="card">0..1</td><td class="type">CodeSystem</td><td class="card">0..1</td><td class="type">CodeSystem</td><td class="card">0..1</td><td class="type">CodeSystem</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">code</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">version</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">display</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">coding</td><td class="card">0..1</td><td class="type">Coding</td><td class="card">0..1</td><td class="type">Coding</td><td class="card">0..1</td><td class="type">Coding</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">codeableConcept</td><td class="card">0..1</td><td class="type">CodeableConcept</td><td class="card">0..1</td><td class="type">CodeableConcept</td><td class="card">0..1</td><td class="type">CodeableConcept</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">date</td><td class="card">0..1</td><td class="type">dateTime</td><td class="card">0..1</td><td class="type">dateTime</td><td class="card">0..1</td><td class="type">dateTime</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">abstract</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">displayLanguage</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">result</td><td class="card">1..1</td><td class="type">boolean</td><td class="card">1..1</td><td class="type">boolean</td><td class="card">1..1</td><td class="type">boolean</td><td></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">message</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">display</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">code</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">system</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">version</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">codeableConcept</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">CodeableConcept</td><td class="card">0..1</td><td class="type">CodeableConcept</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">issues</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">OperationOutcome</td><td class="card">0..1</td><td class="type">OperationOutcome</td><td><span class="badge b-new">NEW R5</span></td></tr>
+</tbody></table>
+</section>
+
+<!-- ==================== 2. CS $lookup ==================== -->
+<section id="cs-lookup">
+<h2>2. CodeSystem/$lookup</h2>
+<p class="op-links">Sources:
+  <a href="https://hl7.org/fhir/R4/codesystem-operation-lookup.html">R4</a>
+  <a href="https://hl7.org/fhir/R5/codesystem-operation-lookup.html">R5</a>
+  <a href="https://build.fhir.org/codesystem-operation-lookup.html">R6</a>
+</p>
+
+<h3>Conformance Statements</h3>
+<table>
+<thead><tr><th>#</th><th>Statement</th><th>Keyword</th><th>R4</th><th>R5</th><th>R6</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Client <span class="kw-shall">SHALL</span> provide both a system and a code, either using system+code parameters, or in the coding parameter</td><td><span class="kw-shall">SHALL</span></td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+</tbody></table>
+
+<h3>Unified Parameter Table</h3>
+<table>
+<thead><tr><th>Dir</th><th>Parameter</th><th>R4 Card</th><th>R4 Type</th><th>R5 Card</th><th>R5 Type</th><th>R6 Card</th><th>R6 Type</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>IN</td><td class="param-name">code</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">system</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">version</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">coding</td><td class="card">0..1</td><td class="type">Coding</td><td class="card">0..1</td><td class="type">Coding</td><td class="card">0..1</td><td class="type">Coding</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">date</td><td class="card">0..1</td><td class="type">dateTime</td><td class="card">0..1</td><td class="type">dateTime</td><td class="card">0..1</td><td class="type">dateTime</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">displayLanguage</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">property</td><td class="card">0..*</td><td class="type">code</td><td class="card">0..*</td><td class="type">code</td><td class="card">0..*</td><td class="type">code</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">useSupplement</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">canonical</td><td class="card">0..*</td><td class="type">canonical</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">name</td><td class="card">1..1</td><td class="type">string</td><td class="card">1..1</td><td class="type">string</td><td class="card">1..1</td><td class="type">string</td><td></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">version</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">display</td><td class="card">1..1</td><td class="type">string</td><td class="card">1..1</td><td class="type">string</td><td class="card">1..1</td><td class="type">string</td><td></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">definition</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">designation.*</td><td class="card">0..*</td><td class="type">group</td><td class="card">0..*</td><td class="type">group</td><td class="card">0..*</td><td class="type">group</td><td></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">  .additionalUse</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">Coding</td><td class="card">0..*</td><td class="type">Coding</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">property.*</td><td class="card">0..*</td><td class="type">group</td><td class="card">0..*</td><td class="type">group</td><td class="card">0..*</td><td class="type">group</td><td></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">  .value</td><td class="card">0..1</td><td class="type">code|Coding|string|&hellip;</td><td class="card">0..1</td><td class="type">Coding|boolean|code|&hellip;</td><td class="card">0..1</td><td class="type">Element</td><td><span class="badge b-changed">TYPE R6</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">  .source</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">canonical</td><td class="card">0..1</td><td class="type">canonical</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">  .subproperty.value</td><td class="card">1..1</td><td class="type">code|Coding|string|&hellip;</td><td class="card">1..1</td><td class="type">Coding|boolean|code|&hellip;</td><td class="card">1..1</td><td class="type">Element</td><td><span class="badge b-changed">TYPE R6</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">  .subproperty.source</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">canonical</td><td class="card">0..1</td><td class="type">canonical</td><td><span class="badge b-new">NEW R5</span></td></tr>
+</tbody></table>
+</section>
+
+<!-- ==================== 3. CS $subsumes ==================== -->
+<section id="cs-subsumes">
+<h2>3. CodeSystem/$subsumes</h2>
+<p class="op-links">Sources:
+  <a href="https://hl7.org/fhir/R4/codesystem-operation-subsumes.html">R4</a>
+  <a href="https://hl7.org/fhir/R5/codesystem-operation-subsumes.html">R5</a>
+  <a href="https://build.fhir.org/codesystem-operation-subsumes.html">R6</a>
+</p>
+
+<h3>Conformance Statements</h3>
+<table>
+<thead><tr><th>#</th><th>Statement</th><th>Keyword</th><th>R4</th><th>R5</th><th>R6</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Client <span class="kw-shall">SHALL</span> provide both A and B codes, either as code or Coding parameters</td><td><span class="kw-shall">SHALL</span></td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+</tbody></table>
+<p class="note"><strong>Completely stable.</strong> Parameters, types, cardinalities, and conformance language are identical across R4, R5, and R6. The only R4→R5 change was an editorial typo fix (“both a and codes” → “both A and B codes”).</p>
+
+<h3>Unified Parameter Table</h3>
+<table>
+<thead><tr><th>Dir</th><th>Parameter</th><th>Card (all)</th><th>Type (all)</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>IN</td><td class="param-name">codeA</td><td class="card">0..1</td><td class="type">code</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">codeB</td><td class="card">0..1</td><td class="type">code</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">system</td><td class="card">0..1</td><td class="type">uri</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">version</td><td class="card">0..1</td><td class="type">string</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">codingA</td><td class="card">0..1</td><td class="type">Coding</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">codingB</td><td class="card">0..1</td><td class="type">Coding</td><td></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">outcome</td><td class="card">1..1</td><td class="type">code</td><td>Binding: ConceptSubsumptionOutcome (Required)</td></tr>
+</tbody></table>
+</section>
+
+<!-- ==================== 4. VS $validate-code ==================== -->
+<section id="vs-validate">
+<h2>4. ValueSet/$validate-code</h2>
+<p class="op-links">Sources:
+  <a href="https://hl7.org/fhir/R4/valueset-operation-validate-code.html">R4</a>
+  <a href="https://hl7.org/fhir/R5/valueset-operation-validate-code.html">R5</a>
+  <a href="https://build.fhir.org/valueset-operation-validate-code.html">R6</a>
+</p>
+
+<h3>Conformance Statements</h3>
+<table>
+<thead><tr><th>#</th><th>Statement</th><th>Keyword</th><th>R4</th><th>R5</th><th>R6</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>If context provided without system, server <span class="kw-shall">SHALL</span> ensure the code is not ambiguous</td><td><span class="kw-shall">SHALL</span></td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>2</td><td>When validating code/coding, code, system, version output params <span class="kw-should">SHOULD</span> be populated when possible</td><td><span class="kw-should">SHOULD</span></td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>3</td><td>When validating CodeableConcept, codeableConcept output param <span class="kw-should">SHOULD</span> be populated when possible</td><td><span class="kw-should">SHOULD</span></td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>4</td><td>If a code is provided, either a system or inferSystem <span class="kw-should">SHOULD</span> be provided</td><td><span class="kw-should">SHOULD</span></td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+<tr><td>5</td><td>If force-valueset-version overrides, the version used <span class="kw-shall">SHALL</span> be in expansion parameters</td><td><span class="kw-shall">SHALL</span></td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+</tbody></table>
+
+<h3>Unified Parameter Table</h3>
+<table>
+<thead><tr><th>Dir</th><th>Parameter</th><th>R4 Card</th><th>R4 Type</th><th>R5 Card</th><th>R5 Type</th><th>R6 Card</th><th>R6 Type</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>IN</td><td class="param-name">url</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">context</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">valueSet</td><td class="card">0..1</td><td class="type">ValueSet</td><td class="card">0..1</td><td class="type">ValueSet</td><td class="card">0..1</td><td class="type">ValueSet</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">valueSetVersion</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">code</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">system</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">systemVersion</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">display</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">coding</td><td class="card">0..1</td><td class="type">Coding</td><td class="card">0..1</td><td class="type">Coding</td><td class="card">0..1</td><td class="type">Coding</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">codeableConcept</td><td class="card">0..1</td><td class="type">CodeableConcept</td><td class="card">0..1</td><td class="type">CodeableConcept</td><td class="card">0..1</td><td class="type">CodeableConcept</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">date</td><td class="card">0..1</td><td class="type">dateTime</td><td class="card">0..1</td><td class="type">dateTime</td><td class="card">0..1</td><td class="type">dateTime</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">abstract</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td></td></tr>
+<tr><td>IN</td><td class="param-name">displayLanguage</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..*</td><td class="type">code</td><td><span class="badge b-changed">CARD R6</span></td></tr>
+<tr><td>IN</td><td class="param-name">useSupplement</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">canonical</td><td class="card">0..*</td><td class="type">canonical</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr><td>IN</td><td class="param-name">lenient-display-validation</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">boolean</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td>IN</td><td class="param-name">valueset-membership-only</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">boolean</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td>IN</td><td class="param-name">inferSystem</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">boolean</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td>IN</td><td class="param-name">system-version</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">canonical</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td>IN</td><td class="param-name">check-system-version</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">canonical</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td>IN</td><td class="param-name">default-valueset-version</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">canonical</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td>IN</td><td class="param-name">check-valueset-version</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">canonical</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td>IN</td><td class="param-name">force-valueset-version</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">canonical</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td>IN</td><td class="param-name">manifest</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">canonical(Library)</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td>IN</td><td class="param-name">tx-resource</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">Resource</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">result</td><td class="card">1..1</td><td class="type">boolean</td><td class="card">1..1</td><td class="type">boolean</td><td class="card">1..1</td><td class="type">boolean</td><td></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">message</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">display</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">code</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">system</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">version</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">codeableConcept</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">CodeableConcept</td><td class="card">0..1</td><td class="type">CodeableConcept</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">issues</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">OperationOutcome</td><td class="card">0..1</td><td class="type">OperationOutcome</td><td><span class="badge b-new">NEW R5</span></td></tr>
+</tbody></table>
+</section>
+
+<!-- ==================== 5. VS $expand ==================== -->
+<section id="vs-expand">
+<h2>5. ValueSet/$expand</h2>
+<p class="op-links">Sources:
+  <a href="https://hl7.org/fhir/R4/valueset-operation-expand.html">R4</a>
+  <a href="https://hl7.org/fhir/R5/valueset-operation-expand.html">R5</a>
+  <a href="https://build.fhir.org/valueset-operation-expand.html">R6</a>
+</p>
+
+<h3>Conformance Statements</h3>
+<table>
+<thead><tr><th>#</th><th>Statement</th><th>Keyword</th><th>R4</th><th>R5</th><th>R6</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Servers <span class="kw-should">SHOULD</span> honor count request for hierarchical expansions</td><td><span class="kw-should">SHOULD</span></td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>2</td><td>If force-system-version overrides, the version used <span class="kw-shall">SHALL</span> be represented in expansion parameters</td><td><span class="kw-shall">SHALL</span></td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>3</td><td>Servers generating expansions <span class="kw-should">SHOULD</span> record all affecting parameters in ValueSet.expansion.parameter</td><td><span class="kw-should">SHOULD</span></td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>4</td><td>If expansion too large, server <span class="kw-may">MAY</span> return error (too-costly)</td><td><span class="kw-may">MAY</span></td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>5</td><td>If paging supported, server <span class="kw-shall">SHALL</span> support both offset and count</td><td><span class="kw-shall">SHALL</span></td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>6</td><td>If code systems not fully understood, server <span class="kw-shall">SHALL</span> return an error</td><td><span class="kw-shall">SHALL</span></td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>7</td><td>Server <span class="kw-should">SHOULD</span> populate expansion id with a new UUID</td><td><span class="kw-should">SHOULD</span></td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>8</td><td>If excludeNested is true, the expansion <span class="kw-must">MUST</span> be flat (no nesting)</td><td><span class="kw-must">MUST</span></td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>9</td><td>ValueSet.status and .version from definition <span class="kw-shall">SHALL</span> be persisted to expansion instance</td><td><span class="kw-shall">SHALL</span></td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>10</td><td>If handle-unclosed-expansion is false, server <span class="kw-shall">SHALL</span> return error if value set is unclosed</td><td><span class="kw-shall">SHALL</span></td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+<tr><td>11</td><td>If force-valueset-version overrides, the version used <span class="kw-shall">SHALL</span> be in expansion parameters</td><td><span class="kw-shall">SHALL</span></td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+</tbody></table>
+
+<h3>Unified Parameter Table (IN only — OUT is always: return 1..1 ValueSet)</h3>
+<table>
+<thead><tr><th>Parameter</th><th>R4 Card</th><th>R4 Type</th><th>R5 Card</th><th>R5 Type</th><th>R6 Card</th><th>R6 Type</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td class="param-name">url</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td></td></tr>
+<tr><td class="param-name">valueSet</td><td class="card">0..1</td><td class="type">ValueSet</td><td class="card">0..1</td><td class="type">ValueSet</td><td class="card">0..1</td><td class="type">ValueSet</td><td></td></tr>
+<tr><td class="param-name">valueSetVersion</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td></td></tr>
+<tr><td class="param-name">context</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td class="card">0..1</td><td class="type">uri</td><td></td></tr>
+<tr><td class="param-name">contextDirection</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td></td></tr>
+<tr><td class="param-name">filter</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td></td></tr>
+<tr><td class="param-name">filterProperty</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">code</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td class="param-name">date</td><td class="card">0..1</td><td class="type">dateTime</td><td class="card">0..1</td><td class="type">dateTime</td><td class="card">0..1</td><td class="type">dateTime</td><td></td></tr>
+<tr><td class="param-name">offset</td><td class="card">0..1</td><td class="type">integer</td><td class="card">0..1</td><td class="type">integer</td><td class="card">0..1</td><td class="type">integer</td><td></td></tr>
+<tr><td class="param-name">count</td><td class="card">0..1</td><td class="type">integer</td><td class="card">0..1</td><td class="type">integer</td><td class="card">0..1</td><td class="type">integer</td><td></td></tr>
+<tr><td class="param-name">includeDesignations</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td></td></tr>
+<tr><td class="param-name">designation</td><td class="card">0..*</td><td class="type">string</td><td class="card">0..*</td><td class="type">string</td><td class="card">0..*</td><td class="type">string</td><td></td></tr>
+<tr><td class="param-name">includeDefinition</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td></td></tr>
+<tr><td class="param-name">activeOnly</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td></td></tr>
+<tr><td class="param-name">useSupplement</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">canonical</td><td class="card">0..*</td><td class="type">canonical</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr><td class="param-name">excludeNested</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td></td></tr>
+<tr><td class="param-name">excludeNotForUI</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td></td></tr>
+<tr><td class="param-name">excludePostCoordinated</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td class="card">0..1</td><td class="type">boolean</td><td></td></tr>
+<tr><td class="param-name">displayLanguage</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td class="card">0..1</td><td class="type">code</td><td></td></tr>
+<tr><td class="param-name">property</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">string</td><td class="card">0..*</td><td class="type">string</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr><td class="param-name">handle-unclosed-expansion</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">boolean</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td class="param-name">exclude-system</td><td class="card">0..*</td><td class="type">canonical</td><td class="card">0..*</td><td class="type">canonical</td><td class="card">0..*</td><td class="type">canonical</td><td></td></tr>
+<tr><td class="param-name">system-version</td><td class="card">0..*</td><td class="type">canonical</td><td class="card">0..*</td><td class="type">canonical</td><td class="card">0..*</td><td class="type">canonical</td><td></td></tr>
+<tr><td class="param-name">check-system-version</td><td class="card">0..*</td><td class="type">canonical</td><td class="card">0..*</td><td class="type">canonical</td><td class="card">0..*</td><td class="type">canonical</td><td></td></tr>
+<tr><td class="param-name">force-system-version</td><td class="card">0..*</td><td class="type">canonical</td><td class="card">0..*</td><td class="type">canonical</td><td class="card">0..*</td><td class="type">canonical</td><td></td></tr>
+<tr><td class="param-name">default-valueset-version</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">canonical</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td class="param-name">check-valueset-version</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">canonical</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td class="param-name">force-valueset-version</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">canonical</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td class="param-name">manifest</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..1</td><td class="type">canonical(Library)</td><td><span class="badge b-new">NEW R6</span></td></tr>
+<tr><td class="param-name">tx-resource</td><td class="card">—</td><td class="type">—</td><td class="card">—</td><td class="type">—</td><td class="card">0..*</td><td class="type">Resource</td><td><span class="badge b-new">NEW R6</span></td></tr>
+</tbody></table>
+</section>
+
+<!-- ==================== 6. CM $translate ==================== -->
+<section id="cm-translate">
+<h2>6. ConceptMap/$translate</h2>
+<p class="op-links">Sources:
+  <a href="https://hl7.org/fhir/R4/conceptmap-operation-translate.html">R4</a>
+  <a href="https://hl7.org/fhir/R5/conceptmap-operation-translate.html">R5</a>
+  <a href="https://build.fhir.org/conceptmap-operation-translate.html">R6</a>
+</p>
+<p class="note">This operation was <strong>substantially restructured</strong> from R4→R5: parameters were renamed to source*/target* prefixes, the <code>reverse</code> flag was replaced by explicit target* input parameters, and the equivalence model changed from ConceptMapEquivalence to ConceptMapRelationship. R5→R6 completed the rename of <code>system</code>→<code>sourceSystem</code> and <code>version</code>→<code>sourceVersion</code>, and broadened choice types to <code>Element</code>.</p>
+
+<h3>Conformance Statements</h3>
+<table>
+<thead><tr><th>#</th><th>Statement</th><th>Keyword</th><th>R4</th><th>R5</th><th>R6</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>One (and only one) of the code identification parameters <span class="kw-shall">SHALL</span> be provided</td><td><span class="kw-shall">SHALL</span></td><td class="dash">—<sup>*</sup></td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>2</td><td>A source value set <span class="kw-should">SHOULD</span> always be provided</td><td><span class="kw-should">SHOULD</span></td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>3</td><td>Servers <span class="kw-may">MAY</span> choose to still accept the old parameter names (system, version)</td><td><span class="kw-may">MAY</span></td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+</tbody></table>
+<p style="font-size:.8rem;color:var(--muted)">* R4 used lowercase “must” (not formal RFC 2119 keyword); R5 upgraded to formal SHALL.</p>
+
+<h3>Unified IN Parameter Table</h3>
+<table>
+<thead><tr><th>R4 Name</th><th>R5 Name</th><th>R6 Name</th><th>Card (all)</th><th>R4 Type</th><th>R5 Type</th><th>R6 Type</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td class="param-name">url</td><td class="param-name">url</td><td class="param-name">url</td><td class="card">0..1</td><td class="type">uri</td><td class="type">uri</td><td class="type">uri</td><td></td></tr>
+<tr><td class="param-name">conceptMap</td><td class="param-name">conceptMap</td><td class="param-name">conceptMap</td><td class="card">0..1</td><td class="type">ConceptMap</td><td class="type">ConceptMap</td><td class="type">ConceptMap</td><td></td></tr>
+<tr><td class="param-name">conceptMapVersion</td><td class="param-name">conceptMapVersion</td><td class="param-name">conceptMapVersion</td><td class="card">0..1</td><td class="type">string</td><td class="type">string</td><td class="type">string</td><td></td></tr>
+<tr><td class="param-name">code</td><td class="param-name">sourceCode</td><td class="param-name">sourceCode</td><td class="card">0..1</td><td class="type">code</td><td class="type">code</td><td class="type">code</td><td><span class="badge b-changed">RENAMED R5</span></td></tr>
+<tr><td class="param-name">system</td><td class="param-name">system</td><td class="param-name">sourceSystem</td><td class="card">0..1</td><td class="type">uri</td><td class="type">uri</td><td class="type">uri</td><td><span class="badge b-changed">RENAMED R6</span></td></tr>
+<tr><td class="param-name">version</td><td class="param-name">version</td><td class="param-name">sourceVersion</td><td class="card">0..1</td><td class="type">string</td><td class="type">string</td><td class="type">string</td><td><span class="badge b-changed">RENAMED R6</span></td></tr>
+<tr><td class="param-name">source</td><td class="param-name">sourceScope</td><td class="param-name">sourceScope</td><td class="card">0..1</td><td class="type">uri</td><td class="type">uri</td><td class="type">uri</td><td><span class="badge b-changed">RENAMED R5</span></td></tr>
+<tr><td class="param-name">coding</td><td class="param-name">sourceCoding</td><td class="param-name">sourceCoding</td><td class="card">0..1</td><td class="type">Coding</td><td class="type">Coding</td><td class="type">Coding</td><td><span class="badge b-changed">RENAMED R5</span></td></tr>
+<tr><td class="param-name">codeableConcept</td><td class="param-name">sourceCodeableConcept</td><td class="param-name">sourceCodeableConcept</td><td class="card">0..1</td><td class="type">CC</td><td class="type">CC</td><td class="type">CC</td><td><span class="badge b-changed">RENAMED R5</span></td></tr>
+<tr><td class="param-name">target</td><td class="param-name">—</td><td class="param-name">—</td><td class="card">0..1</td><td class="type">uri</td><td class="type">—</td><td class="type">—</td><td><span class="badge b-removed">REMOVED R5</span></td></tr>
+<tr><td class="param-name">targetsystem</td><td class="param-name">targetSystem</td><td class="param-name">targetSystem</td><td class="card">0..1</td><td class="type">uri</td><td class="type">uri</td><td class="type">uri</td><td></td></tr>
+<tr><td class="param-name">—</td><td class="param-name">targetCode</td><td class="param-name">targetCode</td><td class="card">0..1</td><td class="type">—</td><td class="type">uri*</td><td class="type">code</td><td><span class="badge b-new">NEW R5</span> <span class="badge b-changed">TYPE R6</span></td></tr>
+<tr><td class="param-name">—</td><td class="param-name">targetCoding</td><td class="param-name">targetCoding</td><td class="card">0..1</td><td class="type">—</td><td class="type">uri*</td><td class="type">Coding</td><td><span class="badge b-new">NEW R5</span> <span class="badge b-changed">TYPE R6</span></td></tr>
+<tr><td class="param-name">—</td><td class="param-name">targetCodeableConcept</td><td class="param-name">targetCodeableConcept</td><td class="card">0..1</td><td class="type">—</td><td class="type">uri*</td><td class="type">CC</td><td><span class="badge b-new">NEW R5</span> <span class="badge b-changed">TYPE R6</span></td></tr>
+<tr><td class="param-name">—</td><td class="param-name">targetScope</td><td class="param-name">targetScope</td><td class="card">0..1</td><td class="type">—</td><td class="type">uri</td><td class="type">uri</td><td><span class="badge b-new">NEW R5</span></td></tr>
+<tr><td class="param-name">dependency.*</td><td class="param-name">dependency.*</td><td class="param-name">dependency.*</td><td class="card">0..*</td><td class="type">group</td><td class="type">group</td><td class="type">group</td><td></td></tr>
+<tr><td class="param-name">reverse</td><td class="param-name">—</td><td class="param-name">—</td><td class="card">0..1</td><td class="type">boolean</td><td class="type">—</td><td class="type">—</td><td><span class="badge b-removed">REMOVED R5</span></td></tr>
+</tbody></table>
+<p style="font-size:.8rem;color:var(--muted)">* R5 lists targetCode/targetCoding/targetCodeableConcept as type <code>uri</code> — likely a spec error; R6 corrects to proper types. CC = CodeableConcept.</p>
+
+<h3>Key OUT Parameter Changes</h3>
+<table>
+<thead><tr><th>R4 Name</th><th>R5/R6 Name</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td class="param-name">match.equivalence</td><td class="param-name">match.relationship</td><td><span class="badge b-changed">RENAMED R5</span> — new value set: equivalent / source-is-broader / source-is-narrower / not-related-to</td></tr>
+<tr><td class="param-name">match.source</td><td class="param-name">match.originMap</td><td><span class="badge b-changed">RENAMED R5</span></td></tr>
+<tr><td class="param-name">—</td><td class="param-name">match.property.*</td><td><span class="badge b-new">NEW R5</span> — mapping properties (uri + value)</td></tr>
+<tr><td class="param-name">—</td><td class="param-name">match.dependsOn.*</td><td><span class="badge b-new">NEW R5</span> — dependency data</td></tr>
+<tr><td class="param-name">match.product.element/.concept</td><td class="param-name">match.product.attribute/.value</td><td><span class="badge b-changed">RENAMED R5</span>; card tightened 0..1 → 1..1; R6 type → Element</td></tr>
+</tbody></table>
+</section>
+
+<!-- ==================== 7. CM $closure ==================== -->
+<section id="cm-closure">
+<h2>7. ConceptMap/$closure</h2>
+<p class="op-links">Sources:
+  <a href="https://hl7.org/fhir/R4/conceptmap-operation-closure.html">R4</a>
+  <a href="https://hl7.org/fhir/R5/conceptmap-operation-closure.html">R5</a>
+  <span style="color:var(--removed)">✘ Removed in R6 (404)</span>
+</p>
+<p class="note"><strong>Removed in R6.</strong> Maturity regressed from FMM 3 (R4) → FMM 1 (R5) → removed. The operation maintained a client-side transitive closure table. No conformance keywords (SHALL/SHOULD/MUST/MAY) appeared in either R4 or R5.</p>
+
+<h3>Parameter Table</h3>
+<table>
+<thead><tr><th>Dir</th><th>Parameter</th><th>R4 Card</th><th>R4 Type</th><th>R5 Card</th><th>R5 Type</th><th>R6</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>IN</td><td class="param-name">name</td><td class="card">1..1</td><td class="type">string</td><td class="card">1..1</td><td class="type">string</td><td class="cross">✘</td><td rowspan="4"><span class="badge b-removed">REMOVED R6</span></td></tr>
+<tr><td>IN</td><td class="param-name">concept</td><td class="card">0..*</td><td class="type">Coding</td><td class="card">0..*</td><td class="type">Coding</td><td class="cross">✘</td></tr>
+<tr><td>IN</td><td class="param-name">version</td><td class="card">0..1</td><td class="type">string</td><td class="card">0..1</td><td class="type">string</td><td class="cross">✘</td></tr>
+<tr style="background:#e8f5e9"><td>OUT</td><td class="param-name">return</td><td class="card">1..1</td><td class="type">ConceptMap</td><td class="card">1..1</td><td class="type">ConceptMap</td><td class="cross">✘</td></tr>
+</tbody></table>
+<p style="font-size:.85rem">R5 changed the return documentation from “equivalence: equal, specializes, subsumes, unmatched” to “relationship: equivalent, source-is-broader-than-target, source-is-narrower-than-target” — aligning with the ConceptMap restructuring.</p>
+</section>
+
+<!-- ==================== 8. UNIFIED CONFORMANCE MATRIX ==================== -->
+<section id="unified">
+<h2>8. Unified Conformance Matrix</h2>
+<p>Every SHALL, SHOULD, MUST, and MAY statement across all 7 terminology operations, showing when each was introduced and whether it persists.</p>
+
+<h3>8a. All SHALL Requirements</h3>
+<table>
+<thead><tr><th>#</th><th>Operation</th><th>Requirement</th><th>R4</th><th>R5</th><th>R6</th></tr></thead>
+<tbody>
+<tr><td>S1</td><td>CS/$validate-code</td><td>Client SHALL provide one (and only one) of code+system, coding, or codeableConcept</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>S2</td><td>CS/$lookup</td><td>Client SHALL provide both a system and a code (via system+code or coding)</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>S3</td><td>CS/$subsumes</td><td>Client SHALL provide both A and B codes (as code or Coding parameters)</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>S4</td><td>VS/$validate-code</td><td>Server SHALL ensure code is not ambiguous without a system (when context provided)</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>S5</td><td>VS/$expand</td><td>If force-system-version overrides, version SHALL be in expansion parameters</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>S6</td><td>VS/$expand</td><td>If paging supported, SHALL support both offset and count</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>S7</td><td>VS/$expand</td><td>If code systems not fully understood, SHALL return an error</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>S8</td><td>CM/$translate</td><td>One (and only one) source/target identification param SHALL be provided</td><td class="dash">—<sup>†</sup></td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>S9</td><td>VS/$expand</td><td>ValueSet.status and .version SHALL be persisted to expansion instance</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>S10</td><td>VS/$validate-code</td><td>If force-valueset-version overrides, version SHALL be in expansion params</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+<tr><td>S11</td><td>VS/$expand</td><td>If handle-unclosed-expansion=false, SHALL return error if value set unclosed</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+<tr><td>S12</td><td>VS/$expand</td><td>If force-valueset-version overrides, version SHALL be in expansion params</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+</tbody></table>
+<p style="font-size:.8rem;color:var(--muted)">† R4 used lowercase “must” (not formal RFC 2119); upgraded to SHALL in R5.</p>
+
+<h3>8b. All SHOULD Requirements</h3>
+<table>
+<thead><tr><th>#</th><th>Operation</th><th>Requirement</th><th>R4</th><th>R5</th><th>R6</th></tr></thead>
+<tbody>
+<tr><td>SH1</td><td>VS/$expand</td><td>Servers SHOULD honor count for hierarchical expansions</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>SH2</td><td>VS/$expand</td><td>Servers SHOULD record all affecting parameters in expansion.parameter</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>SH3</td><td>VS/$expand</td><td>Server SHOULD populate expansion id with a new UUID</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>SH4</td><td>CM/$translate</td><td>A source value set SHOULD always be provided</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>SH5</td><td>CS/$validate-code</td><td>code/system/version output SHOULD be populated when possible (code/coding input)</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>SH6</td><td>CS/$validate-code</td><td>codeableConcept output SHOULD be populated when possible (CC input)</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>SH7</td><td>VS/$validate-code</td><td>code/system/version output SHOULD be populated when possible</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>SH8</td><td>VS/$validate-code</td><td>codeableConcept output SHOULD be populated when possible</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>SH9</td><td>VS/$validate-code</td><td>If code provided, system or inferSystem SHOULD be provided</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+</tbody></table>
+
+<h3>8c. All MUST Requirements</h3>
+<table>
+<thead><tr><th>#</th><th>Operation</th><th>Requirement</th><th>R4</th><th>R5</th><th>R6</th></tr></thead>
+<tbody>
+<tr><td>M1</td><td>VS/$expand</td><td>If excludeNested=true, expansion MUST be flat (no nesting)</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+</tbody></table>
+
+<h3>8d. All MAY Provisions</h3>
+<table>
+<thead><tr><th>#</th><th>Operation</th><th>Provision</th><th>R4</th><th>R5</th><th>R6</th></tr></thead>
+<tbody>
+<tr><td>Y1</td><td>VS/$expand</td><td>Server MAY return too-costly error for large expansions</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>Y2</td><td>CM/$translate</td><td>Servers MAY still accept old parameter names (system, version)</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+</tbody></table>
+
+<h3>8e. Evolution Summary</h3>
+<table>
+<thead><tr><th>Metric</th><th>R4</th><th>R5</th><th>R6</th><th>Trend</th></tr></thead>
+<tbody>
+<tr><td>Total SHALL statements</td><td>7</td><td>9</td><td>12</td><td>↑ Tightening</td></tr>
+<tr><td>Total SHOULD statements</td><td>4</td><td>8</td><td>9</td><td>↑ More guidance</td></tr>
+<tr><td>Total MUST statements</td><td>0</td><td>1</td><td>1</td><td>→ Stable</td></tr>
+<tr><td>Total MAY provisions</td><td>1</td><td>1</td><td>2</td><td>→ Stable</td></tr>
+<tr><td>Operations available</td><td>7</td><td>7</td><td>6</td><td>↓ $closure removed</td></tr>
+<tr><td>Total unique IN params (all ops)</td><td>~84</td><td>~92</td><td>~115</td><td>↑ R6 adds version control + tx-resource</td></tr>
+<tr><td>$validate-code OUT params</td><td>3</td><td>8</td><td>8</td><td>↑ R5 added echo-back + issues</td></tr>
+<tr><td>$translate maturity</td><td>FMM 3</td><td>FMM 1</td><td>Normative</td><td>Restructured then stabilized</td></tr>
+</tbody></table>
+
+<h3>8f. Key Cross-Cutting Themes</h3>
+<table>
+<thead><tr><th>Theme</th><th>First Appeared</th><th>Operations Affected</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td><strong>useSupplement</strong></td><td>R5</td><td>$lookup, $expand, VS/$validate-code</td><td>Explicit supplement application during operations</td></tr>
+<tr><td><strong>Output echo-back</strong></td><td>R5</td><td>CS/$validate-code, VS/$validate-code</td><td>New code/system/version/codeableConcept/issues OUT params</td></tr>
+<tr><td><strong>Version control family</strong></td><td>R4 (system), R6 (valueset)</td><td>$expand, VS/$validate-code</td><td>system-version / check-system-version / force-system-version + valueset equivalents</td></tr>
+<tr><td><strong>manifest + tx-resource</strong></td><td>R6</td><td>$expand, VS/$validate-code</td><td>Library-based expansion config + inline resource passing</td></tr>
+<tr><td><strong>Element type broadening</strong></td><td>R6</td><td>$lookup, $translate</td><td>Choice types replaced with open Element type</td></tr>
+<tr><td><strong>source*/target* naming</strong></td><td>R5 (partial), R6 (complete)</td><td>$translate</td><td>Disambiguated parameter names for bidirectional translation</td></tr>
+<tr><td><strong>ConceptMap relationship model</strong></td><td>R5</td><td>$translate, $closure</td><td>equivalence → relationship; new value set codes</td></tr>
+</tbody></table>
+</section>
+
+<footer>
+<p>Generated from FHIR R4 (4.0.1), R5 (5.0.0), and R6 CI-Build (6.0.0-ballot3). Sources: <a href="https://hl7.org/fhir/R4/terminology-module.html">R4</a>, <a href="https://hl7.org/fhir/R5/terminology-module.html">R5</a>, <a href="https://build.fhir.org/terminology-module.html">R6</a>. R6 content is draft and subject to change.</p>
+</footer>
+
+</body>
+</html>
