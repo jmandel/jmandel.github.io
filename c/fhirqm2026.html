@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporting MSSP Quality Measures from FHIR Exports</title>
+<style>
+  :root{color-scheme:dark;
+    --page:#0d0d0d;--surface:#1a1a19;--surface-2:#212120;--ink:#fff;--ink-2:#c3c2b7;--muted:#898781;
+    --grid:#2c2c2a;--baseline:#383835;--hairline:rgba(255,255,255,.10);
+    --blue:#3987e5;--aqua:#199e70;--orange:#d95926;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--sans:system-ui,-apple-system,"Segoe UI",sans-serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink-2);font-family:var(--sans);font-size:15.5px;line-height:1.65}
+  .wrap{max-width:820px;margin:0 auto;padding:40px 18px 90px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+  h1{color:var(--ink);font-size:clamp(22px,4vw,29px);line-height:1.2;margin:.4em 0 .4em;font-weight:660}
+  h2{color:var(--ink);font-size:18px;font-weight:650;margin:2.1em 0 .5em}
+  p{margin:1em 0;max-width:78ch}
+  em{color:var(--ink);font-style:normal;font-weight:600}
+  .figure{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:16px;margin:24px -50px}
+  @media(max-width:960px){.figure{margin:24px 0}}
+  .figure svg{display:block;width:100%;height:auto;min-width:680px}
+  .figwrap{overflow-x:auto}
+  .caption{font-size:12.5px;color:var(--muted);margin:8px 2px 0;line-height:1.55;max-width:100ch}
+  .tblwrap{overflow-x:auto;border:1px solid var(--hairline);border-radius:12px;background:var(--surface);margin:22px -50px}
+  @media(max-width:960px){.tblwrap{margin:22px 0}}
+  table{border-collapse:collapse;width:100%;min-width:760px;font-size:12.8px}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--grid);vertical-align:top}
+  thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+  tbody th{font-weight:600;color:var(--ink);font-size:12.8px;white-space:nowrap}
+  tr:last-child td,tr:last-child th{border-bottom:0}
+  .fine{font-size:13px;color:var(--muted);border-top:1px solid var(--hairline);padding-top:16px;margin-top:44px;max-width:100ch}
+  .fine a{color:var(--blue);text-decoration:none}
+  .ex{background:var(--surface-2);border:1px solid var(--hairline);border-radius:9px;padding:9px 12px;margin:8px 0 18px;max-width:78ch}
+  .ex pre{margin:0;font-family:var(--mono);font-size:11.3px;line-height:1.55;color:var(--ink-2);white-space:pre-wrap;overflow-x:auto}
+  .exlab{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px}
+</style></head>
+<body><div class="wrap">
+<div class="eyebrow">medicare shared savings program · a working proposal</div>
+<h1>Reporting MSSP quality measures from FHIR exports</h1>
+<p style="font-size:14.5px;color:var(--muted)">A plan for completing Medicare CQM reporting for the current
+performance year using certified FHIR APIs, USCDI data, and AI-assisted abstraction, within existing program rules.</p>
+
+<h2>Pathway selection</h2>
+<p>CMS&rsquo;s Shared Savings Program scores ACOs on five clinical quality measures, and each ACO chooses among four "collection types" — the defined formats for producing and submitting those measures. Two of the four, eCQMs and the proposed Medicare eCQMs, must be calculated inside certified EHR software, so an independent FHIR pipeline cannot produce them. The other two, MIPS CQMs and Medicare CQMs, use narrative specifications; any data source and computation method is permitted.</p>
+
+<p>This plan uses the Medicare CQM type. Its denominator is limited to Medicare beneficiaries that CMS enumerates, with identifiers, in quarterly lists distributed through the ACO Management System (ACO-MS): the panel is known in advance and patient matching is identifier lookup. Panels run to thousands of patients per participant organization, a volume that per-patient API calls can cover where bulk export is unavailable. Submission is JSON filed through CMS&rsquo;s Quality Payment Program (QPP) submissions API. An ACO can run this pipeline alongside its existing registry for the first year and choose which output to submit.</p>
+
+<p>A caution about what certification establishes. Certified EHR products are required to offer a standardized FHIR API — the §170.315(g)(10) certification criterion — that exposes patient data as US Core profiles covering the USCDI data classes. Certification is a product test: the vendor&rsquo;s software demonstrates, against test suites, that it can expose USCDI data through the API. It says nothing about whether a particular provider organization&rsquo;s live deployment has mapped its actual data into those classes. At runtime, an element a measure needs can be missing from the API response even though it exists in the record — behind an unmapped local code, in a flowsheet that was never connected to the interface, in a scanned document, or only in note text. Experience so far: A1c results and blood pressures generally do arrive as structured US Core Observations; records of colonoscopies done years ago at other facilities, outside mammograms, and the documented follow-up plan required by the depression-screening measure often do not. The design accounts for this with an augmentation path: the same API carries the full text of clinical notes (a USCDI data class), and the pipeline reads those notes to recover elements the structured mapping missed.</p>
+
+<p>The Medicare CQM type has no deemed-pass provisions (the rules that treat the quality standard as met for ACOs completing all-payer digital reporting). The composite score must clear the program&rsquo;s percentile threshold, or the sharing rate is scaled to the score — a score of 72 yields 72% of the full-rate payment. In a rescoring of the 2024 ACO cohort under current and proposed rules, roughly 25–40% of ACOs clear the threshold on this pathway; in 2022 and 2023, under the prior measurement regime, every ACO passed. Evidence the pipeline recovers raises measured rates, and measured rates determine points and payment.</p>
+
+<p>The same machinery applies to the all-payer MIPS CQM pathway (identical specifications and submission format, larger population). This plan starts with the smaller one.</p>
+
+<p>Measures in scope: glycemic control &gt;9% (Quality ID 001), controlling high blood pressure (236), breast cancer screening (112), colorectal cancer screening (113), and depression screening and follow-up (134), filed under their Medicare CQM identifiers (001SSP and so on).</p>
+
+
+<div class="figure">
+  <div class="figwrap"><svg viewBox="0 0 940 240"><line x1="270.0" y1="8" x2="270.0" y2="208" stroke="var(--grid)"/><text x="270.0" y="222" text-anchor="middle" font-size="9.5" fill="var(--muted)" font-variant-numeric="tabular-nums">0%</text><line x1="407.5" y1="8" x2="407.5" y2="208" stroke="var(--grid)"/><text x="407.5" y="222" text-anchor="middle" font-size="9.5" fill="var(--muted)" font-variant-numeric="tabular-nums">25%</text><line x1="545.0" y1="8" x2="545.0" y2="208" stroke="var(--grid)"/><text x="545.0" y="222" text-anchor="middle" font-size="9.5" fill="var(--muted)" font-variant-numeric="tabular-nums">50%</text><line x1="682.5" y1="8" x2="682.5" y2="208" stroke="var(--grid)"/><text x="682.5" y="222" text-anchor="middle" font-size="9.5" fill="var(--muted)" font-variant-numeric="tabular-nums">75%</text><line x1="820.0" y1="8" x2="820.0" y2="208" stroke="var(--grid)"/><text x="820.0" y="222" text-anchor="middle" font-size="9.5" fill="var(--muted)" font-variant-numeric="tabular-nums">100%</text><text x="260" y="23" text-anchor="end" font-size="11" font-weight="650" fill="var(--ink)">Diabetes: A1c &gt;9%</text><text x="260" y="36" text-anchor="end" font-size="9" fill="var(--muted)">(001, lower is better)</text><rect x="270" y="14" width="51.7" height="13" rx="3" fill="var(--muted)" opacity="0.65"/><text x="328.7" y="24.5" font-size="9.5" fill="var(--ink-2)" font-variant-numeric="tabular-nums">9.4%  <tspan fill="var(--muted)">· abstraction era, n=391</tspan></text><rect x="270" y="31" width="151.8" height="13" rx="3" fill="var(--blue)" opacity="0.9"/><text x="428.8" y="41.5" font-size="9.5" fill="var(--ink-2)" font-variant-numeric="tabular-nums">27.6%  <tspan fill="var(--muted)">· all-payer digital, n=55</tspan></text><rect x="270" y="48" width="179.3" height="13" rx="3" fill="var(--aqua)" opacity="0.9"/><text x="456.3" y="58.5" font-size="9.5" fill="var(--ink-2)" font-variant-numeric="tabular-nums">32.6%  <tspan fill="var(--muted)">· Medicare CQM, n=22</tspan></text><text x="260" y="88" text-anchor="end" font-size="11" font-weight="650" fill="var(--ink)">Depression screening</text><text x="260" y="101" text-anchor="end" font-size="9" fill="var(--muted)">(134)</text><rect x="270" y="79" width="447.7" height="13" rx="3" fill="var(--muted)" opacity="0.65"/><text x="724.7" y="89.5" font-size="9.5" fill="var(--ink-2)" font-variant-numeric="tabular-nums">81.4%  <tspan fill="var(--muted)">· abstraction era, n=391</tspan></text><rect x="270" y="96" width="302.5" height="13" rx="3" fill="var(--blue)" opacity="0.9"/><text x="579.5" y="106.5" font-size="9.5" fill="var(--ink-2)" font-variant-numeric="tabular-nums">55.0%  <tspan fill="var(--muted)">· all-payer digital, n=51</tspan></text><rect x="270" y="113" width="402.05" height="13" rx="3" fill="var(--aqua)" opacity="0.9"/><text x="679.05" y="123.5" font-size="9.5" fill="var(--ink-2)" font-variant-numeric="tabular-nums">73.1%  <tspan fill="var(--muted)">· Medicare CQM, n=26</tspan></text><text x="260" y="153" text-anchor="end" font-size="11" font-weight="650" fill="var(--ink)">Blood pressure control</text><text x="260" y="166" text-anchor="end" font-size="9" fill="var(--muted)">(236)</text><rect x="270" y="144" width="436.7" height="13" rx="3" fill="var(--muted)" opacity="0.65"/><text x="713.7" y="154.5" font-size="9.5" fill="var(--ink-2)" font-variant-numeric="tabular-nums">79.4%  <tspan fill="var(--muted)">· abstraction era, n=391</tspan></text><rect x="270" y="161" width="395.45" height="13" rx="3" fill="var(--blue)" opacity="0.9"/><text x="672.45" y="171.5" font-size="9.5" fill="var(--ink-2)" font-variant-numeric="tabular-nums">71.9%  <tspan fill="var(--muted)">· all-payer digital, n=53</tspan></text><rect x="270" y="178" width="333.3" height="13" rx="3" fill="var(--aqua)" opacity="0.9"/><text x="610.3" y="188.5" font-size="9.5" fill="var(--ink-2)" font-variant-numeric="tabular-nums">60.6%  <tspan fill="var(--muted)">· Medicare CQM, n=24</tspan></text></svg></div>
+  <p class="caption">Mean measured rates for the same measures under three reporting methods, all financially reconciled ACOs,
+performance year 2024 (CMS public use files). The differences reflect measurement method: sampled manual
+abstraction (the retired Web Interface) found more qualifying evidence than computation over full populations from
+structured data. Under the flat benchmarks proposed for Medicare CQMs, ten points of measured rate correspond to
+one achievement point, about 1.25 points of composite score; in the 2024 cohort, missing the passing standard cost
+savings-earning ACOs a mean of roughly $4M relative to full-rate payment.</p>
+</div>
+
+<h2>The pipeline</h2>
+<div class="figure"><div class="figwrap"><svg viewBox="0 0 940 150"><rect x="8.0" y="26" width="136" height="96" rx="10" fill="var(--surface-2)" stroke="var(--baseline)"/><text x="76.0" y="46" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">Roster</text><text x="76.0" y="63" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">ACO-MS quarterly list;</text><text x="76.0" y="76" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">map patients to</text><text x="76.0" y="89" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">participant orgs</text><line x1="147.0" y1="74.0" x2="159.6" y2="74.0" stroke="var(--muted)" stroke-width="1.6"/><path d="M 159.6 70.0 L 164.6 74.0 L 159.6 78.0 Z" fill="var(--muted)"/><rect x="165.6" y="26" width="136" height="96" rx="10" fill="var(--surface-2)" stroke="var(--baseline)"/><text x="233.6" y="46" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">Export</text><text x="233.6" y="63" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">Group/$export, or</text><text x="233.6" y="76" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">per-patient US Core</text><text x="233.6" y="89" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">API loops</text><line x1="304.6" y1="74.0" x2="317.20000000000005" y2="74.0" stroke="var(--muted)" stroke-width="1.6"/><path d="M 317.20000000000005 70.0 L 322.20000000000005 74.0 L 317.20000000000005 78.0 Z" fill="var(--muted)"/><rect x="323.2" y="26" width="136" height="96" rx="10" fill="var(--surface-2)" stroke="var(--baseline)"/><text x="391.2" y="46" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">Gap triage</text><text x="391.2" y="63" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">structured data:</text><text x="391.2" y="76" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">resolved vs</text><text x="391.2" y="89" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">unresolved, per</text><text x="391.2" y="102" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">measure element</text><line x1="462.2" y1="74.0" x2="474.8" y2="74.0" stroke="var(--muted)" stroke-width="1.6"/><path d="M 474.8 70.0 L 479.8 74.0 L 474.8 78.0 Z" fill="var(--muted)"/><rect x="480.79999999999995" y="26" width="136" height="96" rx="10" fill="var(--surface-2)" stroke="var(--baseline)"/><text x="548.8" y="46" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">Abstraction</text><text x="548.8" y="63" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">LLMs read notes for</text><text x="548.8" y="76" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">unresolved cases;</text><text x="548.8" y="89" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">outputs carry</text><text x="548.8" y="102" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">provenance</text><line x1="619.8" y1="74.0" x2="632.4" y2="74.0" stroke="var(--muted)" stroke-width="1.6"/><path d="M 632.4 70.0 L 637.4 74.0 L 632.4 78.0 Z" fill="var(--muted)"/><rect x="638.4" y="26" width="136" height="96" rx="10" fill="var(--surface-2)" stroke="var(--baseline)"/><text x="706.4" y="46" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">Computation</text><text x="706.4" y="63" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">TypeScript over FHIR;</text><text x="706.4" y="76" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">two independent</text><text x="706.4" y="89" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">implementations,</text><text x="706.4" y="102" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">shared test deck</text><line x1="777.4" y1="74.0" x2="790.0" y2="74.0" stroke="var(--muted)" stroke-width="1.6"/><path d="M 790.0 70.0 L 795.0 74.0 L 790.0 78.0 Z" fill="var(--muted)"/><rect x="796.0" y="26" width="136" height="96" rx="10" fill="var(--surface-2)" stroke="var(--baseline)"/><text x="864.0" y="46" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">Submission</text><text x="864.0" y="63" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">QPP JSON (registry);</text><text x="864.0" y="76" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">75% completeness</text><text x="864.0" y="89" text-anchor="middle" font-size="9.3" fill="var(--ink-2)">tracked throughout</text></svg></div></div>
+<p><em>Roster.</em> Ingest the quarterly eligibility list from ACO-MS. Map each listed beneficiary to the participant organizations likely to hold their records, using attribution data and claims feeds.</p>
+<div class="ex"><span class="exlab">example</span>
+<pre>Eligibility list row:   MBI 1EG4-TE5-MK73 · DOB 1948-03-12 · SMITH, JANET
+Claims history shows:   TIN 84-1234567 (Lakeside Primary Care) — 9 E&amp;M visits
+                        TIN 84-7654321 (Front Range Cardiology) — 2 visits
+Mapped to:              Lakeside (primary record source), Front Range (secondary)</pre></div>
+
+<p><em>Export.</em> For each participant organization, retrieve the USCDI payload through the certified API surface: the FHIR Bulk Data Access operation (<code>Group/$export</code>) against a managed group of listed beneficiaries where the installed vendor version supports it, per-patient US Core API calls where it does not. Target resources: Condition, Observation (laboratory and vital signs), Procedure, DiagnosticReport, Encounter, and DocumentReference for clinical notes, which the abstraction step reads.</p>
+<div class="ex"><span class="exlab">example</span>
+<pre>POST /fhir/Group/aco-medicare-cqm-panel/$export
+     ?_type=Condition,Observation,Procedure,DiagnosticReport,Encounter,DocumentReference
+→ 202 Accepted, poll status URL…
+→ complete: observation_1.ndjson (48,112), documentreference_1.ndjson (61,480), …
+One NDJSON line: {"resourceType":"Observation","code":{"coding":[{"system":"http://loinc.org",
+  "code":"4548-4","display":"Hemoglobin A1c"}]},"valueQuantity":{"value":8.2,"unit":"%"}, …}</pre></div>
+
+<p><em>Gap triage.</em> For each denominator patient and measure, determine from structured data whether the element is resolved (numerator met, exclusion met, or definitively unmet) or unresolved. Unresolved cases proceed to abstraction; this step determines the abstraction workload. Expected pattern by measure:</p>
+
+<div class="tblwrap"><table>
+<thead><tr><th>Measure</th><th>What the numerator needs</th><th>Structured source (US Core)</th><th>Expected structured resolution</th><th>What abstraction recovers</th></tr></thead>
+<tbody>
+<tr><th>001 · Glycemic control</th><td>Most recent A1c of the year &gt;9% (inverse)</td><td>Observation (laboratory)</td><td>High</td><td>Results from outside labs mentioned in notes</td></tr>
+<tr><th>236 · Blood pressure</th><td>Most recent BP &lt;140/90</td><td>Observation (vital signs)</td><td>High</td><td>Readings recorded only in note text; home readings</td></tr>
+<tr><th>112 · Breast cancer screening</th><td>Mammogram within ~27 months</td><td>DiagnosticReport / Procedure</td><td>Medium — outside imaging often absent</td><td>References to outside mammograms in narrative and scanned reports</td></tr>
+<tr><th>113 · Colorectal screening</th><td>Colonoscopy within 10 years, stool-based FIT within 1 year, or alternatives</td><td>Procedure / DiagnosticReport</td><td>Low–medium — decade-long lookback spans organizations</td><td>History sections, outside procedure reports, patient-reported history</td></tr>
+<tr><th>134 · Depression screening</th><td>Standardized instrument, plus a documented follow-up plan when positive</td><td>Observation (survey), rarely complete</td><td>Low — the follow-up plan is almost never structured</td><td>Instrument scores and, critically, the follow-up plan documented in the note</td></tr>
+</tbody></table></div>
+<div class="ex"><span class="exlab">example</span>
+<pre>Patient 1EG4-TE5-MK73 · measure 113 (colorectal screening):
+  structured search → Procedure 45378 (colonoscopy) performed 2019-06-14 → within 10 yr
+  → RESOLVED, numerator met. No abstraction needed.
+Patient 2ZH8-QA1-PR40 · measure 113:
+  structured search → no colonoscopy, no FIT result on file
+  → UNRESOLVED → queue 14 clinical notes for abstraction.</pre></div>
+<p><em>Abstraction.</em> Language models read the note corpus for unresolved cases and extract the missing elements. Each finding is emitted as a FHIR resource with a reference to the source note and the supporting text span. CMS may audit submissions; the references support audit response.</p>
+<div class="ex"><span class="exlab">example</span>
+<pre>From a 2026-02-11 progress note: "…had a screening colonoscopy at Regional Endoscopy
+in 2019, normal; repeat in 10 years per report reviewed today."
+Emitted resource: Procedure { code: SNOMED 73761001 (colonoscopy),
+  performedDateTime: "2019", derivedFrom: DocumentReference/doc-8817,
+  extension: { sourceText: "screening colonoscopy at Regional Endoscopy in 2019…" } }</pre></div>
+
+<p><em>Computation.</em> Measures are computed in TypeScript over the assembled resources. Two implementations are built — one translated from the Clinical Quality Language (CQL) logic published with the corresponding eCQM specifications, one written from CMS&rsquo;s narrative specifications, which are the governing text for this collection type — and run against a shared test deck of synthetic and hand-constructed edge cases (hospice exclusion, denominator exceptions, the ten-year colonoscopy lookback, the follow-up-plan timing window). Disagreements are resolved against the specification.</p>
+<div class="ex"><span class="exlab">example</span>
+<pre>CQL (from the CMS130 eCQM):   exists ["Procedure": "Colonoscopy"] C
+                                where C.performed ends 10 years or less before
+                                end of "Measurement Period"
+TypeScript:                    procedures.some(p =&gt; inValueSet(p.code, colonoscopyVS)
+                                &amp;&amp; withinYears(endOf(p.performed), mp.end, 10))</pre></div>
+
+<p><em>Submission.</em> Emit QPP JSON measurement sets (registry submission type) and file through the QPP Submissions API during the January–March window. Track data completeness per measure against the eligibility list throughout; a measure below 75% completeness is voided regardless of performance.</p>
+<div class="ex"><span class="exlab">example</span>
+<pre>{ "measurementSets": [{ "submissionMethod": "registry", "programName": "appPlus",
+  "measurements": [{ "measureId": "113SSP", "value": {
+    "performanceMet": 312, "performanceNotMet": 105,
+    "eligiblePopulationExclusion": 12, "eligiblePopulation": 458 } }] }] }
+Completeness check: (312+105+12)/458 = 93.7% ≥ 75% ✓</pre></div>
+
+
+<h2>Components worth building in common</h2>
+<p>Most of this is non-differentiating infrastructure: a per-vendor, per-version inventory of Bulk FHIR and US Core capability, with observed throughput and known defects; group-management and export-orchestration tooling (list-to-group synchronization, retries, incremental re-export via <code>_since</code>, rate limits for the per-patient fallback); gap-triage rules per measure; an abstraction harness with dual-model adjudication, escalation on disagreement, human spot-check sampling with published error rates, and calibration against patients who have both structured and narrative evidence; a profile for abstracted resources carrying provenance; the measure-logic test deck; per-practice completeness dashboards.</p>
+
+
+<h2>Schedule</h2>
+<p>Submission for the current performance year closes March 31. August: assemble the working group, recruit two or three volunteer ACOs with cooperative participant organizations, complete the endpoint inventory against their EHR installations, ingest the Q3 eligibility list. September–October: export orchestration running; first full-population pulls; abstraction workload sized. November: abstraction at scale; both measure implementations passing the test deck; first end-to-end rates, compared against each ACO&rsquo;s prior-year reported rates. December: completeness remediation; abstraction spot-review; logic freeze. January: validation against the QPP submissions test environment; reconciliation against the incumbent registry&rsquo;s parallel output. February–March: submit, with the registry output retained as the fallback.</p>
+
+<p>The parallel run yields paired, same-patient results from two measurement methods. That is calibration data relevant to CMS&rsquo;s proposed transition to FHIR-based measures, and to comments on the CY2027 proposed rule (due September 14) asking CMS to sponsor dual reporting before any cutover.</p>
+
+
+<h2>Relationship to the 2030 proposal</h2>
+<p>This plan does not build toward the proposed 2030 architecture — QI-Core-profiled measures executed by certified CQL engines — and does not depend on it. In our view the case for a healthcare-specific DSL and certified execution engine has weakened: AI tools translate measure definitions into ordinary code, and shared test suites verify the results. The pipeline described here uses the API surface that exists, and the data infrastructure it builds is usable under any future measurement approach.</p>
+
+
+<p class="fine"><em>Sources for the quantitative claims.</em> Measured-rate comparison and pass-rate history from
+the CMS <a href="https://data.cms.gov/medicare-shared-savings-program/performance-year-financial-and-quality-results">Shared
+Savings Program results public use files</a> (PY2022–2024); collection-type rules and the quality performance
+standard per <a href="https://www.ecfr.gov/current/title-42/chapter-IV/subchapter-B/part-425/subpart-F/section-425.512">42
+CFR 425.512</a> and CMS APP reporting guidance; forward pass-rate estimates and dollar figures from a counterfactual
+rescoring of the PY2024 cohort against published 2026 benchmark files under current and proposed (CMS-1848-P) rules
+— methodology available separately. Comments on CMS-1848-P are due September 14, 2026.</p>
+</div></body></html>
